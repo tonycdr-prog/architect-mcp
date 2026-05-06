@@ -62,4 +62,44 @@ describe("promoted stack-pack executable detectors", () => {
 
     assert.equal(findings.some((finding) => finding.code === "ARCH008_ENV_SCATTER"), false);
   });
+
+  it("keeps executable behavior when a pack rule is renamed but triggerKind remains", () => {
+    const contract = generateContract({
+      idea: "A Hono API",
+      stack: {
+        backend: "Hono"
+      },
+      verification: ["npm test"]
+    }, ["hono"]);
+    contract.fileRules = contract.fileRules.map((rule) => ({
+      ...rule,
+      name: "Route composition budget",
+      triggerKind: "route-thinness",
+      detectors: [{ kind: "route-thinness", description: "Flags oversized routes." }]
+    }));
+
+    const findings = reviewFileSummaries([
+      { path: "src/server/routes/users.ts", lines: 260 }
+    ], contract);
+
+    assert.equal(findings.some((finding) => finding.code === "ARCH004_THIN_CONTROLLER"), true);
+  });
+
+  it("uses generic client-server codes for non-Supabase client-boundary rules", () => {
+    const contract = generateContract({
+      idea: "A Next.js app",
+      stack: {
+        frontend: "Next.js"
+      },
+      verification: ["npm test"]
+    }, ["nextjs"]);
+
+    const findings = reviewFileSummaries([
+      { path: "src/app/dashboard/page.tsx", lines: 80, hasUseClient: true }
+    ], contract);
+
+    assert.equal(findings.some((finding) => finding.message.includes("Explicit client boundaries")), true);
+    assert.equal(findings.some((finding) => finding.code === "ARCH003_CLIENT_SERVER_LEAK"), true);
+    assert.equal(findings.some((finding) => finding.code === "ARCH013_SUPABASE_SPLIT"), false);
+  });
 });

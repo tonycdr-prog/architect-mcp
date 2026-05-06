@@ -401,7 +401,7 @@ describe("stack pack workflow", () => {
   });
 
   it("proposes, reviews, promotes, and diffs stack pack candidates from local source text", async () => {
-    const sourceText = await readFile("/Users/tonycordner/Documents/GitHub/architect-mcp/stack-sources/nextjs.md", "utf8");
+    const sourceText = await readFile(new URL("../stack-sources/nextjs.md", import.meta.url), "utf8");
     const strategy = stackPackExpansionStrategy();
     const candidate = proposeStackPackRules({
       stackName: "Acme Next Runtime",
@@ -806,5 +806,28 @@ describe("grillMe", () => {
 
     assert.equal(result.ready, false);
     assert.equal(result.challenges.some((challenge) => challenge.field === "stack.deployment" && challenge.severity === "blocker"), true);
+  });
+
+  it("does not truncate blocker challenges behind pressure tests", () => {
+    const result = grillMe({
+      idea: "Hosted app that scans local filesystem paths.",
+      users: "Admins, teams, owners, and customers.",
+      coreFlows: ["scan workspace", "review findings", "invite team", "manage billing", "configure policy", "export report"],
+      stack: {
+        frontend: "React",
+        database: "Postgres",
+        auth: "OIDC",
+        deployment: "Hosted HTTP"
+      },
+      storage: "Persist reviews in a database.",
+      enforcement: "Block in CI.",
+      risk: "Unauthorized account access and hosted filesystem reads."
+    });
+
+    const blockers = result.challenges.filter((challenge) => challenge.severity === "blocker");
+    assert.equal(blockers.some((challenge) => challenge.field === "stack.backend"), true);
+    assert.equal(blockers.some((challenge) => challenge.field === "stack.auth"), true);
+    assert.equal(blockers.some((challenge) => challenge.field === "stack.deployment"), true);
+    assert.equal(blockers.some((challenge) => challenge.field === "verification"), true);
   });
 });

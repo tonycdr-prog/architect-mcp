@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { buildQualityRequirementsProfile, evaluateRepoPlanQuality, runRepoQualityEvalScenarios, suggestQualityFollowUpQuestions } from "../src/domain/repoQualityEval.js";
+import { auditGeneratedRepoQuality, buildQualityRequirementsProfile, evaluateRepoPlanQuality, runRepoQualityEvalScenarios, suggestQualityFollowUpQuestions } from "../src/domain/repoQualityEval.js";
 import { createArchitectServer } from "../src/server/createArchitectServer.js";
 
 describe("repo quality eval layer", () => {
@@ -72,6 +72,34 @@ describe("repo quality eval layer", () => {
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG002_ENV_EXAMPLE_MISSING"), true);
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG007_SETUP_DOCS_MISSING"), true);
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG008_AGENTS_MD_WEAK"), true);
+  });
+
+  it("treats missing generated-repo evidence as hard gates", () => {
+    const result = auditGeneratedRepoQuality({
+      profile: buildQualityRequirementsProfile({
+        userLevel: "beginner",
+        goals: ["Build an admin app that stores customer data"],
+        constraints: ["Runs on the web", "Success means setup and tests work"]
+      }),
+      plan: {
+        envVars: ["DATABASE_URL"]
+      }
+    });
+
+    assert.equal(result.decision, "fix_before_generate");
+    for (const code of ["RQG002_ENV_EXAMPLE_MISSING", "RQG003_FAKE_CI", "RQG004_FAKE_TESTS", "RQG007_SETUP_DOCS_MISSING", "RQG008_AGENTS_MD_WEAK"]) {
+      assert.equal(result.hardGates.some((gate) => gate.code === code), true, `${code} missing`);
+    }
+  });
+
+  it("uses stack preference as quality context", () => {
+    const profile = buildQualityRequirementsProfile({
+      goals: ["Build an app for admins"],
+      stackPreference: "Supabase"
+    });
+
+    assert.equal(profile.constraints.some((constraint) => /Supabase/.test(constraint)), true);
+    assert.equal(profile.knownRisks.includes("database"), true);
   });
 
   it("passes a boring maintainable plan with real proof", () => {

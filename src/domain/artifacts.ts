@@ -2,6 +2,13 @@ import { renderAgentInstructions } from "./agentInstructions.js";
 import { generateBuildPlan } from "./buildPlan.js";
 import { renderContractMarkdown } from "./contract.js";
 import { validateRepoArtifacts } from "./artifactValidation.js";
+import {
+  renderCopilotInstructions,
+  renderGitHubCiWorkflow,
+  renderGitHubLabelerConfig,
+  renderGitHubLabelerWorkflow,
+  renderPullRequestTemplate
+} from "./githubRepoArtifacts.js";
 import type { ArchitectureContract, ProjectBrief, RepoArtifact, ScaffoldPlanItem } from "./types.js";
 
 export function generateRepoArtifacts(contract: ArchitectureContract, brief?: ProjectBrief): RepoArtifact[] {
@@ -36,6 +43,31 @@ export function generateRepoArtifacts(contract: ArchitectureContract, brief?: Pr
         "*.gif",
         "*.mp4"
       ].join("\n")
+    },
+    {
+      path: ".github/copilot-instructions.md",
+      description: "GitHub Copilot repository instructions aligned with architect-mcp guardrails.",
+      content: renderCopilotInstructions(contract, brief)
+    },
+    {
+      path: ".github/labeler.yml",
+      description: "GitHub labeler rules for repo areas and review ownership.",
+      content: renderGitHubLabelerConfig()
+    },
+    {
+      path: ".github/workflows/labeler.yml",
+      description: "GitHub Actions workflow that applies labels to pull requests.",
+      content: renderGitHubLabelerWorkflow()
+    },
+    {
+      path: ".github/workflows/ci.yml",
+      description: "GitHub Actions workflow that runs real verification checks on pull requests.",
+      content: renderGitHubCiWorkflow(contract, brief)
+    },
+    {
+      path: ".github/pull_request_template.md",
+      description: "Pull request template that preserves MCP verification and handoff discipline.",
+      content: renderPullRequestTemplate(contract, brief)
     },
     {
       path: "docs/build-plan.md",
@@ -89,6 +121,31 @@ export function generateScaffoldPlan(contract: ArchitectureContract): ScaffoldPl
       path: "docs/build-plan.md",
       action: "create-file",
       rationale: "Commit the ordered implementation slices before feature files are generated."
+    },
+    {
+      path: ".github/copilot-instructions.md",
+      action: "create-file",
+      rationale: "Give GitHub Copilot repo-specific boundaries, commands, and review expectations."
+    },
+    {
+      path: ".github/labeler.yml",
+      action: "create-file",
+      rationale: "Classify pull requests by repo area so review and triage do not depend on manual memory."
+    },
+    {
+      path: ".github/workflows/labeler.yml",
+      action: "create-file",
+      rationale: "Run the labeler with least required permissions on pull requests."
+    },
+    {
+      path: ".github/workflows/ci.yml",
+      action: "create-file",
+      rationale: "Run typecheck, tests, build, and staged MCP readiness on pull requests."
+    },
+    {
+      path: ".github/pull_request_template.md",
+      action: "create-file",
+      rationale: "Require verification, MCP review, assumptions, and handoff context in every PR."
     },
     {
       path: "tests",
