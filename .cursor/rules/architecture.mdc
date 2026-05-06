@@ -1,0 +1,12 @@
+---
+description: Architecture guardrails for architect-mcp
+alwaysApply: true
+---
+
+# Architecture Guardrails
+
+- Run /grill-me before starting new product behavior.
+- Keep MCP tool handlers thin; put reusable logic in src/domain.
+- Do not create monolithic entry files.
+- Keep AGENTS.md, docs/architecture-contract.md, and docs/build-plan.md aligned.
+- Run npm run typecheck, npm test, and npm run build before handing off.

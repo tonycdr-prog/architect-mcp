@@ -1,0 +1,24 @@
+{
+  "brief": {
+    "idea": "A small SaaS dashboard for teams to review AI-generated pull requests.",
+    "users": "Engineering leads and solo founders",
+    "coreFlows": [
+      "connect repo",
+      "review architecture findings",
+      "export agent instructions"
+    ],
+    "stack": {
+      "frontend": "Next.js",
+      "backend": "Node API",
+      "database": "Postgres",
+      "auth": "Supabase Auth"
+    }
+  },
+  "format": "agents-md",
+  "stackPackIds": [
+    "nextjs",
+    "node-api",
+    "postgres",
+    "supabase"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "auth0",
+  "name": "Auth0 Authentication",
+  "version": "0.1.0",
+  "rationale": "Auth0 integrations need clear server-owned session, token, and authorization boundaries so UI code does not handle secrets or trust decisions.",
+  "sources": [
+    {
+      "label": "Auth0 ingested llms.txt snapshot",
+      "url": "https://auth0.com/llms.txt",
+      "note": "Derived from stack-sources/ingested/auth0.txt fetched 2026-05-05T18:32:45.957Z with sha256 e74ba42b930b5744fc782b75dce0c47947ff2fd6a0fa3c28c967e60cd0c154cd."
+    }
+  ],
+  "appliesTo": ["auth"],
+  "aliases": ["auth0", "authentication", "authorization", "oauth"],
+  "directories": [
+    { "path": "src/server/auth", "purpose": "Server-owned auth/session/token verification.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Auth Server Boundary",
+      "rule": "UI files must not own token verification, session secrets, or authorization decisions.",
+      "severity": "error",
+      "trigger": "A UI file imports auth/session/token modules or reads auth secret environment variables.",
+      "recommendation": "Move Auth0 token/session work behind src/server/auth and pass safe user state to UI.",
+      "appliesToPaths": ["src/**/*.tsx", "src/app/**/*.ts", "src/pages/**/*.ts"],
+      "goodExample": "A server auth module verifies tokens and the UI receives a serialized user summary.",
+      "badExample": "A client component imports JWT/session helpers or reads AUTH0_SECRET.",
+      "triggerKind": "auth-boundary",
+      "detectors": [{ "kind": "auth-boundary", "description": "Flags auth/session imports or auth secret env reads in UI files." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Authentication and authorization checks belong in server-owned modules.",
+    "UI may consume safe user/session summaries but must not handle secrets."
+  ],
+  "testingExpectations": [
+    "Add tests for protected-route decisions and denied access paths."
+  ],
+  "agentInstructions": [
+    "Ask for confirmation before changing auth/session behavior or public authorization boundaries."
+  ]
+}

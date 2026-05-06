@@ -1,0 +1,41 @@
+{
+  "brief": {
+    "idea": "A fresh SaaS dashboard for reviewing AI-generated pull requests.",
+    "users": "Engineering leads",
+    "coreFlows": ["connect repository", "review findings", "export agent instructions"],
+    "stack": {
+      "frontend": "React",
+      "backend": "Node API Express",
+      "database": "Postgres"
+    },
+    "repoLayout": {
+      "pathMap": {
+        "src/features": ["src/features"],
+        "src/shared": ["src/shared"],
+        "src/shared/ui": ["src/shared/ui"],
+        "src/server": ["src/server"],
+        "src/server/routes": ["src/server/routes"],
+        "src/server/services": ["src/server/services"],
+        "src/server/adapters": ["src/server/adapters"],
+        "src/db": ["src/db"],
+        "src/db/schema": ["src/db/schema"],
+        "src/db/migrations": ["src/db/migrations"],
+        "src/db/repositories": ["src/db/repositories"],
+        "tests": ["tests"]
+      }
+    }
+  },
+  "files": [
+    {
+      "path": "src/app.tsx",
+      "lines": 920,
+      "hasDirectDbAccess": true
+    },
+    {
+      "path": "src/server.ts",
+      "lines": 640,
+      "envAccesses": ["DATABASE_URL", "OPENAI_API_KEY"]
+    }
+  ],
+  "directories": ["src"]
+}

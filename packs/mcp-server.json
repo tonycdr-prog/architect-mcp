@@ -1,0 +1,55 @@
+{
+  "id": "mcp-server",
+  "name": "MCP Server",
+  "version": "0.1.0",
+  "rationale": "MCP servers need a hard boundary between protocol transport, tool registration, and deterministic domain logic so stdio and hosted modes share behavior safely.",
+  "sources": [
+    {
+      "label": "Model Context Protocol architecture",
+      "note": "Rules are distilled from MCP server implementation constraints and this repo's local architecture contract."
+    }
+  ],
+  "appliesTo": ["backend"],
+  "aliases": ["model context protocol", "mcp"],
+  "directories": [
+    { "path": "src/tools", "purpose": "MCP tool registration, schemas, and response formatting.", "required": true },
+    { "path": "src/server", "purpose": "Transport-independent MCP server construction.", "required": true },
+    { "path": "src/domain", "purpose": "Pure contract, review, intake, and stack-pack logic.", "required": true },
+    { "path": "src/infrastructure", "purpose": "Filesystem and host adapter code.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Transport-neutral tools",
+      "rule": "MCP tool behavior should be reusable across stdio and hosted HTTP transports.",
+      "severity": "warning",
+      "trigger": "A tool handler contains transport-specific request, response, or filesystem access logic.",
+      "recommendation": "Move transport concerns into src/http.ts, src/index.ts, or src/infrastructure and keep tool handlers focused on validation and response formatting.",
+      "appliesToPaths": ["src/tools/**/*.ts"],
+      "goodExample": "Tool handler calls a domain function and returns a JSON MCP response.",
+      "badExample": "Tool handler reads arbitrary local paths or branches on HTTP headers."
+    },
+    {
+      "name": "No hosted filesystem scanning",
+      "rule": "Hosted MCP mode must not expose tools that scan arbitrary server-local paths.",
+      "severity": "error",
+      "trigger": "Hosted server registers a local workspace scanning tool.",
+      "recommendation": "Disable local workspace tools in hosted mode and require clients to send file summaries.",
+      "appliesToPaths": ["src/http.ts", "src/server/**/*.ts"],
+      "goodExample": "createArchitectServer({ enableLocalWorkspaceTool: false })",
+      "badExample": "Hosted /mcp registers review_local_workspace."
+    }
+  ],
+  "moduleBoundaries": [
+    "Transport entrypoints should create a server and connect a transport; they should not own domain logic.",
+    "Tool handlers may validate MCP input and format output, but domain modules should own decisions.",
+    "Hosted mode should accept client-provided file summaries instead of reading local server paths."
+  ],
+  "testingExpectations": [
+    "Domain reviewers should have unit tests for false positives and real anti-monolith findings.",
+    "Hosted mode should have a smoke test that lists tools without exposing local-only tools."
+  ],
+  "agentInstructions": [
+    "Keep stdio and hosted HTTP entrypoints thin.",
+    "Do not add persistence until a feature requires saved templates, audit history, billing, or teams."
+  ]
+}

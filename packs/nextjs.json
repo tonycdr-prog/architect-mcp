@@ -1,0 +1,53 @@
+{
+  "id": "nextjs",
+  "name": "Next.js App Router",
+  "version": "0.1.0",
+  "rationale": "Next.js App Router projects stay maintainable when route files compose feature modules and client boundaries remain narrow.",
+  "sources": [
+    {
+      "label": "Next.js App Router architecture",
+      "note": "Rules encode route composition, server/client component boundaries, and feature ownership patterns."
+    }
+  ],
+  "appliesTo": ["frontend"],
+  "aliases": ["next", "next.js", "app router"],
+  "directories": [
+    { "path": "src/app", "purpose": "Route segments, layouts, loading/error boundaries, and server composition.", "required": true },
+    { "path": "src/features", "purpose": "Feature-owned UI, hooks, schemas, and client components.", "required": true },
+    { "path": "src/shared/ui", "purpose": "Reusable design primitives only.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Thin route files",
+      "rule": "Next.js route files should compose feature modules and avoid owning business logic.",
+      "severity": "warning",
+      "trigger": "A page/layout/route file is large, imports database clients, or defines substantial workflow logic.",
+      "recommendation": "Move workflow UI into src/features and server/data logic into src/server or src/db.",
+      "appliesToPaths": ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/app/**/route.ts"],
+      "goodExample": "page.tsx imports and renders <BillingSettingsPage /> from src/features/billing.",
+      "badExample": "page.tsx contains form state, validation, database calls, and rendering in one file."
+    },
+    {
+      "name": "Explicit client boundaries",
+      "rule": "Only mark components with 'use client' when browser state, effects, or event handlers are required.",
+      "severity": "warning",
+      "trigger": "A broad route or layout file uses 'use client'.",
+      "recommendation": "Move interactive pieces into smaller client components and keep route composition server-rendered.",
+      "appliesToPaths": ["src/app/**/*.tsx", "src/features/**/*.tsx"],
+      "goodExample": "A small DatePicker component has 'use client'; page.tsx remains server-rendered.",
+      "badExample": "A full dashboard route has 'use client' to support one dropdown."
+    }
+  ],
+  "moduleBoundaries": [
+    "Server components may fetch data, but client components must receive data through props or call explicit client-safe APIs.",
+    "Route handlers belong in app/api or server modules; reusable business logic belongs in src/server."
+  ],
+  "testingExpectations": [
+    "Feature behavior should have component or integration tests outside route files.",
+    "Critical user flows should have at least one browser-level test."
+  ],
+  "agentInstructions": [
+    "Do not place entire screens, forms, data access, and mutation handling in a single page.tsx file.",
+    "Split route composition, feature UI, validation, and server actions into focused files."
+  ]
+}

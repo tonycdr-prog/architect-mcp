@@ -1,0 +1,53 @@
+{
+  "id": "node-api",
+  "name": "Node API",
+  "version": "0.1.0",
+  "rationale": "Node APIs stay testable when routes own transport mapping, services own business workflows, and adapters own infrastructure.",
+  "sources": [
+    {
+      "label": "Node API layered architecture",
+      "note": "Rules encode thin controller and typed configuration conventions common to Express/Fastify/Hono services."
+    }
+  ],
+  "appliesTo": ["backend"],
+  "aliases": ["node api", "express", "fastify"],
+  "directories": [
+    { "path": "src/server/routes", "purpose": "HTTP route definitions and request/response mapping.", "required": true },
+    { "path": "src/server/services", "purpose": "Business use cases and orchestration.", "required": true },
+    { "path": "src/server/adapters", "purpose": "External services, storage, queues, email, and payment adapters.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Thin controllers",
+      "rule": "Route handlers should validate input, call a service, and map the response. They should not own business workflows.",
+      "severity": "warning",
+      "trigger": "A route/controller file contains business workflow logic or exceeds the line threshold.",
+      "recommendation": "Move orchestration into src/server/services and keep route files focused on HTTP mapping.",
+      "appliesToPaths": ["src/server/routes/**/*.ts", "src/app/api/**/route.ts"],
+      "goodExample": "route.ts parses input and calls createInvoiceService.",
+      "badExample": "route.ts validates input, updates multiple tables, sends email, and computes billing state."
+    },
+    {
+      "name": "No direct env spread",
+      "rule": "Environment variables should be parsed once through typed configuration.",
+      "severity": "error",
+      "trigger": "Multiple files directly read process.env.",
+      "recommendation": "Create a typed config module and import validated settings from there.",
+      "appliesToPaths": ["src/**/*.ts", "src/**/*.tsx"],
+      "goodExample": "import { config } from '../server/config'.",
+      "badExample": "const apiKey = process.env.API_KEY in many modules."
+    }
+  ],
+  "moduleBoundaries": [
+    "Routes depend on services; services depend on repositories/adapters; adapters do not import routes.",
+    "Validation schemas should be reusable between route handling and tests."
+  ],
+  "testingExpectations": [
+    "Services should be testable without starting an HTTP server.",
+    "At least one integration test should cover route validation and response shape."
+  ],
+  "agentInstructions": [
+    "Do not implement an API as one large server.ts/app.ts file.",
+    "Keep auth, validation, service logic, and infrastructure adapters separate."
+  ]
+}

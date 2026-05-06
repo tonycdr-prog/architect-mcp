@@ -1,0 +1,7 @@
+{
+  "suites": ["harness", "memory", "mcp-security", "artifact-quality", "stack-pack"],
+  "expected": {
+    "status": "pass",
+    "minimumCases": 5
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": "supabase",
+  "name": "Supabase",
+  "version": "0.1.0",
+  "rationale": "Supabase apps need explicit browser/server client separation to prevent service-role keys and server-only helpers from leaking into UI code.",
+  "sources": [
+    {
+      "label": "Supabase client boundary",
+      "note": "Rules encode browser anon client versus server/service-role client separation."
+    }
+  ],
+  "appliesTo": ["database", "auth"],
+  "aliases": ["supabase", "supabase auth"],
+  "directories": [
+    { "path": "src/db/supabase", "purpose": "Supabase clients, typed helpers, and server-only access wrappers.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Server/client Supabase split",
+      "rule": "Browser Supabase clients and service-role/server clients must live behind separate modules.",
+      "severity": "error",
+      "trigger": "A client component imports a service-role or server-only Supabase helper.",
+      "recommendation": "Create separate browser and server Supabase modules, and only import server modules from server-only code.",
+      "appliesToPaths": ["src/**/*.ts", "src/**/*.tsx"],
+      "goodExample": "client.ts exposes browser-safe anon client; server.ts owns service-role access.",
+      "badExample": "A 'use client' component imports createServiceRoleClient."
+    }
+  ],
+  "moduleBoundaries": [
+    "Service-role keys must only be referenced in server-only modules.",
+    "Auth/session helpers should be centralized rather than reimplemented per route."
+  ],
+  "testingExpectations": [
+    "Auth-dependent flows should have tests for logged-out, logged-in, and unauthorized states."
+  ],
+  "agentInstructions": [
+    "Do not expose service-role keys or server-only Supabase helpers to client components."
+  ]
+}

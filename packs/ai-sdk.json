@@ -1,0 +1,42 @@
+{
+  "id": "ai-sdk",
+  "name": "Vercel AI SDK",
+  "version": "0.1.0",
+  "rationale": "AI SDK integrations need explicit server/tool boundaries so prompts, model calls, tool execution, and provider keys do not leak into UI or generic shared modules.",
+  "sources": [
+    {
+      "label": "Vercel AI SDK ingested llms.txt snapshot",
+      "url": "https://ai-sdk.dev/llms.txt",
+      "note": "Derived from stack-sources/ingested/ai-sdk.txt fetched 2026-05-05T18:32:47.471Z with sha256 fb394749717436c10c462a7ff3e39219df3e890ecbfa747aefa227fb880fb597."
+    }
+  ],
+  "appliesTo": ["backend"],
+  "aliases": ["ai sdk", "vercel ai sdk", "model calls", "ai tools"],
+  "directories": [
+    { "path": "src/server/ai", "purpose": "Server-owned model calls, prompts, and tool orchestration.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "AI Tool Safety Boundary",
+      "rule": "Model calls, provider keys, and tool execution must stay in server-owned AI/tool modules.",
+      "severity": "error",
+      "trigger": "A non-server/non-tool file imports AI provider or model-call libraries.",
+      "recommendation": "Move model calls and tool orchestration to src/server/ai or src/tools and pass safe results to UI.",
+      "appliesToPaths": ["src/**/*.ts", "src/**/*.tsx"],
+      "goodExample": "src/server/ai/summarize.ts owns model calls and exposes a typed service result.",
+      "badExample": "A UI component imports OpenAI or AI SDK model-call helpers directly.",
+      "triggerKind": "ai-tool-safety",
+      "detectors": [{ "kind": "ai-tool-safety", "description": "Flags AI/model-call imports outside server/tool modules." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Server AI modules own prompts, provider configuration, model calls, and tool invocation.",
+    "UI and shared modules consume typed results, not provider clients or secrets."
+  ],
+  "testingExpectations": [
+    "Add tests or eval fixtures for routing, tool-call safety, and output contract behavior."
+  ],
+  "agentInstructions": [
+    "Do not move model calls or tool execution into UI files; require evidence before claiming AI behavior is fixed."
+  ]
+}

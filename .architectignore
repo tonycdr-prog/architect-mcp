@@ -1,0 +1,10 @@
+node_modules/**
+dist/**
+build/**
+coverage/**
+*.lock
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4

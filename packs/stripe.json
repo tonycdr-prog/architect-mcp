@@ -1,0 +1,42 @@
+{
+  "id": "stripe",
+  "name": "Stripe Payments",
+  "version": "0.1.0",
+  "rationale": "Stripe integrations are high-blast-radius payment code and must keep checkout creation, webhook verification, and secret keys server-only.",
+  "sources": [
+    {
+      "label": "Stripe ingested llms.txt snapshot",
+      "url": "https://docs.stripe.com/llms.txt",
+      "note": "Derived from stack-sources/ingested/stripe.txt fetched 2026-05-05T18:32:46.286Z with sha256 293df416b4e8e9518b6cf76559d6d5a59ec69b77322de8903cdfd55165580141."
+    }
+  ],
+  "appliesTo": ["backend"],
+  "aliases": ["stripe", "payments", "checkout", "billing"],
+  "directories": [
+    { "path": "src/server/payments", "purpose": "Server-owned payment, checkout, billing, and webhook workflows.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Stripe Payment Server Boundary",
+      "rule": "Checkout sessions, webhook verification, and Stripe secret keys must stay behind server-owned payment modules.",
+      "severity": "error",
+      "trigger": "A UI file imports Stripe/payment modules or any file reads Stripe/payment env vars outside a server boundary.",
+      "recommendation": "Move payment work to src/server/payments and expose only safe client actions or API routes.",
+      "appliesToPaths": ["src/**/*.ts", "src/**/*.tsx"],
+      "goodExample": "src/server/payments/createCheckoutSession.ts owns Stripe SDK calls and returns a redirect URL.",
+      "badExample": "A client component imports Stripe SDK server helpers or reads STRIPE_SECRET_KEY.",
+      "triggerKind": "payment-boundary",
+      "detectors": [{ "kind": "payment-boundary", "description": "Flags Stripe/payment imports in UI and payment secret env access." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Payment mutations and webhook verification are server-owned.",
+    "UI can start safe checkout flows but must not construct privileged Stripe requests."
+  ],
+  "testingExpectations": [
+    "Add tests or documented verification for checkout creation, webhook verification, and failed-payment paths."
+  ],
+  "agentInstructions": [
+    "Do not change payment behavior, products, prices, or webhook handling without a pre-edit contract and explicit verification."
+  ]
+}

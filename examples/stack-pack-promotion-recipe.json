@@ -1,0 +1,32 @@
+{
+  "name": "stack-pack-promotion",
+  "steps": [
+    {
+      "tool": "derive_stack_pack_from_llms_source",
+      "arguments": {
+        "request": {
+          "sourceId": "hono"
+        }
+      }
+    },
+    {
+      "tool": "review_stack_pack_candidate",
+      "arguments": {
+        "candidate": "<derive_stack_pack_from_llms_source result.candidate>"
+      }
+    },
+    {
+      "tool": "promote_stack_pack_to_files",
+      "arguments": {
+        "request": {
+          "candidate": "<derive_stack_pack_from_llms_source result.candidate>",
+          "writeFiles": false
+        }
+      }
+    },
+    {
+      "tool": "validate_stack_packs",
+      "when": "after writeFiles=true is used"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "mcp-config-security-review",
+  "tool": "review_mcp_config_security",
+  "arguments": {
+    "request": {
+      "config": {
+        "mcpServers": {
+          "example": {
+            "command": "npx",
+            "args": ["-y", "example-mcp@1.2.3"],
+            "env": {
+              "API_KEY": "${EXAMPLE_API_KEY}"
+            }
+          }
+        }
+      },
+      "approvedServers": ["example"]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "ci-gates",
+  "name": "CI Gates",
+  "version": "0.1.0",
+  "rationale": "Turns architecture guidance into review gates that can stop new generated monolith debt.",
+  "sources": [
+    {
+      "label": "architect-mcp review gate policy",
+      "note": "New high-confidence architecture errors should fail review instead of being hidden by broad baselines."
+    }
+  ],
+  "rules": [
+    "Architecture review should run after scaffolding and large generated changes.",
+    "CI mode should fail on new error findings.",
+    "Baselines require specific paths/messages for high-confidence errors."
+  ],
+  "artifacts": ["review gate thresholds", "baseline policy"],
+  "reviewQuestions": ["Which findings should block new generated work?"]
+}

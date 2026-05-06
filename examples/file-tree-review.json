@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "path": "src/app/page.tsx",
+      "lines": 560
+    },
+    {
+      "path": "src/components/database-table.tsx",
+      "lines": 180
+    },
+    {
+      "path": "src/shared/Button.tsx",
+      "lines": 42
+    }
+  ],
+  "maxLines": 300
+}

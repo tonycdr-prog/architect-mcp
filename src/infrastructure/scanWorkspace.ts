@@ -1,0 +1,139 @@
+import { readdir, readFile, stat } from "node:fs/promises";
+import { join, relative } from "node:path";
+import ts from "typescript";
+import type { FileSummary } from "../domain/types.js";
+
+const DEFAULT_IGNORES = new Set([
+  ".git",
+  "dist",
+  "node_modules",
+  ".next",
+  "coverage",
+  ".turbo",
+  ".cache"
+]);
+
+export async function scanWorkspace(rootPath: string, maxFiles: number): Promise<FileSummary[]> {
+  const summaries: FileSummary[] = [];
+  await walk(rootPath, rootPath, summaries, maxFiles);
+  return summaries;
+}
+
+async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number): Promise<void> {
+  if (summaries.length >= maxFiles) return;
+
+  const entries = await readdir(currentPath, { withFileTypes: true });
+  for (const entry of entries) {
+    if (summaries.length >= maxFiles) return;
+    if (DEFAULT_IGNORES.has(entry.name)) continue;
+
+    const absolutePath = join(currentPath, entry.name);
+    if (entry.isDirectory()) {
+      await walk(rootPath, absolutePath, summaries, maxFiles);
+      continue;
+    }
+
+    if (!entry.isFile()) continue;
+    const metadata = await stat(absolutePath);
+    const path = relative(rootPath, absolutePath);
+
+    summaries.push({
+      path,
+      bytes: metadata.size,
+      ...(await summarizeContent(absolutePath, metadata.size))
+    });
+  }
+}
+
+async function summarizeContent(path: string, bytes: number): Promise<Omit<FileSummary, "path" | "bytes">> {
+  if (bytes > 1_000_000) return {};
+
+  try {
+    const content = await readFile(path, "utf8");
+    return {
+      lines: content.length === 0 ? 0 : content.split("\n").length,
+      imports: extractImports(content, path),
+      hasUseClient: /^["']use client["'];?/m.test(content),
+      envAccesses: extractEnvAccesses(content, path),
+      hasDirectDbAccess: hasDirectDbAccess(content)
+    };
+  } catch {
+    return {};
+  }
+}
+
+function extractImports(content: string, path: string): string[] {
+  if (/\.(ts|tsx|js|jsx|mts|cts|mjs|cjs)$/.test(path)) {
+    return extractImportsWithTypescript(content, path);
+  }
+
+  const imports = new Set<string>();
+  const patterns = [
+    /import\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?["']([^"']+)["']/g,
+    /export\s+[^'"]+\s+from\s+["']([^"']+)["']/g,
+    /require\(["']([^"']+)["']\)/g
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of content.matchAll(pattern)) {
+      if (match[1]) imports.add(match[1]);
+    }
+  }
+
+  return [...imports].sort();
+}
+
+function extractEnvAccesses(content: string, path: string): string[] {
+  if (/\.(ts|tsx|js|jsx|mts|cts|mjs|cjs)$/.test(path)) {
+    return extractEnvAccessesWithTypescript(content, path);
+  }
+
+  const envAccesses = new Set<string>();
+  for (const match of content.matchAll(/process\.env\.([A-Z0-9_]+)/g)) {
+    if (match[1]) envAccesses.add(match[1]);
+  }
+  return [...envAccesses].sort();
+}
+
+function hasDirectDbAccess(content: string): boolean {
+  return /\b(sql`|db\.(select|insert|update|delete|query)|createClient\(|drizzle\(|prisma\.)/.test(content);
+}
+
+function extractImportsWithTypescript(content: string, path: string): string[] {
+  const sourceFile = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const imports = new Set<string>();
+
+  sourceFile.forEachChild((node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      imports.add(node.moduleSpecifier.text);
+    }
+
+    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && ts.isStringLiteral(node.moduleReference.expression)) {
+      imports.add(node.moduleReference.expression.text);
+    }
+  });
+
+  return [...imports].sort();
+}
+
+function extractEnvAccessesWithTypescript(content: string, path: string): string[] {
+  const sourceFile = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+  const envAccesses = new Set<string>();
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "process" &&
+      node.expression.name.text === "env"
+    ) {
+      envAccesses.add(node.name.text);
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return [...envAccesses].sort();
+}

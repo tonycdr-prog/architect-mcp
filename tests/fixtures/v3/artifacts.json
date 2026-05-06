@@ -1,0 +1,4 @@
+{
+  "weakAgentsMd": "# AGENTS.md\n\nDo good work.",
+  "validLlmsTxt": "# architect-mcp\n\n> MCP standards and verification harness for coding agents.\n\n## Documentation\n- [README](README.md): Primary docs\n- [V3](docs/v3-source-material.md): V3 source material and tool contracts"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "balanced-local",
+  "name": "Balanced Local Governance",
+  "version": "0.1.0",
+  "profile": "balanced",
+  "rules": [
+    "Use guided-yolo interpretation before risky edits.",
+    "Keep implementation inside the pre-edit contract.",
+    "Run review and verification before claiming completion.",
+    "Preserve stack and foundation pack source evidence where available."
+  ],
+  "recommendedWhen": ["mcp", "typescript", "agent", "local", "balanced"]
+}

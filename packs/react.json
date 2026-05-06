@@ -1,0 +1,40 @@
+{
+  "id": "react",
+  "name": "React Frontend",
+  "version": "0.1.0",
+  "rationale": "React apps drift into god components unless feature ownership, shared UI boundaries, and data orchestration are kept explicit.",
+  "sources": [
+    {
+      "label": "React component architecture",
+      "note": "Rules focus on component cohesion, feature folders, and shared UI dependency direction."
+    }
+  ],
+  "appliesTo": ["frontend"],
+  "aliases": ["react", "vite react"],
+  "directories": [
+    { "path": "src/features", "purpose": "Feature-specific components, hooks, state, and tests.", "required": true },
+    { "path": "src/shared/ui", "purpose": "Reusable UI primitives and design-system adapters.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "No god components",
+      "rule": "Components should not combine fetching, validation, layout, modal orchestration, and table logic in one file.",
+      "severity": "warning",
+      "trigger": "A component exceeds the line threshold or mixes data access, state orchestration, and rendering.",
+      "recommendation": "Split data hooks, validation schemas, view components, and workflow containers.",
+      "appliesToPaths": ["src/**/*.tsx", "src/**/*.jsx"],
+      "goodExample": "UserTable.tsx renders rows while useUsers.ts handles fetching.",
+      "badExample": "Dashboard.tsx owns fetching, filtering, editing dialogs, mutations, and layout."
+    }
+  ],
+  "moduleBoundaries": [
+    "Feature components may depend on shared UI; shared UI must not import feature code.",
+    "Stateful workflow logic should live near the feature that owns it."
+  ],
+  "testingExpectations": [
+    "Complex components should have behavior tests around user-visible outcomes."
+  ],
+  "agentInstructions": [
+    "Prefer feature folders over dumping components into a global components folder."
+  ]
+}

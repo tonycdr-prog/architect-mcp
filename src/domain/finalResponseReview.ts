@@ -1,0 +1,76 @@
+export type FinalResponseReviewInput = {
+  response: string;
+  requiredChecks?: string[];
+};
+
+export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
+  const response = input.response.trim();
+  const findings: Array<{ code: string; severity: "error" | "warning"; message: string; recommendation: string }> = [];
+
+  if (!/\b(changed|updated|implemented|added|fixed)\b/i.test(response)) {
+    findings.push({
+      code: "FINAL001_CHANGED_MISSING",
+      severity: "warning",
+      message: "Final response does not clearly state what changed.",
+      recommendation: "Include a concise changed/implemented summary."
+    });
+  }
+
+  if (!/\b(verified|verification|tests?|typecheck|build|audit|not run|skipped|failed)\b/i.test(response)) {
+    findings.push({
+      code: "FINAL002_VERIFICATION_MISSING",
+      severity: "error",
+      message: "Final response does not state verification run, skipped, failed, or not run.",
+      recommendation: "State exact checks and their results, or explicitly say what was not run."
+    });
+  }
+
+  for (const check of input.requiredChecks ?? []) {
+    if (!response.toLowerCase().includes(check.toLowerCase())) {
+      findings.push({
+        code: "FINAL003_REQUIRED_CHECK_MISSING",
+        severity: "warning",
+        message: `Final response does not mention required check: ${check}.`,
+        recommendation: "Mention each required check as passed, failed, skipped, or not run."
+      });
+    }
+  }
+
+  if (/\b(root cause|caused by|because)\b/i.test(response) && !/\b(evidence|from the output|from the trace|test showed|log showed|inspection showed)\b/i.test(response)) {
+    findings.push({
+      code: "FINAL004_ROOT_CAUSE_UNSUPPORTED",
+      severity: "warning",
+      message: "Final response appears to claim a root cause without explicit evidence.",
+      recommendation: "Tie root-cause claims to file context, logs, failing tests, or reproduced behavior."
+    });
+  }
+
+  if (!/\b(assumption|assumptions|no assumptions|assumed)\b/i.test(response)) {
+    findings.push({
+      code: "FINAL005_ASSUMPTIONS_MISSING",
+      severity: "warning",
+      message: "Final response does not disclose assumptions.",
+      recommendation: "State assumptions made, or say no new assumptions were needed."
+    });
+  }
+
+  if (!/\b(not done|remaining|deferred|nothing else|no remaining|follow-up)\b/i.test(response)) {
+    findings.push({
+      code: "FINAL006_NOT_DONE_MISSING",
+      severity: "warning",
+      message: "Final response does not call out remaining or deferred work.",
+      recommendation: "State anything not done, or say no known requested work remains."
+    });
+  }
+
+  const errors = findings.filter((finding) => finding.severity === "error").length;
+  return {
+    valid: errors === 0,
+    status: errors > 0 ? "fail" : findings.length > 0 ? "warn" : "pass",
+    summary: {
+      errors,
+      warnings: findings.length - errors
+    },
+    findings
+  };
+}

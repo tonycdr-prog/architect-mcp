@@ -1,0 +1,6 @@
+> Cohere's API documentation helps developers easily integrate natural language processing and generation into their products.
+
+## Versions
+
+- [v2 API](https://docs.cohere.com/v2/llms.txt) (default)
+- [v1 API](https://docs.cohere.com/v1/llms.txt)

@@ -1,0 +1,32 @@
+{
+  "id": "repo-hygiene",
+  "name": "Repo Hygiene",
+  "version": "0.1.0",
+  "rationale": "Keeps repository structure, generated artifacts, manifests, and public-facing agent docs from drifting as agents add features.",
+  "sources": [
+    {
+      "label": "architect-mcp repo hygiene rule",
+      "note": "Repo hygiene checks catch low-level drift that does not always appear as application architecture risk."
+    },
+    {
+      "label": "TypeScript modules guidance",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/modules.html",
+      "note": "TypeScript treats files with top-level imports or exports as modules, which supports small domain modules plus thin export surfaces."
+    }
+  ],
+  "rules": [
+    "Keep root source files out of the repository root unless they are recognized config or declaration files.",
+    "Keep type and schema aggregation files thin; split definitions by domain and use a barrel export when a stable import surface is needed.",
+    "Ignore generated output, lockfiles, media, and vendored dependency folders during source hygiene scoring.",
+    "Update manifest hashes whenever stack-pack or foundation-pack content changes.",
+    "Keep README.md, llms.txt, AGENTS.md, and generated tool lists aligned with registered MCP tools."
+  ],
+  "artifacts": [".gitignore", ".architectignore", "packs/manifest.json", "foundation-packs/manifest.json", "README.md", "llms.txt", "AGENTS.md"],
+  "reviewQuestions": [
+    "Did this change add source files at the repo root?",
+    "Did any type, schema, or barrel file become a catch-all bucket?",
+    "Did generated or vendored output affect review findings?",
+    "Did pack or foundation-pack content change without a manifest hash update?",
+    "Did public docs drift from the registered tool surface?"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": "testing",
+  "name": "Testing",
+  "version": "0.1.0",
+  "rationale": "Requires each generated slice to name proof commands before implementation is accepted.",
+  "sources": [
+    {
+      "label": "architect-mcp verification rule",
+      "note": "Generated architecture plans are only useful when each slice has a concrete way to prove behavior."
+    },
+    {
+      "label": "verification-before-completion source material",
+      "note": "Completion claims require fresh evidence from the relevant command, reproduction, or inspection result."
+    },
+    {
+      "label": "eval-driven-dev source material",
+      "note": "Evaluation fixtures should test the application or MCP behavior end to end with explicit criteria and pass/fail reporting."
+    }
+  ],
+  "rules": [
+    "Every core workflow needs at least one behavior-level test.",
+    "Service/use-case logic should be testable without the UI.",
+    "Verification commands must be named before implementation.",
+    "Do not claim completion without fresh verification evidence.",
+    "Final output must report checks that passed, failed, were skipped, or were not run.",
+    "Eval fixtures should cover vague novice prompts, generated-app drift, stack-pack conflicts, memory safety, and hosted/local policy."
+  ],
+  "artifacts": ["tests", "package scripts or documented verification commands"],
+  "reviewQuestions": [
+    "Which command proves each generated slice works?",
+    "What evidence proves the root cause or behavior claim?",
+    "Which eval fixture would catch this failure mode if it regresses?"
+  ]
+}

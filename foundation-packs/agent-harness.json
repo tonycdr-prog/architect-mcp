@@ -1,0 +1,30 @@
+{
+  "id": "agent-harness",
+  "name": "Agent Harness",
+  "version": "0.1.0",
+  "rationale": "Ensures every generated repo has durable instructions and contracts before implementation starts.",
+  "sources": [
+    {
+      "label": "architect-mcp product rule",
+      "note": "The project exists to stop chat-only architecture guidance from disappearing between agent runs."
+    },
+    {
+      "label": "local skills source material",
+      "note": "create-agentsmd, create-llms, remember, mcp-cli, and verification-before-completion provide source material for durable agent instructions, memory scopes, MCP client recipes, and completion honesty."
+    }
+  ],
+  "rules": [
+    "Generate AGENTS.md before implementation.",
+    "Commit docs/architecture-contract.md before creating feature files.",
+    "Keep editor/agent rules derived from the same contract.",
+    "Use pre-edit contracts for vague risky implementation requests.",
+    "Disclose applied memory and keep user, project, session, and codebase memory scopes separate.",
+    "No final completion claim without stating checks run, skipped, failed, or not run."
+  ],
+  "artifacts": ["AGENTS.md", "docs/architecture-contract.md", ".cursor/rules/architecture.mdc", "llms.txt"],
+  "reviewQuestions": [
+    "Will a future agent see the same architecture rules without reading chat history?",
+    "Does the implementation contract say what changed, what was verified, which assumptions were made, and what was not done?",
+    "Could any remembered preference override the current user request without disclosure?"
+  ]
+}

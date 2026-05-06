@@ -1,0 +1,33 @@
+{
+  "name": "guided-yolo-pre-edit",
+  "steps": [
+    {
+      "tool": "interpret_implementation_intent",
+      "arguments": {
+        "input": {
+          "request": "fix this with best practices",
+          "mode": "guided-yolo"
+        }
+      }
+    },
+    {
+      "tool": "create_pre_edit_contract",
+      "when": "decision is confirm_before_edit or blastRadius is high",
+      "arguments": {
+        "intent": "<interpret_implementation_intent result>",
+        "likelyFiles": ["src/features/example/Example.tsx"]
+      }
+    },
+    {
+      "tool": "review_implementation_against_contract",
+      "when": "after files change",
+      "arguments": {
+        "input": {
+          "contract": "<create_pre_edit_contract result.contract>",
+          "changedFiles": ["<file summaries>"],
+          "verification": [{ "check": "npm test", "status": "passed" }]
+        }
+      }
+    }
+  ]
+}

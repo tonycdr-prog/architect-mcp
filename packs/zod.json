@@ -1,0 +1,42 @@
+{
+  "id": "zod",
+  "name": "Zod Validation",
+  "version": "0.1.0",
+  "rationale": "Zod validation should define trustworthy input/output boundaries without coupling UI components to server validation, secret parsing, or database schemas.",
+  "sources": [
+    {
+      "label": "Zod ingested llms.txt snapshot",
+      "url": "https://zod.dev/llms.txt",
+      "note": "Derived from stack-sources/ingested/zod.txt fetched 2026-05-05T18:32:49.995Z with sha256 1842270f2175b664cd28538363a3cfe66ac011b4f146502fbb3eb05ee8c84d4e."
+    }
+  ],
+  "appliesTo": ["backend", "frontend"],
+  "aliases": ["zod", "schema validation", "validation"],
+  "directories": [
+    { "path": "src/shared/validation", "purpose": "Reusable transport-safe validation schemas.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Zod Validation Boundary",
+      "rule": "Validation schemas used across transport boundaries should live outside UI components and server secret/config parsing.",
+      "severity": "warning",
+      "trigger": "A UI/page/screen file imports schema validation libraries directly.",
+      "recommendation": "Move reusable schemas to src/shared/validation or a feature-owned validation module.",
+      "appliesToPaths": ["src/**/*.tsx", "src/app/**/*.ts", "src/pages/**/*.ts"],
+      "goodExample": "src/shared/validation/userInput.ts exports a schema used by a route and form.",
+      "badExample": "A page component defines Zod schemas, server config parsing, and rendering in one file.",
+      "triggerKind": "validation-boundary",
+      "detectors": [{ "kind": "validation-boundary", "description": "Flags validation libraries imported from UI/page files." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Shared validation may be imported by UI and server code only when it contains no server secrets or persistence concerns.",
+    "Server config/env parsing belongs in server-owned config modules."
+  ],
+  "testingExpectations": [
+    "Add parse success/failure tests for important validation schemas."
+  ],
+  "agentInstructions": [
+    "Create validation modules before wiring forms, routes, or tool inputs that need shared schemas."
+  ]
+}

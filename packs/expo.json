@@ -1,0 +1,43 @@
+{
+  "id": "expo",
+  "name": "Expo React Native",
+  "version": "0.1.0",
+  "rationale": "Expo apps need native capability, environment, and screen/module boundaries so generated mobile code does not centralize navigation, state, permissions, and data access.",
+  "sources": [
+    {
+      "label": "Expo ingested llms.txt snapshot",
+      "url": "https://docs.expo.dev/llms.txt",
+      "note": "Derived from stack-sources/ingested/expo.txt fetched 2026-05-05T18:32:45.114Z with sha256 6868c542815f250fc94e13943163dea237832b8ffae290ab8751fdbb40b7f364."
+    }
+  ],
+  "appliesTo": ["frontend"],
+  "aliases": ["expo", "react native", "mobile"],
+  "directories": [
+    { "path": "src/screens", "purpose": "Screen-level composition without owning all workflows.", "required": true },
+    { "path": "src/features", "purpose": "Feature-owned mobile UI, hooks, and services.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Expo No God Screens",
+      "rule": "Mobile screens should not own navigation, permissions, data access, state orchestration, and rendering in one file.",
+      "severity": "warning",
+      "trigger": "A screen or UI file crosses the line threshold while owning multiple responsibilities.",
+      "recommendation": "Split native capability hooks, feature services, and presentational components.",
+      "appliesToPaths": ["src/**/*.tsx", "app/**/*.tsx"],
+      "goodExample": "ProfileScreen.tsx composes hooks and feature components while permissions live in src/features/profile/useProfilePermissions.ts.",
+      "badExample": "HomeScreen.tsx owns navigation, location permissions, fetching, mutations, and all rendering.",
+      "triggerKind": "line-threshold",
+      "detectors": [{ "kind": "line-threshold", "description": "Flags oversized screen/component files." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Screens compose feature modules; feature modules own workflow logic.",
+    "Native capabilities should be isolated behind hooks or services."
+  ],
+  "testingExpectations": [
+    "Add behavior tests for feature logic and document device/manual checks for native capability changes."
+  ],
+  "agentInstructions": [
+    "Do not place full mobile workflows into a single screen file."
+  ]
+}

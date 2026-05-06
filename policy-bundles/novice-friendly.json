@@ -1,0 +1,13 @@
+{
+  "id": "novice-friendly",
+  "name": "Novice-Friendly Agent Harness",
+  "version": "0.1.0",
+  "profile": "novice-friendly",
+  "rules": [
+    "Translate vague requests into plain-English intent before edits.",
+    "Ask one focused confirmation question for vague risky work.",
+    "Attach concise do-this, avoid-this, and prove-it guidance to important findings.",
+    "Prefer minimal verified fixes over broad cleanup."
+  ],
+  "recommendedWhen": ["novice", "vague", "best practices", "guided-yolo", "agent"]
+}

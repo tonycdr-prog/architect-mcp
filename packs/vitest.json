@@ -1,0 +1,41 @@
+{
+  "id": "vitest",
+  "name": "Vitest Testing",
+  "version": "0.1.0",
+  "rationale": "Vitest coverage should prove behavior near changed modules so generated work does not rely on vague manual inspection or oversized untested implementation files.",
+  "sources": [
+    {
+      "label": "Vitest ingested llms.txt snapshot",
+      "url": "https://vitest.dev/llms.txt",
+      "note": "Derived from stack-sources/ingested/vitest.txt fetched 2026-05-05T18:32:49.917Z with sha256 5ff8cb4957d5a581d2bc505e9ddcfedc30618989734c42774a2c0cf1ba5a6b93."
+    }
+  ],
+  "appliesTo": ["frontend", "backend"],
+  "aliases": ["vitest", "unit tests", "test"],
+  "directories": [
+    { "path": "tests", "purpose": "Behavior and architecture tests.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Vitest Test Policy",
+      "rule": "Large implementation files need nearby behavior tests instead of only manual verification.",
+      "severity": "warning",
+      "trigger": "A source file is large and is not itself a test file.",
+      "recommendation": "Add or update a focused Vitest test for the changed behavior.",
+      "appliesToPaths": ["src/**/*.ts", "src/**/*.tsx"],
+      "goodExample": "src/domain/pricing.ts changes are covered by tests/pricing.test.ts.",
+      "badExample": "A large feature module is changed with no behavior test or verification command.",
+      "triggerKind": "test-policy",
+      "detectors": [{ "kind": "test-policy", "description": "Flags large source files that should have explicit test coverage." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Tests should exercise public behavior instead of implementation internals where possible."
+  ],
+  "testingExpectations": [
+    "Run npm test or the repo's Vitest command after behavior changes."
+  ],
+  "agentInstructions": [
+    "Do not claim completion for changed behavior without a fresh test or clearly stated skipped check."
+  ]
+}

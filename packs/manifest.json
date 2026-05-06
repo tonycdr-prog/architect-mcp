@@ -1,0 +1,70 @@
+{
+  "generatedBy": "architect-mcp",
+  "entries": [
+    {
+      "id": "ai-sdk",
+      "version": "0.1.0",
+      "sha256": "593d9c6de8fd504f019d02b88f09b074ec6f538376c9716923a31b2d357233b3"
+    },
+    {
+      "id": "auth0",
+      "version": "0.1.0",
+      "sha256": "ad476b0fea87c854387aed5aaa0824b2b39ac69d4ec91bd75d8608d7c2de3bf0"
+    },
+    {
+      "id": "expo",
+      "version": "0.1.0",
+      "sha256": "c2f1c15e0c0615ca61ae1819968b97d340431c32a550307ad917f8aa47a2e517"
+    },
+    {
+      "id": "hono",
+      "version": "0.1.0",
+      "sha256": "8eb7b2cc95d3470cce4c2034fa3b856d9d418e405ed109d351d282fc6fc2ebbd"
+    },
+    {
+      "id": "mcp-server",
+      "version": "0.1.0",
+      "sha256": "4c75e4294eba5332a34ee54168293263f6aa4917620cb1aa27888c1a850ac761"
+    },
+    {
+      "id": "nextjs",
+      "version": "0.1.0",
+      "sha256": "3e151fb1b060f839bef48f5dcb7ee9454cb2b97715ec4f6b59574f25cc618d81"
+    },
+    {
+      "id": "node-api",
+      "version": "0.1.0",
+      "sha256": "c595f01ba64c9f93fa6b220ae37cff596246396a841a804ca1ed18f6e554b040"
+    },
+    {
+      "id": "postgres",
+      "version": "0.1.0",
+      "sha256": "84cb8309db2cc8786fdf88af74a9d26581bd773a81aadd78e5b7b243cb6c816e"
+    },
+    {
+      "id": "react",
+      "version": "0.1.0",
+      "sha256": "0636f32c7a92e7d4b8bb3a8d93cc4df56b52d89fd7190c64486cdaed83f18bf0"
+    },
+    {
+      "id": "stripe",
+      "version": "0.1.0",
+      "sha256": "7149a7c6bdcb14f847d59033fd160d9299a6a6bfa9fec1cb6ebb5e136825cf5e"
+    },
+    {
+      "id": "supabase",
+      "version": "0.1.0",
+      "sha256": "fcf35893527eaf562754b1790e26fca21fa494b8341fb12648bae159db203ae2"
+    },
+    {
+      "id": "vitest",
+      "version": "0.1.0",
+      "sha256": "290d23c6a49f02117eeee7d419d4ef1c80db81fc66b4086ca6e782fa91f27f74"
+    },
+    {
+      "id": "zod",
+      "version": "0.1.0",
+      "sha256": "c549116f88c5e969ecdb25ca01f361966a26f88ba160655cb881dc27fe1c7e5c"
+    }
+  ]
+}

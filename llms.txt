@@ -1,0 +1,196 @@
+# architect-mcp
+
+> architect-mcp is a local-first MCP standards and verification harness for coding agents.
+
+Use this file as the short navigation surface for MCP tools, intake, implementation contracts, review rules, stack-pack authoring, verification policy, and V3 harness workflows.
+
+## Core Flow
+1. Run grill_me or continue_grill_me until blockers are gone.
+2. Use buildPlan and review_build_plan before implementation.
+3. Generate AGENTS.md, docs/architecture-contract.md, docs/build-plan.md, .cursor/rules/architecture.mdc, and .architectignore.
+4. Review proposed file plans with review_proposed_file_plan.
+5. Review implemented files with review_repo_structure, optionally passing contract and buildPlan.
+
+## Documentation
+- [README](README.md): Primary project documentation, tool list, usage examples, and product scope.
+- [V3 Source Material](docs/v3-source-material.md): V3 source-material notes for stack packs, client recipes, evals, skills, memory, MCP security, and verification.
+- [Stack Pack Strategy](docs/stack-pack-strategy.md): Source-backed stack-pack authoring, review, conflict detection, and promotion workflow.
+- [Architecture Contract](docs/architecture-contract.md): Example generated architecture contract used by agents.
+- [Build Plan](docs/build-plan.md): Example ordered build plan for implementation slices.
+
+## Important Tools
+- list_stack_packs: list available stack-specific architecture packs.
+- validate_stack_packs: validate stack-pack files.
+- list_foundation_packs: list foundation packs for harness, testing, repo structure, repo hygiene, and CI gates.
+- validate_foundation_packs: validate foundation-pack metadata and manifest hashes.
+- stack_pack_expansion_strategy: return the source-backed stack-pack expansion strategy.
+- discover_llms_sources: list known upstream llms.txt sources.
+- fetch_llms_source: fetch an upstream llms.txt source as a hash-stamped snapshot.
+- ingest_llms_txt: fetch a source and produce a stack-pack candidate input snapshot.
+- list_ingested_llms_sources: list local ingested llms.txt snapshots.
+- derive_stack_pack_from_llms_source: derive a source-backed stack-pack candidate from a local snapshot.
+- analyze_stack_pack_conflicts: report duplicate or overlapping stack-pack rules.
+- diff_stack_pack_versions: compare stack-pack changes.
+- propose_stack_pack_rules: propose candidate stack-pack rules from local source text.
+- review_stack_pack_candidate: review candidate stack packs before promotion.
+- promote_stack_pack_candidate: return a promotable pack object without writing files.
+- promote_stack_pack_to_files: return or write versioned stack-pack JSON and manifest updates.
+- list_repo_profiles: list reusable repo layout profiles.
+- get_repo_profile: return one repo profile by id.
+- infer_repo_layout: infer canonical-to-existing repo path mappings.
+- start_project_intake: return the next intake question.
+- grill_project_brief: stress-test a project brief.
+- grill_me: pressure-test a brief and generate contract/build-plan output.
+- continue_grill_me: apply one answer and rerun the grill loop.
+- generate_architecture_contract: create JSON and Markdown architecture contracts.
+- generate_agent_instructions: render agent instructions from a contract.
+- generate_agents_md: render AGENTS.md.
+- generate_cursor_rules: render Cursor architecture rules.
+- generate_repo_artifacts: return AGENTS.md, architecture docs, Cursor rules, .architectignore, and build plan docs.
+- generate_repo_scaffold_plan: return a concrete scaffold plan.
+- review_build_plan: enforce ordered build slices and exact verification commands.
+- review_proposed_file_plan: check a proposed file plan before writing files.
+- review_repo_structure: detect oversized files, UI/database leaks, client/server leaks, import-graph boundary issues, verification-policy issues, and implementation drift.
+- review_local_workspace: scan and review a local workspace when running locally.
+- create_review_baseline: create a baseline from current review findings.
+- validate_architecture_contract: validate contract shape and pack compatibility.
+- validate_repo_artifacts: validate generated repo artifacts.
+- self_review_architect_mcp: run architect-mcp against its own workspace.
+- diff_architecture_contracts: compare two contracts for breaking architecture-rule changes.
+- mcp_readiness_report: summarize readiness checks for release.
+- interpret_implementation_intent: classify vague implementation requests before edits.
+- classify_ambiguity_risk: return the harness stoplight and decision.
+- create_pre_edit_contract: capture intended behavior, likely files, non-goals, and verification checks before risky edits.
+- review_implementation_against_contract: detect implementation drift, skipped verification, and widened scope.
+- record_assumption: return a stateless assumption-ledger entry.
+- load_triggered_stack_guidance: load relevant local llms.txt stack guidance.
+- extract_harness_memory: propose stateless memory entries for future persistence.
+- apply_harness_memory: select relevant non-red memory within a token budget and disclose usage.
+- review_memory_relevance: flag unsafe, irrelevant, or secret-like memory proposals.
+- list_skill_catalog: list built-in advisory skill patterns.
+- recommend_skills_for_project: recommend skill patterns for a request without executing arbitrary skill logic.
+- review_supplied_skills: validate client-supplied skill metadata before using it as source material.
+- review_mcp_config_security: audit MCP config objects for secrets, shell execution, unpinned packages, and unapproved servers.
+- run_v3_eval_harness: run deterministic V3 behavior evals.
+- score_agent_artifacts: score AGENTS.md and llms.txt output quality.
+- list_client_integration_recipes: return executable client integration call recipes.
+- review_agent_final_response: check final output for changed, verified, assumptions, remaining work, and evidence honesty.
+- review_agent_session: combine implementation intent, contract drift, memory relevance, final response, and verification honesty.
+- audit_hosted_tool_policy: classify tools as hosted-safe, local-only, or future-adapter.
+- score_stack_packs: score stack packs for source quality, detectors, examples, tests, and boundaries.
+- stack_pack_coverage_matrix: report stack-pack coverage by pack, ingested llms.txt, detector, test, and docs status.
+- scan_mcp_config_files: local-only scan for repo, Cursor, Claude Desktop, and Codex MCP config files.
+- resolve_standards_profile: explain selected minimal, balanced, or strict local standards.
+- explain_review_findings: turn findings into plain-English meaning, fix shape, next tool, and proof guidance.
+- simulate_policy_gate: preview findings under summary, migration, CI, strict, and custom gates.
+- analyze_standards_conflicts: rank duplicate or overlapping standards and suggest resolutions.
+- score_repo_profile_fit: score built-in repo profiles against a brief and file summaries.
+- review_contract_lifecycle: report contract maturity, changelog, deprecations, replacements, and noise risk.
+- run_v5_eval_harness: run deterministic V5 standards-intelligence evals.
+- list_policy_bundles: list local versioned policy bundles.
+- validate_policy_bundles: validate local policy-bundle metadata.
+- preview_policy_bundle: preview a policy bundle against supplied brief and findings.
+- summarize_session_continuity: build stateless continuation context from supplied session summaries.
+- cluster_review_findings: cluster findings by root cause and suggest the first fix.
+- generate_local_report_artifact: return Markdown and JSON report content without writing files.
+- analyze_regression_coverage: map known agent failure patterns to fixture coverage gaps.
+- review_pattern_card: validate portable local pattern cards.
+- preview_pattern_card: preview whether a pattern card applies to a brief.
+- run_v6_eval_harness: run deterministic V6 local-governance evals.
+- create_architecture_strategy_map: map goals, risks, stack choices, standards, and verification.
+- compare_standards_profiles: compare minimal, balanced, and strict standards profiles.
+- preview_change_what_if: forecast review outcome, blast radius, and verification needs before edits.
+- diagnose_agent_behavior: detect agent failure patterns from supplied session summaries and reports.
+- draft_rule_candidate: draft advisory rule candidates from findings, source text, or examples.
+- compare_review_trends: compare two supplied reports for new and resolved findings.
+- render_governance_pack: render local standards as a human-readable governance pack.
+- run_v7_eval_harness: run deterministic V7 strategic-planning evals.
+- review_standards_refactor: suggest splits, merges, detector families, and examples for standards.
+- minimize_policy_set: recommend keep, defer, or drop choices for local policy rules.
+- select_review_playbook: select a local playbook for feature, refactor, security, docs, or dependency work.
+- review_playbook_conformance: check supplied tools and verification against a playbook.
+- check_agent_collaboration_plan: check file ownership and do-not-touch boundaries.
+- run_failure_mode_drills: run local drills for skipped verification, broad rewrites, leaks, and rule overreach.
+- calibrate_rule_impact: preview severity, confidence, and gate-impact adjustments.
+- review_documentation_intelligence: detect stale docs, missing tool mentions, and weak agent artifacts.
+- run_v8_eval_harness: run deterministic V8 governance-automation evals.
+- select_local_orchestration_recipe: select deterministic local V9 recipes for common agent-work scenarios.
+- evaluate_scenario_acceptance: check scenario-level acceptance across intent, contract, review, verification, and artifacts.
+- normalize_mcp_result: normalize outputs into status, stoplight, evidence, assumptions, proof, warnings, and handoff.
+- plan_context_budget: plan compact, standard, or full output budgets.
+- route_evidence: assign evidence ids across findings, verification checks, and source provenance.
+- create_local_dry_run_plan: preview recipe, gates, standards, verification, and final-response contract before edits.
+- review_tool_loop_quality: detect skipped interpretation, missing contracts, review gaps, and incomplete final responses.
+- run_v9_eval_harness: run deterministic V9 operating-model evals across V5-V9.
+- get_v10_productization_blueprint: return V10 product API, storage, repository, dashboard, and staged implementation contracts.
+- create_v10_implementation_slice_plan: return V10 implementation slices with MCP pre-edit and post-edit gates.
+- plan_primer_dashboard: return Primer React dashboard screen and accessibility plans.
+- validate_v10_productization_boundary: review V10 route, storage, dashboard, policy, and billing boundary regressions.
+- run_v10_eval_harness: run deterministic V10 productization boundary evals.
+- build_quality_requirements_profile: turn interview answers into a quality requirements profile.
+- evaluate_repo_plan_quality: evaluate proposed stack/repo plans with hard gates, rubrics, and anti reward-hacking warnings.
+- audit_generated_repo_quality: audit generated repos after creation with the same quality gates.
+- suggest_quality_followup_questions: return focused questions when quality confidence is low.
+- run_repo_quality_eval_scenarios: run deterministic repo quality eval scenarios.
+
+## V3 Complete Checklist
+- Source-backed stack packs: hono, zod, vitest, auth0, stripe, expo, ai-sdk.
+- Executable detectors: auth-boundary, payment-boundary, test-policy, validation-boundary, route-thinness, line-threshold, ai-tool-safety.
+- Client examples: examples/client-wrapper.ts and JSON recipe files.
+- Local MCP config scanning and final-response review are part of the V3 tool surface.
+
+## Finding Codes
+- ARCH001_OVERSIZED_FILE
+- ARCH002_UI_DB_ACCESS
+- ARCH003_CLIENT_SERVER_LEAK
+- ARCH004_THIN_CONTROLLER
+- ARCH005_MISSING_DIRECTORY
+- ARCH006_MIXED_CONCERNS
+- ARCH007_SHARED_IMPORTS_FEATURE
+- ARCH008_ENV_SCATTER
+- ARCH009_SERVER_ENV_IN_UI
+- ARCH010_ROUTE_WITHOUT_FEATURES
+- ARCH011_TRANSPORT_LEAK
+- ARCH012_MIGRATION_DISCIPLINE
+- ARCH013_SUPABASE_SPLIT
+- ARCH014_PACK_RULE
+- ARCH015_PLAN_MONOLITH_RISK
+- ARCH016_PLAN_MISSING_BOUNDARY
+- ARCH017_PLAN_MISSING_HARNESS
+- ARCH018_BUILD_PLAN_ORDER
+- ARCH019_BUILD_PLAN_VERIFICATION
+- ARCH020_IMPLEMENTATION_IGNORED_PLAN
+- ARCH021_SPEC_INCOMPLETE
+- ARCH022_IMPORT_GRAPH_BOUNDARY
+- ARCH023_STACK_PACK_CANDIDATE
+- ARCH024_AGENT_HARNESS
+- ARCH025_TYPE_SCHEMA_AGGREGATION
+- ARCH026_REPO_HYGIENE
+
+## Pack Authoring
+Stack packs live in packs/*.json. Foundation packs live in foundation-packs/*.json. Both use manifest files with versions and SHA-256 hashes.
+
+Candidate stack packs must include source metadata, concrete rules, examples, triggerKind, detectors, module boundaries, tests, and agent instructions.
+
+## V3 Source Material
+- docs/v3-source-material.md: V3 source-material notes for llms.txt stack packs, client harness recipes, eval fixtures, skill/catalog ingestion, MCP config security, agent instruction quality, memory scope compatibility, and verification policy.
+- docs/v3-status.md: Current V3 coverage, remaining future work, and the local-first readiness decision.
+- docs/v1-v3-completion-audit.md: Completion audit for V1-V3 local-first scope and deferred productization work.
+- docs/v4-scope-audit.md: V4 scope audit that removes hosted, database/storage, and GitHub/PR work until backend architecture is concrete.
+- docs/v5-v8-scope-audit.md: V5-V8 roadmap audit and V9 recommendation, preserving local-first boundaries.
+- docs/v4-scope.md: V4 local-first Standards Depth and Agent Workflow definition.
+- docs/v5-scope.md: V5 local-first next steps after V4, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v6-scope.md: V6 local governance maturity after V5, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v7-scope.md: V7 local strategic intelligence after V6, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v8-scope.md: V8 local governance automation after V7, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v9-scope.md: V9 local operating-model readiness after V8, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v10-productization-concepts.md: V10 concept map for accounts, teams, billing, dashboards, and remote policy management.
+- docs/v10-productization-implementation.md: V10 hosted productization contract, MCP-gated workflow, storage boundaries, and Primer dashboard constraints.
+- docs/v10-architecture-contract.md: V10 architecture contract and stop conditions.
+- docs/repo-quality-eval.md: Repo quality eval layer, hard gates, rubrics, and reward-hacking guardrails.
+- docs/use-on-a-repo.md: Local and hosted-safe workflows for using architect-mcp on a repository.
+- docs/hosted-api-shape.md: Future hosted request/response boundaries without adding hosted state.
+- examples/guided-yolo-pre-edit-recipe.json: executable client call recipe for intent interpretation, pre-edit contracts, and implementation drift review.
+- examples/mcp-config-security-review.json: executable client call recipe for MCP config security review.
+- examples/stack-pack-promotion-recipe.json: executable client call recipe for source-backed stack-pack promotion.
+- docs/stack-pack-strategy.md: promotion flow for source-backed stack packs.

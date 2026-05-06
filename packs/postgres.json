@@ -1,0 +1,51 @@
+{
+  "id": "postgres",
+  "name": "Postgres Database",
+  "version": "0.1.0",
+  "rationale": "Postgres-backed apps need explicit schema, migration, and repository ownership so UI and route files do not become data-access dumping grounds.",
+  "sources": [
+    {
+      "label": "Postgres repository and migration discipline",
+      "note": "Rules focus on separating UI, server-only query modules, schema, and migrations."
+    }
+  ],
+  "appliesTo": ["database"],
+  "aliases": ["postgres", "postgresql", "pg"],
+  "directories": [
+    { "path": "src/db/schema", "purpose": "Schema definitions and database types.", "required": true },
+    { "path": "src/db/migrations", "purpose": "Versioned migration files.", "required": true },
+    { "path": "src/db/repositories", "purpose": "Query modules owned by domain/entity.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "No UI queries",
+      "rule": "UI modules must not construct SQL or call database clients directly.",
+      "severity": "error",
+      "trigger": "A TSX/component file imports database clients or contains SQL fragments.",
+      "recommendation": "Move database access into repositories or server-only modules.",
+      "appliesToPaths": ["src/**/*.tsx", "src/components/**/*", "src/features/**/*.tsx"],
+      "goodExample": "Component receives data from a server module via props.",
+      "badExample": "Component imports db and calls db.select()."
+    },
+    {
+      "name": "Migration discipline",
+      "rule": "Schema changes should include a migration and a brief rationale.",
+      "severity": "warning",
+      "trigger": "Schema files change without a migration file.",
+      "recommendation": "Add a versioned migration and document why the schema changed.",
+      "appliesToPaths": ["src/db/schema/**/*", "src/db/migrations/**/*"],
+      "goodExample": "Schema change includes 202605050001_add_reviews_table.sql.",
+      "badExample": "Schema type changes with no migration."
+    }
+  ],
+  "moduleBoundaries": [
+    "Database access should be isolated behind repositories or server-only query modules.",
+    "Migrations are append-only unless the project is explicitly pre-production."
+  ],
+  "testingExpectations": [
+    "Important queries should have repository-level tests or integration coverage."
+  ],
+  "agentInstructions": [
+    "Never hide database calls inside React components or route composition files."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "repo-structure",
+  "name": "Repo Structure",
+  "version": "0.1.0",
+  "rationale": "Forces agents to create responsibility-owned folders before app-level files grow into monoliths.",
+  "sources": [
+    {
+      "label": "architect-mcp anti-monolith rule",
+      "note": "Repository structure should encode ownership so generated code has obvious boundaries."
+    }
+  ],
+  "rules": [
+    "Create directories by responsibility, not by dumping everything into app-level files.",
+    "Map canonical paths to existing repos before generating files.",
+    "Shared code must have more than one real consumer."
+  ],
+  "artifacts": ["feature folders", "server/service folders", "database folders", "docs"],
+  "reviewQuestions": ["What responsibility owns each new file?"]
+}

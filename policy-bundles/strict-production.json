@@ -1,0 +1,13 @@
+{
+  "id": "strict-production",
+  "name": "Strict Production Governance",
+  "version": "0.1.0",
+  "profile": "strict",
+  "rules": [
+    "Block high-risk auth, payment, security, dependency, and public API changes without a pre-edit contract.",
+    "Require source-backed evidence for promoted stack-pack rules.",
+    "Fail on missing verification for implementation claims.",
+    "Require accepted baseline findings to include a reason."
+  ],
+  "recommendedWhen": ["strict", "production", "security", "auth", "payment", "enterprise"]
+}

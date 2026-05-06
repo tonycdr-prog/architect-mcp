@@ -1,0 +1,44 @@
+{
+  "id": "hono",
+  "name": "Hono API",
+  "version": "0.1.0",
+  "rationale": "Hono APIs drift into route-handler monoliths unless transport parsing, middleware, service orchestration, and runtime-specific concerns remain separated.",
+  "sources": [
+    {
+      "label": "Hono ingested llms.txt snapshot",
+      "url": "https://hono.dev/llms.txt",
+      "note": "Derived from stack-sources/ingested/hono.txt fetched 2026-05-05T18:32:49.722Z with sha256 d55583b71af1f14a88cef6426aca9ae5011741aaac13c6bf2795269d4318bf25."
+    }
+  ],
+  "appliesTo": ["backend"],
+  "aliases": ["hono", "honojs", "edge api"],
+  "directories": [
+    { "path": "src/server/routes", "purpose": "Hono route registration and transport parsing.", "required": true },
+    { "path": "src/server/services", "purpose": "Use-case and workflow orchestration called by routes.", "required": true }
+  ],
+  "fileRules": [
+    {
+      "name": "Hono Thin Route Files",
+      "rule": "Hono route files should not own workflow orchestration, persistence, validation, and response shaping in one large handler.",
+      "severity": "error",
+      "trigger": "A route/controller file exceeds the route-thinness threshold.",
+      "recommendation": "Keep Hono handlers transport-focused and delegate workflows to src/server/services modules.",
+      "appliesToPaths": ["src/server/routes/*.ts", "src/server/routes/**/*.ts", "src/**/*route*.ts"],
+      "goodExample": "src/server/routes/users.ts validates input then calls src/server/services/userService.ts.",
+      "badExample": "A route file owns auth, validation, database queries, business rules, and response mapping.",
+      "triggerKind": "route-thinness",
+      "detectors": [{ "kind": "route-thinness", "description": "Flags oversized route/controller files." }]
+    }
+  ],
+  "moduleBoundaries": [
+    "Routes parse transport input and call services/use-cases.",
+    "Services own workflow decisions and call repositories or platform adapters.",
+    "Runtime-specific Hono concerns should not leak into domain modules."
+  ],
+  "testingExpectations": [
+    "Add handler tests around request/response behavior and service tests around workflow rules."
+  ],
+  "agentInstructions": [
+    "Do not put complete workflows into Hono route callbacks; create service modules before adding complex endpoints."
+  ]
+}
