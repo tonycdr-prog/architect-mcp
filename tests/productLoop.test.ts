@@ -228,6 +228,12 @@ describe("local product loop", () => {
 
     assert.equal(validateRepoArtifacts(placeholderArtifacts).valid, false);
 
+    const nonNodeBuildPlan = validateRepoArtifacts([
+      ...placeholderArtifacts.filter((artifact) => artifact.path !== "docs/build-plan.md"),
+      { path: "docs/build-plan.md", description: "plan", content: "# Build Plan\n\n### 1. Test backend\nChecks: go test ./..." }
+    ]);
+    assert.equal(nonNodeBuildPlan.errors.some((error) => error.includes("ordered slices with exact verification checks")), false);
+
     const contract = generateContract(cleanMcpServerFixture.brief, cleanMcpServerFixture.stackPackIds);
     const agentsMd = generateRepoArtifacts(contract, cleanMcpServerFixture.brief).find((artifact) => artifact.path === "AGENTS.md")?.content ?? "";
     assert.equal(scoreAgentInstructions(agentsMd).status, "pass");

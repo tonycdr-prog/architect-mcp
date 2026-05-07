@@ -55,5 +55,9 @@ export function reviewProposedFilePlan(plan: ProposedFilePlan): ReviewViolation[
 }
 
 function highRiskResponsibilityCount(text: string): number {
-  return ["workflow", "database", "auth", "routing", "state", "ui"].filter((term) => new RegExp(term, "i").test(text)).length;
+  return ["workflow", "database", "auth", "routing", "state", "ui"].filter((term) => responsibilityTermPattern(term).test(text)).length;
+}
+
+function responsibilityTermPattern(term: string): RegExp {
+  return new RegExp(`(^|[^a-z0-9])${term}([^a-z0-9]|$)`, "i");
 }

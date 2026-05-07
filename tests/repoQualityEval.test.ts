@@ -118,6 +118,16 @@ describe("repo quality eval layer", () => {
     assert.equal(auditResult.hardGates.some((gate) => gate.code === "RQG008_AGENTS_MD_WEAK"), true);
   });
 
+  it("keeps env values intact when secret values contain additional equals signs", () => {
+    const result = evaluateRepoPlanQuality({
+      plan: {
+        envVars: ["SESSION_SECRET=abc=def=ghi"]
+      }
+    });
+
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
+  });
+
   it("passes a boring maintainable plan with real proof", () => {
     const profile = buildQualityRequirementsProfile({
       userLevel: "beginner",

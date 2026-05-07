@@ -322,6 +322,18 @@ describe("reviewProposedFilePlan", () => {
 
     assert.equal(violations.length, 0);
   });
+
+  it("does not count ui inside unrelated words as a high-risk responsibility", () => {
+    const violations = reviewProposedFilePlan({
+      files: [
+        { path: "AGENTS.md", purpose: "Agent instructions." },
+        { path: "docs/architecture-contract.md", purpose: "Architecture contract." },
+        { path: "src/App.tsx", purpose: "Build and guide a simple entry point.", responsibilities: ["build shell", "guide startup"] }
+      ]
+    });
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK" && violation.severity === "error"), false);
+  });
 });
 
 describe("reviewBuildPlan", () => {
@@ -840,6 +852,17 @@ describe("grillMe", () => {
     assert.equal(emptyArrays.nextQuestion.id, "coreFlows");
     assert.equal(emptyArrays.missingFields.includes("coreFlows"), true);
     assert.equal(emptyArrays.missingFields.includes("verification"), true);
+    assert.equal(grillMe({
+      idea: "App",
+      users: "Admins",
+      coreFlows: ["create one thing"],
+      stack: { frontend: "React" },
+      storage: "No",
+      enforcement: "Advise",
+      repoLayout: { pathMap: { "src/features": ["src/features"] } },
+      risk: "Monoliths",
+      verification: ["npm test"]
+    }).missingFields.includes("coreFlows"), true);
     assert.equal(pressureTest.ready, true);
     assert.match(pressureTest.nextQuestion.id, /^pressure:/);
   });

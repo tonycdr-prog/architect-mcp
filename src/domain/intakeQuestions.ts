@@ -55,7 +55,12 @@ export function getNextIntakeQuestionForBrief(brief: ProjectBrief) {
 export function isBriefFieldAnswered(brief: ProjectBrief, field: keyof ProjectBrief): boolean {
   const value = brief[field];
   if (typeof value === "string") return value.trim().length > 0;
-  if (Array.isArray(value)) return value.some((item) => typeof item !== "string" || item.trim().length > 0);
+  if (Array.isArray(value)) {
+    const answeredItems = value.filter((item) => typeof item !== "string" || item.trim().length > 0);
+    if (field === "coreFlows") return answeredItems.length >= 2;
+    if (field === "verification") return answeredItems.length >= 1;
+    return answeredItems.length > 0;
+  }
   if (field === "stack") return Boolean(brief.stack && Object.values(brief.stack).some((item) => item?.trim()));
   if (field === "repoLayout") return Boolean(brief.repoLayout && Object.keys(brief.repoLayout.pathMap ?? {}).length > 0);
   if (value && typeof value === "object") return Object.keys(value).length > 0;

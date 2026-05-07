@@ -199,7 +199,9 @@ function inferSignals(plan: RepoQualityPlan): RepoQualityArtifactSignals {
 }
 
 function isSecretLikeEnvValue(value: string): boolean {
-  const [rawName = "", rawValue = ""] = value.split("=");
+  const separatorIndex = value.indexOf("=");
+  const rawName = separatorIndex === -1 ? value : value.slice(0, separatorIndex);
+  const rawValue = separatorIndex === -1 ? "" : value.slice(separatorIndex + 1);
   const name = rawName.trim();
   const secret = rawValue.trim();
   if (!secret) return false;
