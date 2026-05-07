@@ -9,12 +9,13 @@ import { generateBuildPlan } from "../src/domain/buildPlan.js";
 import { reviewBuildPlan } from "../src/domain/buildPlanReviewer.js";
 import { discoverLlmsSources, listIngestedLlmsSources } from "../src/domain/llmsSources.js";
 import { inferRepoLayoutFromFiles } from "../src/domain/repoLayout.js";
+import { matchesPathPattern } from "../src/domain/pathRules.js";
 import { createReviewReport } from "../src/domain/reviewReport.js";
 import { reviewFileSummaries } from "../src/domain/reviewer.js";
 import { reviewProposedFilePlan } from "../src/domain/planReviewer.js";
 import { analyzeStackPackConflicts, deriveStackPackFromIngestedSource, diffStackPackVersions, promoteStackPackCandidate, proposeStackPackRules, reviewStackPackCandidate, stackPackExpansionStrategy } from "../src/domain/stackPackWorkflow.js";
 import { resolveStackPacks, validateStackPacks } from "../src/domain/stackPacks.js";
-import { scanWorkspace } from "../src/infrastructure/scanWorkspace.js";
+import { scanWorkspace, scanWorkspaceWithMetadata } from "../src/infrastructure/scanWorkspace.js";
 import {
   generatedAppBadFixture,
   generatedAppGoodFixture,
@@ -707,6 +708,11 @@ describe("createReviewReport", () => {
 });
 
 describe("scanWorkspace", () => {
+  it("matches recursive globs against direct and nested files", () => {
+    assert.equal(matchesPathPattern("src/App.tsx", "src/**/*.tsx"), true);
+    assert.equal(matchesPathPattern("src/features/App.tsx", "src/**/*.tsx"), true);
+  });
+
   it("extracts imports and env access with the TypeScript parser", async () => {
     const root = await mkdtemp(join(tmpdir(), "architect-mcp-test-"));
     await writeFile(join(root, "sample.ts"), [
@@ -721,6 +727,20 @@ describe("scanWorkspace", () => {
 
     assert.deepEqual(sample?.imports, ["./api"]);
     assert.deepEqual(sample?.envAccesses, ["SECRET_KEY"]);
+  });
+
+  it("reports truncation and applies ignore patterns during traversal", async () => {
+    const root = await mkdtemp(join(tmpdir(), "architect-mcp-scan-"));
+    await writeFile(join(root, "keep.ts"), "export const keep = true;\n");
+    await writeFile(join(root, "skip.generated.ts"), "export const skip = true;\n");
+    await writeFile(join(root, "other.ts"), "export const other = true;\n");
+
+    const ignored = await scanWorkspaceWithMetadata(root, 10, ["skip.generated.ts"]);
+    const truncated = await scanWorkspaceWithMetadata(root, 1);
+
+    assert.equal(ignored.files.some((file) => file.path === "skip.generated.ts"), false);
+    assert.equal(truncated.truncated, true);
+    assert.equal(truncated.files.length, 1);
   });
 });
 

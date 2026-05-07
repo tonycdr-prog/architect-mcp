@@ -15,10 +15,12 @@ export function validatePackManifest(packDirectory: string): string[] {
       .filter((file) => file.endsWith(".json"))
       .filter((file) => file !== "manifest.json")
       .sort();
+    const seenPackIds = new Set<string>();
 
     for (const file of packFiles) {
       const content = readFileSync(join(packDirectory, file), "utf8");
       const pack = JSON.parse(content) as { id?: string; version?: string };
+      if (pack.id) seenPackIds.add(pack.id);
       const entry = entries.get(pack.id);
       if (!entry) {
         errors.push(`${pack.id ?? file}: missing pack manifest entry`);
@@ -28,6 +30,12 @@ export function validatePackManifest(packDirectory: string): string[] {
       const hash = createHash("sha256").update(content).digest("hex");
       if (entry.version !== pack.version) errors.push(`${pack.id}: pack manifest version ${entry.version} does not match pack version ${pack.version}`);
       if (entry.sha256 !== hash) errors.push(`${pack.id}: pack content changed without updating packs/manifest.json; bump the pack version when rule behavior changes`);
+    }
+
+    for (const entry of manifest.entries ?? []) {
+      if (entry.id && !seenPackIds.has(entry.id)) {
+        errors.push(`${entry.id}: stale pack manifest entry has no matching pack file`);
+      }
     }
   } catch (error) {
     errors.push(`Could not validate pack manifest: ${error instanceof Error ? error.message : String(error)}`);

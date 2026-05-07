@@ -9,9 +9,11 @@ export function buildQualityRequirementsProfile(input: {
   answers?: string[];
   stackPreference?: string;
 } = {}): RepoQualityRequirementsProfile {
-  const goals = input.goals?.length ? input.goals : inferGoals(input.answers ?? []);
-  const constraints = [...(input.constraints ?? []), ...stackPreferenceConstraints(input.stackPreference)];
-  const text = [...goals, ...constraints, ...(input.answers ?? []), input.stackPreference ?? ""].join(" ").toLowerCase();
+  const suppliedGoals = cleanStrings(input.goals);
+  const answers = cleanStrings(input.answers);
+  const goals = suppliedGoals.length ? suppliedGoals : inferGoals(answers);
+  const constraints = [...cleanStrings(input.constraints), ...stackPreferenceConstraints(input.stackPreference)];
+  const text = [...goals, ...constraints, ...answers, input.stackPreference ?? ""].join(" ").toLowerCase();
   const missingQuestions = [
     ...(!goals.length ? ["What outcome should the app produce for the user?"] : []),
     ...(!/user|customer|admin|team|owner/.test(text) ? ["Who will use this, and how technical are they?"] : []),
@@ -205,6 +207,10 @@ function profileless(plan: RepoQualityPlan): string[] {
 
 function inferGoals(answers: string[]): string[] {
   return answers.filter((answer) => /build|create|manage|track|help|app|tool/i.test(answer)).slice(0, 5);
+}
+
+function cleanStrings(values: string[] | undefined): string[] {
+  return (values ?? []).map((value) => value.trim()).filter(Boolean);
 }
 
 function riskTerms(text: string): string[] {

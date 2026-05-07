@@ -70,7 +70,8 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
     async ({ request }) => safeJsonResponse(() => promoteStackPackCandidateToFiles(request.candidate as StackPackCandidate, {
       writeFiles: request.writeFiles,
       allowOverwrite: request.allowOverwrite,
-      bump: request.bump
+      bump: request.bump,
+      packDirectory: request.packDirectory
     }))
   );
 

@@ -2,9 +2,11 @@ export type JavaScriptPackageManager = "npm" | "pnpm" | "yarn" | "bun";
 
 export const VERIFICATION_COMMAND_PATTERN =
   /^(npm|pnpm|yarn|bun|npx|node|tsx|pytest|python|ruff|uv|cargo|go|dotnet|mvn|gradle|make)\b/i;
+const UNSAFE_VERIFICATION_COMMAND_PATTERN = /[\r\n]|&&|\|\||[;|`<>]|\$\(|\b(?:curl|wget)\b/i;
 
 export function isConcreteVerificationCommand(command: string): boolean {
-  return VERIFICATION_COMMAND_PATTERN.test(command.trim());
+  const trimmed = command.trim();
+  return VERIFICATION_COMMAND_PATTERN.test(trimmed) && !UNSAFE_VERIFICATION_COMMAND_PATTERN.test(trimmed);
 }
 
 export function extractVerificationCommands(candidates: string[]): string[] {

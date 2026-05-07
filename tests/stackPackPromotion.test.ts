@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { validatePackManifest } from "../src/domain/stackPackManifest.js";
 import { promoteStackPackCandidateToFiles, proposeStackPackRules } from "../src/domain/stackPackWorkflow.js";
 
 describe("promoteStackPackCandidateToFiles", () => {
@@ -59,8 +60,21 @@ describe("promoteStackPackCandidateToFiles", () => {
     const manifest = JSON.parse(readFileSync(join(packDirectory, "manifest.json"), "utf8")) as { entries: Array<{ id: string }> };
 
     assert.equal(dryRun.dryRun, true);
+    assert.equal(dryRun.files.some((file) => file.path === `${packDirectory}/acme-zod-runtime.json`), true);
     assert.equal(written.dryRun, false);
     assert.equal(manifest.entries.some((entry) => entry.id === "acme-zod-runtime"), true);
     assert.equal(JSON.parse(readFileSync(join(packDirectory, "acme-zod-runtime.json"), "utf8")).id, "acme-zod-runtime");
+  });
+
+  it("rejects stale manifest entries without matching pack files", () => {
+    const root = mkdtempSync(join(tmpdir(), "architect-pack-manifest-"));
+    writeFileSync(join(root, "manifest.json"), JSON.stringify({
+      generatedBy: "architect-mcp",
+      entries: [{ id: "deleted-pack", version: "0.1.0", sha256: "abc" }]
+    }, null, 2), "utf8");
+
+    const errors = validatePackManifest(root);
+
+    assert.equal(errors.some((error) => /stale pack manifest entry/.test(error)), true);
   });
 });

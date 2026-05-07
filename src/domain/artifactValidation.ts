@@ -129,7 +129,18 @@ export function validateRepoArtifacts(artifacts: RepoArtifact[]): ArtifactValida
 }
 
 function extractRunCommands(content: string): string[] {
-  return [...content.matchAll(/^\s*-\s+run:\s+(.+)$/gm)].map((match) => match[1].trim());
+  return [...content.matchAll(/^\s*-\s+run:\s+(.+)$/gm)].map((match) => unquoteYamlScalar(match[1].trim()));
+}
+
+function unquoteYamlScalar(value: string): string {
+  if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
 }
 
 function extractCodeSpans(content: string): string[] {

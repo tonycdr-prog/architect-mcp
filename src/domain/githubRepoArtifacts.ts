@@ -116,7 +116,7 @@ export function renderGitHubCiWorkflow(contract: ArchitectureContract, brief?: P
   const commands = verificationCommandsFor(contract, brief);
   const setupSteps = renderCiSetupSteps(commands);
   const verificationSteps = commands.length
-    ? commands.map((command) => `      - run: ${command}`).join("\n")
+    ? commands.map((command) => `      - run: ${quoteYamlScalar(command)}`).join("\n")
     : "      - run: echo \"No verification command was specified; update this workflow before relying on CI.\" && exit 1";
 
   return `name: CI
@@ -192,4 +192,8 @@ ${install}`;
 `;
   const install = commands.includes(installCommand) ? "" : `      - run: ${installCommand}\n`;
   return `${setupNode}${corepack}${install}`;
+}
+
+function quoteYamlScalar(value: string): string {
+  return JSON.stringify(value);
 }

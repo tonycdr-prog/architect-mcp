@@ -17,6 +17,15 @@ describe("repo quality eval layer", () => {
     assert.equal(profile.missingQuestions.some((question) => /data/i.test(question)), true);
   });
 
+  it("does not treat blank goals as supplied requirements", () => {
+    const profile = buildQualityRequirementsProfile({
+      goals: ["   "]
+    });
+
+    assert.equal(profile.missingQuestions.some((question) => /outcome/i.test(question)), true);
+    assert.equal(profile.confidence, "low");
+  });
+
   it("blocks secrets, unsafe permissions, and destructive commands", () => {
     const result = evaluateRepoPlanQuality({
       plan: {
