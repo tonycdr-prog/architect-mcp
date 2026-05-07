@@ -31,7 +31,7 @@ export function classifyReviewLifecycle(findings: ReviewViolation[], baseline: R
 
 function matchesBaselineFinding(finding: ReviewViolation, baselineFinding: BaselineFinding): boolean {
   if (baselineFinding.code !== finding.code) return false;
-  if ((finding.severity === "error" || finding.confidence === "high") && !baselineFinding.path && !baselineFinding.message) return false;
+  if (!baselineFinding.path && !baselineFinding.message) return false;
   if (baselineFinding.path && baselineFinding.path !== finding.path) return false;
   if (baselineFinding.message && baselineFinding.message !== finding.message) return false;
   return true;
