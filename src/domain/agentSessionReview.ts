@@ -43,6 +43,24 @@ export function reviewAgentSession(input: AgentSessionReviewInput) {
     });
   }
 
+  if (input.verification?.length && !input.contract) {
+    const failed = input.verification.filter((check) => check.status === "failed");
+    const incomplete = input.verification.filter((check) => check.status === "skipped" || check.status === "not_run");
+    const passed = input.verification.filter((check) => check.status === "passed");
+    sections.push({
+      name: "verification",
+      status: failed.length ? "fail" : incomplete.length || passed.length === 0 ? "warn" : "pass",
+      summary: failed.length
+        ? "Verification includes failed checks."
+        : incomplete.length ? "Verification includes skipped or not-run checks." : "Verification includes passed checks.",
+      details: {
+        passed,
+        failed,
+        incomplete
+      }
+    });
+  }
+
   if (input.finalResponse) {
     const finalReview = reviewAgentFinalResponse({
       response: input.finalResponse,
@@ -56,11 +74,19 @@ export function reviewAgentSession(input: AgentSessionReviewInput) {
     });
   }
 
-  if (input.memories?.length && input.request) {
+  if (input.memories?.length) {
     const memoryReview = reviewMemoryRelevance({
-      request: input.request,
+      request: input.request ?? "",
       memories: input.memories
     });
+    if (!input.request?.trim()) {
+      memoryReview.findings.push({
+        id: "session-memory-context",
+        severity: "warning",
+        message: "Memory relevance could not be fully reviewed because request context was not supplied.",
+        recommendation: "Pass the current request when reviewing session memory so relevance can be checked."
+      });
+    }
     sections.push({
       name: "memory",
       status: memoryReview.valid ? (memoryReview.findings.length ? "warn" : "pass") : "fail",

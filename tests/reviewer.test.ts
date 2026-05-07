@@ -334,6 +334,17 @@ describe("reviewBuildPlan", () => {
     assert.equal(violations.some((violation) => violation.code === "ARCH018_BUILD_PLAN_ORDER"), true);
   });
 
+  it("generates exact default checks that pass its own verification review", () => {
+    const plan = generateBuildPlan({
+      idea: "Todo app",
+      stack: { frontend: "React" },
+      coreFlows: ["create todo", "complete todo"]
+    });
+    const violations = reviewBuildPlan(plan);
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH019_BUILD_PLAN_VERIFICATION"), false);
+  });
+
   it("rejects build-plan checks outside the brief verification set", () => {
     const plan = generateBuildPlan({
       ...messyReactFixture.brief,

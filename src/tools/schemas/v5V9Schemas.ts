@@ -206,7 +206,7 @@ export const scenarioAcceptanceRequestSchema = z.object({
 }).strict();
 
 export const normalizeResultRequestSchema = z.object({
-  status: optionalText(shortText),
+  status: z.enum(["pass", "warn", "fail"]).optional(),
   findings: boundedArray(reviewFindingSchema, 5_000).optional(),
   evidence: boundedArray(mediumText, 1_000).optional(),
   assumptions: boundedArray(mediumText, 1_000).optional(),

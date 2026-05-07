@@ -1,4 +1,5 @@
 import { scoreAgentInstructions, scoreLlmsTxt } from "./artifactQuality.js";
+import { reviewAgentFinalResponse } from "./finalResponseReview.js";
 import type { ReviewViolation } from "./types.js";
 
 export type OutputMode = "compact" | "standard" | "full";
@@ -25,13 +26,14 @@ export function selectLocalOrchestrationRecipe(input: { request?: string; risk?:
 }
 
 export function evaluateScenarioAcceptance(input: { scenario?: string; intentReady?: boolean; contractReady?: boolean; reviewPassed?: boolean; verified?: boolean; finalResponseHonest?: boolean; artifactScores?: Array<{ status?: string }> } = {}) {
+  const artifactScores = input.artifactScores ?? [];
   const checks = [
-    { id: "intent", passed: input.intentReady !== false },
-    { id: "contract", passed: input.contractReady !== false },
-    { id: "review", passed: input.reviewPassed !== false },
+    { id: "intent", passed: input.intentReady === true },
+    { id: "contract", passed: input.contractReady === true },
+    { id: "review", passed: input.reviewPassed === true },
     { id: "verification", passed: input.verified === true },
-    { id: "final-response", passed: input.finalResponseHonest !== false },
-    { id: "artifacts", passed: (input.artifactScores ?? []).every((score) => score.status !== "fail") }
+    { id: "final-response", passed: input.finalResponseHonest === true },
+    { id: "artifacts", passed: artifactScores.length > 0 && artifactScores.every((score) => score.status !== "fail") }
   ];
   const failed = checks.filter((check) => !check.passed);
   return {
@@ -45,8 +47,10 @@ export function evaluateScenarioAcceptance(input: { scenario?: string; intentRea
 
 export function normalizeMcpResult(input: { status?: string; findings?: ReviewViolation[]; evidence?: string[]; assumptions?: string[]; warnings?: string[]; notDone?: string[]; handoff?: string } = {}) {
   const findings = input.findings ?? [];
+  const derivedStatus = findings.some((finding) => finding.severity === "error") ? "fail" : findings.length ? "warn" : "pass";
+  const status = mostSevereStatus(input.status, derivedStatus);
   return {
-    status: input.status ?? (findings.some((finding) => finding.severity === "error") ? "fail" : findings.length ? "warn" : "pass"),
+    status,
     stoplight: findings.some((finding) => finding.severity === "error") ? "red" : findings.length ? "yellow" : "green",
     findings,
     evidence: input.evidence ?? [],
@@ -108,7 +112,13 @@ export function reviewToolLoopQuality(input: { toolsRun?: string[]; risky?: bool
   if (input.risky && !tools.has("create_pre_edit_contract")) findings.push("Risky work skipped pre-edit contract.");
   if (!tools.has("review_repo_structure") && !tools.has("review_implementation_against_contract")) findings.push("Implementation was not reviewed.");
   if (!(input.verification ?? []).some((check) => check.status === "passed")) findings.push("No passed verification check supplied.");
-  if (input.finalResponse) {
+  if (!input.finalResponse?.trim()) {
+    findings.push("Final response is missing.");
+  } else {
+    const finalReview = reviewAgentFinalResponse({
+      response: input.finalResponse
+    });
+    findings.push(...finalReview.findings.filter((finding) => finding.severity === "error").map((finding) => finding.message));
     const missingSections = ["changed", "verified", "assumptions", "not done"].filter((section) => !new RegExp(section, "i").test(input.finalResponse ?? ""));
     if (missingSections.length > 0) findings.push(`Final response omits output-contract sections: ${missingSections.join(", ")}.`);
   }
@@ -117,6 +127,13 @@ export function reviewToolLoopQuality(input: { toolsRun?: string[]; risky?: bool
     findings,
     correctiveNextStep: findings[0] ?? "Tool loop quality looks acceptable."
   };
+}
+
+function mostSevereStatus(inputStatus: string | undefined, derivedStatus: "pass" | "warn" | "fail"): "pass" | "warn" | "fail" {
+  const normalized = inputStatus === "fail" || inputStatus === "warn" || inputStatus === "pass" ? inputStatus : undefined;
+  const rank = { pass: 0, warn: 1, fail: 2 };
+  if (!normalized) return derivedStatus;
+  return rank[derivedStatus] > rank[normalized] ? derivedStatus : normalized;
 }
 
 function recipeTools(id: string): string[] {
