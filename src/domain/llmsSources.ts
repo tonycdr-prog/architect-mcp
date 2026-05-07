@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { isIP } from "node:net";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { IngestedLlmsSource, LlmsSource, LlmsSourceSnapshot } from "./types.js";
 
@@ -73,6 +73,21 @@ export function listIngestedLlmsSources(): { generatedAt?: string; sources: Inge
       sources: []
     };
   }
+}
+
+export function readIngestedLlmsSnapshot(relativeOrAbsolutePath: string): string {
+  const candidates = isAbsolute(relativeOrAbsolutePath)
+    ? [relativeOrAbsolutePath]
+    : [
+      resolve(process.cwd(), relativeOrAbsolutePath),
+      resolve(dirname(fileURLToPath(import.meta.url)), "../../", relativeOrAbsolutePath),
+      resolve(dirname(fileURLToPath(import.meta.url)), "../../../", relativeOrAbsolutePath)
+    ];
+  const existing = candidates.find((candidate) => existsSync(candidate));
+  if (!existing) {
+    throw new Error(`Could not resolve ingested llms.txt snapshot ${relativeOrAbsolutePath}. Tried: ${candidates.join(", ")}`);
+  }
+  return readFileSync(existing, "utf8");
 }
 
 export async function fetchLlmsSource(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number; timeoutMs?: number } = {}): Promise<LlmsSourceSnapshot> {
@@ -221,9 +236,7 @@ function validateCallerProvidedLlmsUrl(value: string): URL {
     throw new Error("Caller-provided llms.txt source must be a valid URL or a known source id.");
   }
 
-  if (!/\/llms(?:-full)?\.txt$/i.test(url.pathname)) {
-    throw new Error("Caller-provided llms.txt source path must end with /llms.txt or /llms-full.txt.");
-  }
+  assertLlmsPath(url);
   assertSafeUrlShape(url);
 
   return url;
@@ -231,6 +244,7 @@ function validateCallerProvidedLlmsUrl(value: string): URL {
 
 async function assertSafeFetchUrl(url: URL): Promise<void> {
   assertSafeUrlShape(url);
+  assertLlmsPath(url);
   const hostname = normalizeHostname(url.hostname);
   if (isIP(hostname)) {
     if (isUnsafeIpAddress(hostname)) {
@@ -245,6 +259,12 @@ async function assertSafeFetchUrl(url: URL): Promise<void> {
   });
   if (addresses.some((address) => isUnsafeIpAddress(address.address))) {
     throw new Error("Caller-provided llms.txt source resolved to a localhost, private, or link-local address.");
+  }
+}
+
+function assertLlmsPath(url: URL): void {
+  if (!/\/llms(?:-full)?\.txt$/i.test(url.pathname)) {
+    throw new Error("Caller-provided llms.txt source path must end with /llms.txt or /llms-full.txt.");
   }
 }
 
@@ -276,6 +296,9 @@ function isUnsafeHostname(hostname: string): boolean {
 
 function isUnsafeIpAddress(address: string): boolean {
   const normalized = normalizeHostname(address);
+  const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (mappedIpv4) return isUnsafeIpAddress(mappedIpv4[1]);
+  if (/^::ffff:/i.test(normalized) || /^0:0:0:0:0:ffff:/i.test(normalized)) return true;
   if (normalized === "0.0.0.0" || normalized === "::" || normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
   if (/^127\./.test(normalized) || /^10\./.test(normalized) || /^169\.254\./.test(normalized)) return true;
   if (/^192\.168\./.test(normalized)) return true;

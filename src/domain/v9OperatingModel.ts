@@ -77,17 +77,35 @@ export function planContextBudget(input: { mode?: OutputMode; requestedTokens?: 
 
 export function routeEvidence(input: { findings?: ReviewViolation[]; sources?: Array<{ id: string; snapshotPath?: string; sha256?: string; fetchedAt?: string }>; verification?: Array<{ check: string; status: string }> } = {}) {
   const sources = input.sources ?? [];
-  return {
-    evidence: (input.findings ?? []).map((finding, index) => ({
+  const evidence = (input.findings ?? []).map((finding, index) => {
+    const source = sources.find((candidate) => sourceMatchesFinding(candidate, finding));
+    return {
       id: `ev-${index + 1}`,
       findingCode: finding.code,
       path: finding.path,
       message: finding.message,
-      source: sources[index % Math.max(1, sources.length)],
+      source,
       verification: input.verification?.[index % Math.max(1, input.verification.length)]
-    })),
-    warnings: sources.some((source) => !source.snapshotPath || !source.sha256) ? ["Some source provenance is missing snapshot path or hash."] : []
+    };
+  });
+  const unroutedSources = sources.length > 0 && evidence.some((entry) => !entry.source);
+  return {
+    evidence,
+    warnings: [
+      ...(sources.some((source) => !source.snapshotPath || !source.sha256) ? ["Some source provenance is missing snapshot path or hash."] : []),
+      ...(unroutedSources ? ["Some findings did not cite a matching source id or snapshot path, so source provenance was left unattached."] : [])
+    ]
   };
+}
+
+function sourceMatchesFinding(source: { id: string; snapshotPath?: string }, finding: ReviewViolation): boolean {
+  const haystack = `${finding.code} ${finding.path ?? ""} ${finding.message} ${finding.recommendation}`.toLowerCase();
+  const needles = [
+    source.id,
+    source.snapshotPath,
+    source.snapshotPath?.split("/").pop()?.replace(/\.[^.]+$/, "")
+  ].filter(Boolean).map((value) => value?.toLowerCase() ?? "");
+  return needles.some((needle) => needle.length > 2 && haystack.includes(needle));
 }
 
 export function createLocalDryRunPlan(input: { request?: string; risky?: boolean; expectedArtifacts?: { agentsMd?: string; llmsTxt?: string } } = {}) {
