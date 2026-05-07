@@ -56,9 +56,9 @@ export function reviewAgentSession(input: AgentSessionReviewInput) {
     });
   }
 
-  if (input.memories?.length && input.request) {
+  if (input.memories?.length) {
     const memoryReview = reviewMemoryRelevance({
-      request: input.request,
+      request: input.request ?? "",
       memories: input.memories
     });
     sections.push({

@@ -69,4 +69,35 @@ describe("stateless harness memory", () => {
     assert.equal(review.valid, false);
     assert.equal(review.findings.some((finding) => finding.message.includes("secret-like")), true);
   });
+
+  it("does not apply secret-shaped memories with inconsistent metadata", () => {
+    const memory = {
+      id: "unsafe",
+      kind: "preference" as const,
+      scope: "user" as const,
+      statement: "Use API token sk-test-123 when calling services.",
+      rationale: "Caller supplied unsafe memory metadata.",
+      confidence: "high" as const,
+      risk: "green" as const,
+      sensitivity: "internal" as const,
+      policyAction: "auto_store" as const,
+      tags: ["agent-harness"],
+      tokenEstimate: 20,
+      source: { kind: "manual" as const, summary: "manual" },
+      invalidatedBy: "Never",
+      targetPath: "user/preference.jsonl"
+    };
+    const applied = applyHarnessMemory({
+      request: "use agent harness memory",
+      memories: [memory]
+    });
+    const review = reviewMemoryRelevance({
+      request: "use agent harness memory",
+      memories: [memory]
+    });
+
+    assert.equal(applied.selected.length, 0);
+    assert.equal(applied.discarded[0]?.reason.includes("secret-like"), true);
+    assert.equal(review.valid, false);
+  });
 });

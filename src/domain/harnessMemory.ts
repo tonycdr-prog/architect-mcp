@@ -40,7 +40,9 @@ export function applyHarnessMemory(input: MemoryRelevanceInput): MemoryApplicati
   let tokenEstimate = 0;
 
   for (const item of ranked) {
-    if (item.memory.policyAction === "discard") {
+    if (effectiveSensitivity(item.memory) === "secret") {
+      discarded.push({ id: item.memory.id, reason: "Memory content appears secret-like and must not be applied." });
+    } else if (item.memory.policyAction === "discard") {
       discarded.push({ id: item.memory.id, reason: "Memory policy says discard." });
     } else if (item.memory.risk === "red") {
       discarded.push({ id: item.memory.id, reason: "Red memory needs explicit confirmation before use." });
@@ -69,7 +71,8 @@ export function reviewMemoryRelevance(input: MemoryRelevanceInput): { valid: boo
   const findings = input.memories.flatMap((memory) => {
     const memoryFindings: Array<{ id: string; severity: "warning" | "error"; message: string; recommendation: string }> = [];
     const score = relevanceScore(input.request, input.stack, memory);
-    if (memory.sensitivity === "secret") {
+    const sensitivity = effectiveSensitivity(memory);
+    if (sensitivity === "secret") {
       memoryFindings.push({
         id: memory.id,
         severity: "error",
@@ -212,7 +215,7 @@ function createProposal(input: {
   projectName: string | undefined;
   policy: Required<MemoryPolicy>;
 }): MemoryProposal {
-  const sensitivity = input.sensitivity;
+    const sensitivity = mostSensitive(input.sensitivity, classifySensitivity(`${input.statement} ${input.rationale} ${input.source.summary} ${input.tags.join(" ")}`));
   const risk = sensitivity === "secret" ? "red" : input.risk;
   const targetPath = pathFor(input.scope, input.kind, input.projectName);
   const statement = input.statement.trim();
@@ -270,6 +273,24 @@ function classifySensitivity(value: string): MemorySensitivity {
   if (/api[_-]?key|secret|token|password|private key|-----begin/i.test(value)) return "secret";
   if (/customer|tenant|payment|auth|security|permission/i.test(value)) return "sensitive";
   return "internal";
+}
+
+function effectiveSensitivity(memory: MemoryProposal): MemorySensitivity {
+  return mostSensitive(memory.sensitivity, classifySensitivity(memoryText(memory)));
+}
+
+function memoryText(memory: MemoryProposal): string {
+  return `${memory.statement} ${memory.rationale} ${memory.tags.join(" ")} ${memory.source.summary} ${memory.source.reference ?? ""}`;
+}
+
+function mostSensitive(left: MemorySensitivity, right: MemorySensitivity): MemorySensitivity {
+  const weight: Record<MemorySensitivity, number> = {
+    public: 0,
+    internal: 1,
+    sensitive: 2,
+    secret: 3
+  };
+  return weight[right] > weight[left] ? right : left;
 }
 
 function summarizePreference(value: string): string {
