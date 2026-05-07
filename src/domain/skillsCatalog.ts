@@ -139,16 +139,18 @@ export function reviewSuppliedSkills(input: { skills: SkillCatalogEntry[] }): { 
 }
 
 function containsUnsafeSkillText(skill: SkillCatalogEntry): boolean {
-  const text = [
+  return [
     skill.summary,
     ...skill.patterns,
     ...skill.recommendedWhen,
     ...skill.cautions
-  ].join("\n");
-  return hasUnsafeSkillPhrase(text);
+  ].some(hasUnsafeSkillPhrase);
 }
 
 function hasUnsafeSkillPhrase(text: string): boolean {
+  if (/\b(do not|don't|never|avoid|must not)\b.{0,60}\b(execute arbitrary|run arbitrary|ignore (the )?user|ignore previous|override instructions|exfiltrate|send (api keys|secrets)|leak secret)\b/i.test(text)) {
+    return false;
+  }
   if (/execute arbitrary|run arbitrary|ignore (the )?user|ignore previous|override instructions|exfiltrate|curl\s*\|\s*(bash|sh)|send (api keys|secrets)|leak secret/i.test(text)) {
     return true;
   }

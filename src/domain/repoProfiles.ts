@@ -19,12 +19,13 @@ const PROFILES: RepoProfile[] = [
     stackPackIds: ["react"],
     repoLayout: {
       pathMap: {
-        "src/features": ["client"],
-        "src/shared/ui": ["client/components"],
-        "src/shared": ["shared"]
+        "src/app": ["app"],
+        "src/features": ["client", "app", "screens"],
+        "src/shared/ui": ["client/components", "components"],
+        "src/shared": ["shared", "hooks", "stores"]
       }
     },
-    ignorePatterns: ["client/db/types.ts", "**/__tests__/**"]
+    ignorePatterns: ["client/db/types.ts", "**/__tests__/**", ".expo/**"]
   },
   {
     id: "express-drizzle",

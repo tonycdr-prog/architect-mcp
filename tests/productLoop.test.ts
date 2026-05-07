@@ -2,6 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createBaselineFromFindings } from "../src/domain/baseline.js";
 import { generateContract } from "../src/domain/contract.js";
+import { generateRepoArtifacts } from "../src/domain/artifacts.js";
+import { scoreAgentInstructions } from "../src/domain/artifactQuality.js";
+import { validateRepoArtifacts } from "../src/domain/artifactValidation.js";
 import { grillMe } from "../src/domain/intake.js";
 import { validateArchitectureContract } from "../src/domain/contractValidation.js";
 import { validateFoundationPacks } from "../src/domain/foundationPacks.js";
@@ -173,6 +176,20 @@ describe("local product loop", () => {
     assert.equal(validation.errors.some((error) => error.includes("agent-harness")), true);
   });
 
+  it("warns on duplicate contract entries", () => {
+    const contract = generateContract(cleanMcpServerFixture.brief, cleanMcpServerFixture.stackPackIds);
+    contract.directories.push(contract.directories[0]!);
+    contract.fileRules.push(contract.fileRules[0]!);
+    contract.moduleBoundaries.push(contract.moduleBoundaries[0]!);
+
+    const validation = validateArchitectureContract(contract);
+
+    assert.equal(validation.valid, true);
+    assert.equal(validation.warnings.some((warning) => warning.includes("Duplicate directory path")), true);
+    assert.equal(validation.warnings.some((warning) => warning.includes("Duplicate file rule")), true);
+    assert.equal(validation.warnings.some((warning) => warning.includes("Duplicate module boundary")), true);
+  });
+
   it("covers Expo generated app fixtures", () => {
     const badContract = generateContract(expoGeneratedBadFixture.brief, expoGeneratedBadFixture.stackPackIds);
     const badFindings = reviewFileSummaries(expoGeneratedBadFixture.files, badContract, 300, expoGeneratedBadFixture.directories);
@@ -197,5 +214,28 @@ describe("local product loop", () => {
     const goodContract = generateContract(paidAuthSupabaseGoodFixture.brief, paidAuthSupabaseGoodFixture.stackPackIds);
     const goodFindings = reviewFileSummaries(paidAuthSupabaseGoodFixture.files, goodContract, 300, paidAuthSupabaseGoodFixture.directories);
     assert.equal(createReviewReport(goodFindings, { mode: "ci" }).gate.status, "pass");
+  });
+
+  it("rejects placeholder repo artifacts and self-scores generated AGENTS.md", () => {
+    const marker = "Stack Packs Pre-Coding Checklist App Generation Guardrails Agent Harness Setup Review Gate Baseline Lifecycle Architecture review";
+    const placeholderArtifacts = ["AGENTS.md", "docs/architecture-contract.md", ".cursor/rules/architecture.mdc"].map((path) => ({
+      path,
+      description: "placeholder",
+      content: marker
+    }));
+    placeholderArtifacts.push({ path: ".architectignore", description: "ignore", content: "node_modules/**" });
+    placeholderArtifacts.push({ path: "docs/build-plan.md", description: "plan", content: "# Build Plan" });
+
+    assert.equal(validateRepoArtifacts(placeholderArtifacts).valid, false);
+
+    const nonNodeBuildPlan = validateRepoArtifacts([
+      ...placeholderArtifacts.filter((artifact) => artifact.path !== "docs/build-plan.md"),
+      { path: "docs/build-plan.md", description: "plan", content: "# Build Plan\n\n### 1. Test backend\nChecks: go test ./..." }
+    ]);
+    assert.equal(nonNodeBuildPlan.errors.some((error) => error.includes("ordered slices with exact verification checks")), false);
+
+    const contract = generateContract(cleanMcpServerFixture.brief, cleanMcpServerFixture.stackPackIds);
+    const agentsMd = generateRepoArtifacts(contract, cleanMcpServerFixture.brief).find((artifact) => artifact.path === "AGENTS.md")?.content ?? "";
+    assert.equal(scoreAgentInstructions(agentsMd).status, "pass");
   });
 });

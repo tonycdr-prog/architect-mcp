@@ -57,6 +57,23 @@ describe("skills catalog", () => {
     assert.equal(review.findings.some((finding) => finding.severity === "error"), true);
   });
 
+  it("allows safe negated arbitrary-execution cautions", () => {
+    const review = reviewSuppliedSkills({
+      skills: [{
+        id: "safe",
+        name: "Safe skill",
+        category: "mcp",
+        summary: "Safe advisory skill.",
+        patterns: ["review"],
+        recommendedWhen: ["review"],
+        cautions: ["Do not execute arbitrary skill logic."],
+        source: "client-supplied"
+      }]
+    });
+
+    assert.equal(review.valid, true);
+  });
+
   it("allows defensive prompt-injection skill wording but blocks offensive wording", () => {
     const safe = reviewSuppliedSkills({
       skills: [{

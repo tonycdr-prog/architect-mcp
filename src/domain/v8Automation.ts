@@ -104,6 +104,11 @@ export function calibrateRuleImpact(input: { findings?: ReviewViolation[]; profi
 
 export function reviewDocumentationIntelligence(input: { readme?: string; llmsTxt?: string; agentsMd?: string; toolNames?: string[] } = {}) {
   const findings: string[] = [];
+  if (input.toolNames?.length) {
+    if (!input.readme?.trim()) findings.push("README not supplied for changed tool-surface review.");
+    if (!input.llmsTxt?.trim()) findings.push("llms.txt not supplied for changed tool-surface review.");
+    if (!input.agentsMd?.trim()) findings.push("AGENTS.md not supplied for changed tool-surface review.");
+  }
   for (const tool of input.toolNames ?? []) {
     if (input.readme && !input.readme.includes(tool)) findings.push(`README missing ${tool}.`);
     if (input.llmsTxt && !input.llmsTxt.includes(tool)) findings.push(`llms.txt missing ${tool}.`);

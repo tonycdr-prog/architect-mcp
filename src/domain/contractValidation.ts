@@ -76,6 +76,9 @@ export function validateArchitectureContract(contract: ArchitectureContract): Va
   if (!contract.directories?.some((directory) => directory.required)) {
     errors.push("Contract must contain at least one required directory.");
   }
+  warnings.push(...duplicateWarnings("directory path", contract.directories?.map((directory) => directory.path) ?? []));
+  warnings.push(...duplicateWarnings("file rule", contract.fileRules?.map((rule) => rule.name) ?? []));
+  warnings.push(...duplicateWarnings("module boundary", contract.moduleBoundaries ?? []));
 
   if (!contract.fileRules?.some((rule) => rule.severity === "error")) {
     warnings.push("Contract has no error-level file rules.");
@@ -90,4 +93,15 @@ export function validateArchitectureContract(contract: ArchitectureContract): Va
     errors,
     warnings
   };
+}
+
+function duplicateWarnings(label: string, values: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const value of values) {
+    const normalized = value.trim().toLowerCase();
+    if (seen.has(normalized)) duplicates.add(value);
+    seen.add(normalized);
+  }
+  return [...duplicates].map((value) => `Duplicate ${label}: ${value}.`);
 }

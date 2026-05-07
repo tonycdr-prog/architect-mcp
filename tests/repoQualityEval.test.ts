@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { buildQualityRequirementsProfile, evaluateRepoPlanQuality, runRepoQualityEvalScenarios, suggestQualityFollowUpQuestions } from "../src/domain/repoQualityEval.js";
+import { auditGeneratedRepoQuality, buildQualityRequirementsProfile, evaluateRepoPlanQuality, runRepoQualityEvalScenarios, suggestQualityFollowUpQuestions } from "../src/domain/repoQualityEval.js";
 import { createArchitectServer } from "../src/server/createArchitectServer.js";
 
 describe("repo quality eval layer", () => {
@@ -72,6 +72,60 @@ describe("repo quality eval layer", () => {
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG002_ENV_EXAMPLE_MISSING"), true);
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG007_SETUP_DOCS_MISSING"), true);
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG008_AGENTS_MD_WEAK"), true);
+  });
+
+  it("merges inferred plan signals with partial caller signals", () => {
+    const result = evaluateRepoPlanQuality({
+      plan: {
+        envVars: ["OPENAI_API_KEY=sk-test-secret-value"],
+        ciCommands: ["echo passed"]
+      },
+      signals: {
+        hasReadme: true
+      }
+    });
+
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG003_FAKE_CI"), true);
+  });
+
+  it("detects common secret-shaped env values and missing generated-repo docs", () => {
+    const secretResult = evaluateRepoPlanQuality({
+      plan: {
+        envVars: ["DATABASE_URL=postgres://user:pass@localhost/db", "SESSION_SECRET=super-secret-value"]
+      }
+    });
+    const auditResult = auditGeneratedRepoQuality({
+      profile: {
+        userLevel: "beginner",
+        goals: ["Build a customer intake app for admin users"],
+        constraints: ["Runs on web", "Stores customer data", "Success means users can create intakes"],
+        knownRisks: [],
+        missingQuestions: [],
+        confidence: "high"
+      },
+      plan: {
+        stack: ["React", "Express", "Postgres"],
+        architecture: "Feature modules with server-owned repositories and UI components separated from data access.",
+        files: ["src/features/intake/index.ts", "src/server/repositories/intake.ts", "tests/intake.test.ts"],
+        ciCommands: ["npm test"],
+        testDescriptions: ["creates an intake record"]
+      }
+    });
+
+    assert.equal(secretResult.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
+    assert.equal(auditResult.hardGates.some((gate) => gate.code === "RQG007_SETUP_DOCS_MISSING"), true);
+    assert.equal(auditResult.hardGates.some((gate) => gate.code === "RQG008_AGENTS_MD_WEAK"), true);
+  });
+
+  it("keeps env values intact when secret values contain additional equals signs", () => {
+    const result = evaluateRepoPlanQuality({
+      plan: {
+        envVars: ["SESSION_SECRET=abc=def=ghi"]
+      }
+    });
+
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
   });
 
   it("passes a boring maintainable plan with real proof", () => {
