@@ -106,7 +106,7 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         gate
       });
       return {
-        summary: summarizeViolations(violations),
+        summary: report.summary,
         report,
         lifecycle: baseline ? classifyReviewLifecycle(violations, baseline as ReviewBaseline) : undefined,
         violations: report.violations
@@ -155,7 +155,7 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         return {
           filesReviewed: files.length,
           scan,
-          summary: summarizeViolations(report.violations),
+          summary: report.summary,
           report,
           lifecycle: baseline ? classifyReviewLifecycle(violations, baseline as ReviewBaseline) : undefined,
           violations: report.violations

@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import ts from "typescript";
-import { matchesPathPattern, normalizePath } from "../domain/pathRules.js";
+import { normalizePath, pathPatternToRegExp } from "../domain/pathRules.js";
 import type { FileSummary } from "../domain/types.js";
 
 const DEFAULT_IGNORES = new Set([
@@ -29,7 +29,8 @@ export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: numb
   const summaries: FileSummary[] = [];
   const state = { truncated: false };
   const ignoredPatterns = options.ignorePatterns ?? [];
-  await walk(rootPath, rootPath, summaries, maxFiles, ignoredPatterns, state);
+  const compiledIgnores = ignoredPatterns.map(compileIgnorePattern);
+  await walk(rootPath, rootPath, summaries, maxFiles, compiledIgnores, state);
   return {
     files: summaries,
     truncated: state.truncated,
@@ -38,7 +39,14 @@ export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: numb
   };
 }
 
-async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number, ignorePatterns: string[], state: { truncated: boolean }): Promise<void> {
+type CompiledIgnorePattern = {
+  normalized: string;
+  regex: RegExp;
+  directoryRegex: RegExp;
+  prefix?: string;
+};
+
+async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number, ignorePatterns: CompiledIgnorePattern[], state: { truncated: boolean }): Promise<void> {
   if (summaries.length >= maxFiles) {
     state.truncated = true;
     return;
@@ -70,17 +78,26 @@ async function walk(rootPath: string, currentPath: string, summaries: FileSummar
   }
 }
 
-function isIgnored(path: string, isDirectory: boolean, ignorePatterns: string[]): boolean {
+function compileIgnorePattern(pattern: string): CompiledIgnorePattern {
+  const normalized = normalizePath(pattern);
+  return {
+    normalized,
+    regex: pathPatternToRegExp(normalized),
+    directoryRegex: pathPatternToRegExp(normalized.endsWith("/") ? normalized : `${normalized}/`),
+    prefix: normalized.endsWith("/**") ? normalized.slice(0, -3) : undefined
+  };
+}
+
+function isIgnored(path: string, isDirectory: boolean, ignorePatterns: CompiledIgnorePattern[]): boolean {
   return ignorePatterns.some((pattern) => {
-    const normalized = normalizePath(pattern);
-    if (normalized.endsWith("/**")) {
-      const prefix = normalized.slice(0, -3);
+    if (pattern.prefix) {
+      const prefix = pattern.prefix;
       return path === prefix || path.startsWith(`${prefix}/`);
     }
-    return matchesPathPattern(path, normalized) ||
-      (isDirectory && matchesPathPattern(`${path}/`, normalized.endsWith("/") ? normalized : `${normalized}/`)) ||
-      path === normalized ||
-      path.startsWith(`${normalized.replace(/\/$/, "")}/`);
+    return pattern.regex.test(path) ||
+      (isDirectory && pattern.directoryRegex.test(`${path}/`)) ||
+      path === pattern.normalized ||
+      path.startsWith(`${pattern.normalized.replace(/\/$/, "")}/`);
   });
 }
 

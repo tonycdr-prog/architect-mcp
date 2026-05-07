@@ -70,7 +70,7 @@ export function checkAgentCollaborationPlan(input: { ownership?: Array<{ agent: 
       const existing = owners.get(file);
       if (existing && existing !== entry.agent) conflicts.push(`${file} is claimed by ${existing} and ${entry.agent}.`);
       owners.set(file, entry.agent);
-      if ((input.doNotTouch ?? []).some((pattern) => file.includes(pattern) || matchesPathPattern(file, pattern))) conflicts.push(`${file} violates a do-not-touch boundary.`);
+      if ((input.doNotTouch ?? []).some((pattern) => file === pattern || matchesPathPattern(file, pattern))) conflicts.push(`${file} violates a do-not-touch boundary.`);
     }
   }
   return {

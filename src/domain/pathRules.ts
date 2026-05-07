@@ -31,14 +31,16 @@ export function isSourceCodeFile(path: string): boolean {
 
 export function matchesPathPattern(path: string, pattern: string): boolean {
   const normalizedPath = normalizePath(path);
-  const normalizedPattern = normalizePath(pattern);
-  const regex = new RegExp(`^${escapeGlob(normalizedPattern)}$`);
-  return regex.test(normalizedPath);
+  return pathPatternToRegExp(pattern).test(normalizedPath);
+}
+
+export function pathPatternToRegExp(pattern: string): RegExp {
+  return new RegExp(`^${escapeGlob(normalizePath(pattern))}$`);
 }
 
 export function hasGlobSyntax(pattern: string): boolean {
   try {
-    new RegExp(`^${escapeGlob(normalizePath(pattern))}$`);
+    pathPatternToRegExp(pattern);
     return true;
   } catch {
     return false;
