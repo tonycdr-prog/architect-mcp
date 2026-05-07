@@ -16,7 +16,7 @@ type ToolPolicy = "hosted-safe" | "local-only" | "future-adapter" | "unknown";
 
 export function classifyToolPolicy(toolNames: string[], options: { knownToolNames?: string[] } = {}) {
   const knownToolNames = new Set([...(options.knownToolNames ?? []), ...KNOWN_HOSTED_SAFE_TOOLS, ...LOCAL_ONLY_TOOLS, ...FUTURE_ADAPTER_TOOLS]);
-  const tools = toolNames.sort().map((name) => {
+  const tools = [...toolNames].sort().map((name) => {
     const policy: ToolPolicy = !knownToolNames.has(name)
       ? "unknown"
       : LOCAL_ONLY_TOOLS.has(name)

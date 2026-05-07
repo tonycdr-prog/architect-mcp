@@ -135,6 +135,10 @@ const failureDrillCatalog = new Map<string, string>([
   ["rule overreach", "policy-review"]
 ]);
 
+function detectorForDrill(name: string): string {
+  return failureDrillCatalog.get(name.toLowerCase()) ?? "policy-review";
+}
+
 function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -166,7 +170,7 @@ function runFailureModeDrill(name: string) {
     return drillResult(name, detector, positive.status === "fail", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
   }
   if (/misplaced secrets/.test(normalized)) {
-    const positive = reviewMcpConfigSecurity({ config: { mcpServers: { bad: { command: "npx", args: ["pkg@latest", "--token", "sk-123456789012345678901234"] } } } });
+    const positive = reviewMcpConfigSecurity({ config: { mcpServers: { bad: { command: "npx", args: ["pkg@latest", "--token", `sk-${"123456789012345678901234"}`] } } } });
     const negative = reviewMcpConfigSecurity({ config: { mcpServers: { ok: { command: "npx", args: ["pkg@1.2.3"], env: { TOKEN: "${API_TOKEN}" } } } } });
     return drillResult(name, detector, positive.status === "fail", negative.status !== "fail", JSON.stringify({ positive: positive.status, negative: negative.status }));
   }

@@ -35,7 +35,7 @@ export function matchesPathPattern(path: string, pattern: string): boolean {
 }
 
 export function pathPatternToRegExp(pattern: string): RegExp {
-  return new RegExp(`^${escapeGlob(normalizePath(pattern))}$`);
+  return new RegExp(`^${globToRegex(normalizePath(pattern))}$`);
 }
 
 export function hasGlobSyntax(pattern: string): boolean {
@@ -54,6 +54,8 @@ function globToRegex(pattern: string): string {
     const char = pattern[index];
     const nextChar = pattern[index + 1];
     const afterNextChar = pattern[index + 2];
+    const previousChar = pattern[index - 1];
+    const afterGlobstar = pattern[index + 2];
 
     if (char === "*" && nextChar === "*" && afterNextChar === "/") {
       output += "(?:.*/)?";

@@ -21,14 +21,16 @@ export type WorkspaceScanResult = {
   ignoredPatterns: string[];
 };
 
-export async function scanWorkspace(rootPath: string, maxFiles: number, options: { ignorePatterns?: string[] } = {}): Promise<FileSummary[]> {
+type ScanWorkspaceOptions = { ignorePatterns?: string[] } | string[];
+
+export async function scanWorkspace(rootPath: string, maxFiles: number, options: ScanWorkspaceOptions = {}): Promise<FileSummary[]> {
   return (await scanWorkspaceWithMetadata(rootPath, maxFiles, options)).files;
 }
 
-export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: number, options: { ignorePatterns?: string[] } = {}): Promise<WorkspaceScanResult> {
+export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: number, options: ScanWorkspaceOptions = {}): Promise<WorkspaceScanResult> {
   const summaries: FileSummary[] = [];
   const state = { truncated: false };
-  const ignoredPatterns = options.ignorePatterns ?? [];
+  const ignoredPatterns = Array.isArray(options) ? options : options.ignorePatterns ?? [];
   const compiledIgnores = ignoredPatterns.map(compileIgnorePattern);
   await walk(rootPath, rootPath, summaries, maxFiles, compiledIgnores, state);
   return {

@@ -133,7 +133,7 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       outputSchema: genericObjectOutputSchema
     },
     async ({ request }) => {
-      const knownToolNames = registeredToolNames(options.enableLocalWorkspaceTool !== false);
+      const knownToolNames = registeredArchitectureToolNames(options.enableLocalWorkspaceTool !== false);
       return safeJsonResponse(() => classifyToolPolicy(request?.toolNames ?? knownToolNames, { knownToolNames }));
     }
   );

@@ -138,7 +138,8 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       },
       outputSchema: reviewOutputSchema
     },
-      async ({ rootPath, contract, buildPlan, directories, maxFiles, maxLines, mode, ignorePatterns, baseline, maxDetailedFindings, summarizeLineWarningsBelow, gate }) => safeJsonResponse(async () => {
+      async ({ rootPath, contract, buildPlan, directories, maxFiles, maxLines, mode, ignorePatterns, baseline, maxDetailedFindings, summarizeLineWarningsBelow, gate, allowOutsideCwd }) => safeJsonResponse(async () => {
+        assertLocalScanAllowed(rootPath, { allowOutsideCwd });
         const architectIgnore = await readArchitectIgnore(rootPath);
         const combinedIgnorePatterns = [...architectIgnore, ...(ignorePatterns ?? [])];
         const scan = await scanWorkspaceWithMetadata(rootPath, maxFiles, {

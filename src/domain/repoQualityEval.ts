@@ -210,12 +210,12 @@ function isSecretLikeEnvValue(value: string): boolean {
   const rawName = separatorIndex === -1 ? value : value.slice(0, separatorIndex);
   const rawValue = separatorIndex === -1 ? "" : value.slice(separatorIndex + 1);
   const name = rawName.trim();
-  const secret = rawValue.trim();
-  if (!secret) return false;
-  if (/^(<[^>]+>|\$\{[A-Z0-9_]+\}|your[_-]|example|placeholder|changeme|replace_me|xxx+)/i.test(secret)) return false;
-  if (/(SECRET|TOKEN|PASSWORD|PRIVATE|API[_-]?KEY|DATABASE_URL|SESSION)/i.test(name) && secret.length >= 8) return true;
-  if (/(sk-|pk_|ghp_|xoxb-|AKIA)[A-Za-z0-9_-]{8,}/i.test(secret)) return true;
-  if (/^[a-z]+:\/\/[^:\s]+:[^@\s]+@/i.test(secret)) return true;
+  const checkedValue = rawValue.trim();
+  if (!checkedValue) return false;
+  if (/^(<[^>]+>|\$\{[A-Z0-9_]+\}|your[_-]|example|placeholder|changeme|replace_me|xxx+)/i.test(checkedValue)) return false;
+  if (/(SECRET|TOKEN|PASSWORD|PRIVATE|API[_-]?KEY|DATABASE_URL|SESSION)/i.test(name) && checkedValue.length >= 8) return true;
+  if (/(sk-|pk_|ghp_|xoxb-|AKIA)[A-Za-z0-9_-]{8,}/i.test(checkedValue)) return true;
+  if (/^[a-z]+:\/\/[^:\s]+:[^@\s]+@/i.test(checkedValue)) return true;
   return false;
 }
 

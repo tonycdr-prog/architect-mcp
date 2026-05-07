@@ -1,5 +1,6 @@
 import type { RepoArtifact } from "./types.js";
 import { scoreAgentInstructions } from "./artifactQuality.js";
+import { isConcreteVerificationCommand } from "./verificationCommands.js";
 
 export type ArtifactValidationResult = {
   valid: boolean;
@@ -101,6 +102,15 @@ export function validateRepoArtifacts(artifacts: RepoArtifact[]): ArtifactValida
       if (score.status === "fail") {
         errors.push(`${artifact.path} fails agent-instruction quality: ${score.findings.map((finding) => finding.message).join("; ")}`);
       }
+      if (!extractCodeSpans(artifact.content).some(isConcreteVerificationCommand)) {
+        errors.push(`${artifact.path} must include concrete verification commands.`);
+      }
+      if (!/Do Not Create/i.test(artifact.content) || !/(App\.tsx|page\.tsx|server\.ts|route\.ts|index\.ts)/i.test(artifact.content)) {
+        errors.push(`${artifact.path} must name forbidden monolith files.`);
+      }
+      if (!/proof|verified|verification|evidence/i.test(artifact.content)) {
+        errors.push(`${artifact.path} must require evidence before completion claims.`);
+      }
     }
     for (const marker of REQUIRED_MARKERS) {
       if (!artifact.content.includes(marker)) errors.push(`${artifact.path} is missing required section or marker: ${marker}.`);
@@ -118,4 +128,23 @@ export function validateRepoArtifacts(artifacts: RepoArtifact[]): ArtifactValida
 function hasVerificationCommand(content: string): boolean {
   return /\b(npm|pnpm|yarn|bun)\s+(run\s+)?(test|typecheck|lint|build|check|audit)\b/i.test(content) ||
     /\b(review_repo_structure|go test|cargo test|pytest|python -m pytest|uv run\s+\S+|dotnet test)\b/i.test(content);
+}
+
+function extractRunCommands(content: string): string[] {
+  return [...content.matchAll(/^\s*-\s+run:\s+(.+)$/gm)].map((match) => unquoteYamlScalar(match[1].trim()));
+}
+
+function unquoteYamlScalar(value: string): string {
+  if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
+}
+
+function extractCodeSpans(content: string): string[] {
+  return [...content.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
 }

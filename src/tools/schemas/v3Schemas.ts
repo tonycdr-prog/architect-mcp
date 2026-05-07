@@ -26,7 +26,7 @@ export const stackPackPromotionFilesSchema = z.object({
   writeFiles: z.boolean().optional(),
   allowOverwrite: z.boolean().optional(),
   bump: z.enum(["none", "patch", "minor", "major"]).optional(),
-  packDirectory: textSchema.optional()
+  packDirectory: optionalText(pathText)
 }).strict();
 
 export const clientRecipeInputSchema = z.object({
