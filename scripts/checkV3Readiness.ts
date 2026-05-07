@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 type Step = {
   name: string;
@@ -24,8 +25,8 @@ const packOutput = execFileSync("npm", ["pack", "--dry-run", "--json"], {
 const packed = JSON.parse(packOutput) as Array<{ files?: Array<{ path: string }> }>;
 const packedPaths = new Set(packed[0]?.files?.map((file) => file.path) ?? []);
 const requiredPackageFiles = [
-  "scripts/checkV3Readiness.ts",
-  "scripts/checkStagedReadiness.ts",
+  "LICENSE",
+  "SECURITY.md",
   "docs/use-on-a-repo.md",
   "docs/hosted-api-shape.md",
   "examples/client-wrapper.ts",
@@ -39,6 +40,23 @@ const requiredPackageFiles = [
 const missingPackageFiles = requiredPackageFiles.filter((path) => !packedPaths.has(path));
 if (missingPackageFiles.length > 0) {
   throw new Error(`Package dry-run is missing required V3 files: ${missingPackageFiles.join(", ")}`);
+}
+
+const repoOnlyPackageFiles = [
+  "scripts/checkV3Readiness.ts",
+  "scripts/checkStagedReadiness.ts",
+  "scripts/ingestLlmsSources.ts"
+];
+const packagedRepoOnlyFiles = repoOnlyPackageFiles.filter((path) => packedPaths.has(path));
+if (packagedRepoOnlyFiles.length > 0) {
+  throw new Error(`Package dry-run includes repo-only TypeScript scripts: ${packagedRepoOnlyFiles.join(", ")}`);
+}
+
+for (const docsPath of ["README.md", "AGENTS.md"]) {
+  const content = readFileSync(docsPath, "utf8");
+  if (/\/Users\/tonycordner\//.test(content)) {
+    throw new Error(`${docsPath} contains a maintainer-local /Users/tonycordner path.`);
+  }
 }
 
 const { createMcpReadinessReport } = await import("../dist/domain/readinessReport.js") as typeof import("../dist/domain/readinessReport.js");
