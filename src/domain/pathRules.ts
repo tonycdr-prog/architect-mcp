@@ -51,6 +51,13 @@ function escapeGlob(pattern: string): string {
   for (let index = 0; index < pattern.length; index += 1) {
     const char = pattern[index];
     const nextChar = pattern[index + 1];
+    const afterNextChar = pattern[index + 2];
+
+    if (char === "*" && nextChar === "*" && afterNextChar === "/") {
+      output += "(?:.*/)?";
+      index += 2;
+      continue;
+    }
 
     if (char === "*" && nextChar === "*") {
       output += ".*";

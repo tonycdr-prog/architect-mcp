@@ -9,7 +9,7 @@ import { reviewFileSummaries } from "../domain/reviewer.js";
 import { reviewProposedFilePlan } from "../domain/planReviewer.js";
 import { classifyReviewLifecycle } from "../domain/reviewLifecycle.js";
 import type { ArchitectureContract, ReviewBaseline } from "../domain/types.js";
-import { scanWorkspace } from "../infrastructure/scanWorkspace.js";
+import { scanWorkspaceWithMetadata } from "../infrastructure/scanWorkspace.js";
 import { safeJsonResponse, summarizeViolations } from "./responses.js";
 import {
   architectureContractSchema,
@@ -47,7 +47,7 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       });
       const report = createReviewReport(violations, { mode: "ci" });
       return {
-        summary: summarizeViolations(violations),
+        summary: summarizeViolations(report.violations),
         report,
         violations: report.violations
       };
@@ -137,12 +137,16 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       outputSchema: reviewOutputSchema
     },
       async ({ rootPath, contract, buildPlan, directories, maxFiles, maxLines, mode, ignorePatterns, baseline, maxDetailedFindings, summarizeLineWarningsBelow, gate }) => safeJsonResponse(async () => {
-        const files = await scanWorkspace(rootPath, maxFiles);
         const architectIgnore = await readArchitectIgnore(rootPath);
+        const combinedIgnorePatterns = [...architectIgnore, ...(ignorePatterns ?? [])];
+        const scan = await scanWorkspaceWithMetadata(rootPath, maxFiles, {
+          ignorePatterns: combinedIgnorePatterns
+        });
+        const files = scan.files;
         const violations = reviewFileSummaries(files, contract as ArchitectureContract | undefined, maxLines, directories ?? [], buildPlan);
         const report = createReviewReport(violations, {
           mode,
-          ignorePatterns: [...architectIgnore, ...(ignorePatterns ?? [])],
+          ignorePatterns: combinedIgnorePatterns,
           baseline: baseline as ReviewBaseline | undefined,
           maxDetailedFindings,
           summarizeLineWarningsBelow,
@@ -150,7 +154,8 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         });
         return {
           filesReviewed: files.length,
-          summary: summarizeViolations(violations),
+          scan,
+          summary: summarizeViolations(report.violations),
           report,
           lifecycle: baseline ? classifyReviewLifecycle(violations, baseline as ReviewBaseline) : undefined,
           violations: report.violations

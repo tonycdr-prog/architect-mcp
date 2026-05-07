@@ -31,10 +31,13 @@ export function createReviewReport(violations: ReviewViolation[], options: Revie
   const violationsForMode = mode === "strict" ? eligible : priorityFindings;
   const errors = eligible.filter((violation) => violation.severity === "error").length;
   const warnings = eligible.filter((violation) => violation.severity === "warning").length;
+  const scoreEligible = violations.filter((violation) => !baselineFindings.includes(violation));
+  const scoreErrors = scoreEligible.filter((violation) => violation.severity === "error").length;
+  const scoreWarnings = scoreEligible.filter((violation) => violation.severity === "warning").length;
   const suppressed = Math.max(0, eligible.length - shownSet.size);
   const noiseSuppressed = ignored.length + groupedLineWarnings.length;
   const baselineSuppressed = baselineFindings.length;
-  const score = scoreReview(errors, warnings, noiseSuppressed);
+  const score = scoreReview(scoreErrors, scoreWarnings);
   const lifecycleGate = {
     acceptedWithoutReason: countAcceptedWithoutReason(options.baseline),
     newHighConfidenceErrors: eligible.filter((violation) => violation.severity === "error" && violation.confidence === "high").length
@@ -124,15 +127,11 @@ function lineCount(violation: ReviewViolation): number {
 function isInBaseline(violation: ReviewViolation, baseline: NonNullable<ReviewOptions["baseline"]>["findings"]): boolean {
   return baseline.some((finding) => {
     if (finding.code !== violation.code) return false;
-    if (requiresSpecificBaseline(violation) && !finding.path && !finding.message) return false;
+    if (!finding.path && !finding.message) return false;
     if (finding.path && finding.path !== violation.path) return false;
     if (finding.message && finding.message !== violation.message) return false;
     return true;
   });
-}
-
-function requiresSpecificBaseline(violation: ReviewViolation): boolean {
-  return violation.severity === "error" || violation.confidence === "high";
 }
 
 function createReviewGate(
@@ -211,8 +210,8 @@ function defaultMinScore(mode: ReviewMode): number {
   return 70;
 }
 
-function scoreReview(errors: number, warnings: number, noiseSuppressed: number): number {
-  return Math.max(0, Math.min(100, 100 - errors * 12 - Math.min(warnings, 80) * 0.35 + Math.min(noiseSuppressed, 40) * 0.05));
+function scoreReview(errors: number, warnings: number): number {
+  return Math.max(0, Math.min(100, 100 - errors * 12 - Math.min(warnings, 80) * 0.35));
 }
 
 function gradeReview(score: number): ReviewReport["grade"] {

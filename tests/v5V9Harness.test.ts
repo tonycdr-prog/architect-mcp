@@ -104,6 +104,7 @@ describe("V5-V9 MCP-driven implementation surface", () => {
       assert.equal((await callJson(client, "select_review_playbook", { request: { request: "fix auth bug" } })).playbook.id, "security-sensitive-change");
       assert.equal((await callJson(client, "review_playbook_conformance", { request: { toolsRun: ["interpret_implementation_intent"], verification: [] } })).valid, false);
       assert.equal((await callJson(client, "check_agent_collaboration_plan", { request: { ownership: [{ agent: "a", files: ["src/a.ts"] }, { agent: "b", files: ["src/a.ts"] }] } })).valid, false);
+      assert.equal((await callJson(client, "check_agent_collaboration_plan", { request: { ownership: [{ agent: "a", files: ["src/generated/file.ts"] }], doNotTouch: ["src/generated/**"] } })).valid, false);
       assert.equal((await callJson(client, "run_failure_mode_drills", {})).status, "pass");
       assert.match((await callJson(client, "calibrate_rule_impact", { request: { findings: [finding] } })).previewGateChange, /warn|fail|pass|strict/);
       assert.equal((await callJson(client, "review_documentation_intelligence", { request: { readme: "hello", toolNames: ["missing_tool"] } })).status, "warn");
