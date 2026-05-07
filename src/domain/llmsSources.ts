@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { IngestedLlmsSource, LlmsSource, LlmsSourceSnapshot } from "./types.js";
+
+const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
+const DEFAULT_MAX_BYTES = 300_000;
 
 export const KNOWN_LLMS_SOURCES: LlmsSource[] = [
   { id: "nextjs", stack: "Next.js", category: "frontend", url: "https://nextjs.org/docs/llms.txt", fullUrl: "https://nextjs.org/docs/llms-full.txt", priority: "high", notes: "Primary source for Next.js App Router and full-stack React guidance." },
@@ -70,9 +73,27 @@ export function listIngestedLlmsSources(): { generatedAt?: string; sources: Inge
   }
 }
 
-export async function fetchLlmsSource(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number } = {}): Promise<LlmsSourceSnapshot> {
+export async function fetchLlmsSource(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number; timeoutMs?: number } = {}): Promise<LlmsSourceSnapshot> {
   const source = resolveLlmsSource(sourceIdOrUrl, options.preferFull);
-  const response = await fetch(source.url);
+  const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(source.url, {
+      signal: controller.signal,
+      redirect: "follow"
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Timed out fetching ${source.url} after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
   if (!response.ok) {
     throw new Error(`Could not fetch ${source.url}: ${response.status} ${response.statusText}`);
   }
@@ -80,17 +101,19 @@ export async function fetchLlmsSource(sourceIdOrUrl: string, options: { preferFu
   if (contentType.includes("text/html")) {
     throw new Error(`Fetched ${source.url} but received HTML instead of llms.txt content.`);
   }
+  const contentLength = response.headers.get("content-length");
+  if (contentLength && Number.parseInt(contentLength, 10) > maxBytes) {
+    throw new Error(`Fetched ${source.url} exceeds maxBytes (${maxBytes}).`);
+  }
 
-  const content = await response.text();
-  const maxBytes = options.maxBytes ?? 300_000;
-  const clipped = content.length > maxBytes ? content.slice(0, maxBytes) : content;
+  const content = await readResponseTextWithLimit(response, maxBytes, source.url);
   return {
     source,
     fetchedAt: new Date().toISOString(),
-    sha256: createHash("sha256").update(clipped).digest("hex"),
-    bytes: Buffer.byteLength(clipped),
+    sha256: createHash("sha256").update(content).digest("hex"),
+    bytes: Buffer.byteLength(content),
     contentType: contentType || undefined,
-    content: clipped
+    content
   };
 }
 
@@ -103,11 +126,12 @@ function resolveLlmsSource(sourceIdOrUrl: string, preferFull?: boolean): LlmsSou
     };
   }
 
+  const url = validateCallerProvidedLlmsUrl(sourceIdOrUrl);
   return {
-    id: slugify(new URL(sourceIdOrUrl).hostname),
-    stack: new URL(sourceIdOrUrl).hostname,
+    id: slugify(url.hostname),
+    stack: url.hostname,
     category: "platform",
-    url: sourceIdOrUrl,
+    url: url.toString(),
     priority: "low",
     notes: "Caller-provided llms.txt URL."
   };
@@ -124,5 +148,69 @@ function resolveIngestedIndexPath(): string {
     resolve(dirname(fileURLToPath(import.meta.url)), "../../../stack-sources/ingested/index.json")
   ];
 
-  return candidates[0];
+  const existing = candidates.find((candidate) => existsSync(candidate));
+  return existing ?? candidates[0];
+}
+
+async function readResponseTextWithLimit(response: Response, maxBytes: number, sourceUrl: string): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    const text = await response.text();
+    const bytes = Buffer.byteLength(text);
+    if (bytes > maxBytes) throw new Error(`Fetched ${sourceUrl} exceeds maxBytes (${maxBytes}).`);
+    return text;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw new Error(`Fetched ${sourceUrl} exceeds maxBytes (${maxBytes}).`);
+    }
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function validateCallerProvidedLlmsUrl(value: string): URL {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Caller-provided llms.txt source must be a valid URL or a known source id.");
+  }
+
+  if (url.protocol !== "https:") {
+    throw new Error("Caller-provided llms.txt source must use https.");
+  }
+  if (url.username || url.password) {
+    throw new Error("Caller-provided llms.txt source must not include credentials.");
+  }
+  if (!/\/llms(?:-full)?\.txt$/i.test(url.pathname)) {
+    throw new Error("Caller-provided llms.txt source path must end with /llms.txt or /llms-full.txt.");
+  }
+  if (isUnsafeHostname(url.hostname)) {
+    throw new Error("Caller-provided llms.txt source must not target localhost, private, or link-local hosts.");
+  }
+
+  return url;
+}
+
+function isUnsafeHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) return true;
+  if (normalized === "0.0.0.0" || normalized === "::" || normalized === "::1") return true;
+  if (/^127\./.test(normalized) || /^10\./.test(normalized) || /^169\.254\./.test(normalized)) return true;
+  if (/^192\.168\./.test(normalized)) return true;
+  const private172 = normalized.match(/^172\.(\d+)\./);
+  if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return true;
+  if (/^(fc|fd)[0-9a-f]{2}:/i.test(normalized) || /^fe80:/i.test(normalized)) return true;
+  return false;
 }

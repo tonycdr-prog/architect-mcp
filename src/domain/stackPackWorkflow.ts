@@ -70,7 +70,7 @@ export function proposeStackPackRules(input: StackPackCandidateInput): StackPack
   };
 }
 
-export async function ingestLlmsTxt(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number } = {}): Promise<{ snapshot: LlmsSourceSnapshot; candidate: StackPackCandidate }> {
+export async function ingestLlmsTxt(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number; timeoutMs?: number } = {}): Promise<{ snapshot: LlmsSourceSnapshot; candidate: StackPackCandidate }> {
   const snapshot = await fetchLlmsSource(sourceIdOrUrl, options);
   return {
     snapshot,

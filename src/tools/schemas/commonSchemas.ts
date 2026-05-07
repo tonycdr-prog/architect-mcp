@@ -111,9 +111,10 @@ export const llmsSourceQuerySchema = z.object({
 }).strict();
 
 export const llmsFetchSchema = z.object({
-  source: z.string(),
+  source: z.string().trim().min(1).max(2_000),
   preferFull: z.boolean().optional(),
-  maxBytes: z.number().int().positive().max(2_000_000).optional()
+  maxBytes: z.number().int().positive().max(2_000_000).optional(),
+  timeoutMs: z.number().int().positive().max(30_000).optional()
 }).strict();
 
 export const derivedStackPackSchema = z.object({

@@ -7,7 +7,7 @@ import { generateContract } from "../src/domain/contract.js";
 import { grillMe } from "../src/domain/intake.js";
 import { generateBuildPlan } from "../src/domain/buildPlan.js";
 import { reviewBuildPlan } from "../src/domain/buildPlanReviewer.js";
-import { discoverLlmsSources, listIngestedLlmsSources } from "../src/domain/llmsSources.js";
+import { discoverLlmsSources, fetchLlmsSource, listIngestedLlmsSources } from "../src/domain/llmsSources.js";
 import { inferRepoLayoutFromFiles } from "../src/domain/repoLayout.js";
 import { createReviewReport } from "../src/domain/reviewReport.js";
 import { reviewFileSummaries } from "../src/domain/reviewer.js";
@@ -398,6 +398,43 @@ describe("stack pack workflow", () => {
     assert.equal(authSources.some((source) => source.id === "auth0"), true);
     assert.equal(ingested.sources.length >= 39, true);
     assert.equal(ingested.sources.filter((source) => source.status === "ok").length >= 39, true);
+  });
+
+  it("resolves bundled ingested llms.txt snapshots outside the repo cwd", async () => {
+    const originalCwd = process.cwd();
+    const tempDir = await mkdtemp(join(tmpdir(), "architect-llms-cwd-"));
+    try {
+      process.chdir(tempDir);
+      const ingested = listIngestedLlmsSources();
+      assert.equal(ingested.sources.some((source) => source.id === "hono"), true);
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
+  it("rejects unsafe caller-supplied llms.txt fetch URLs before network access", async () => {
+    await assert.rejects(() => fetchLlmsSource("http://example.com/llms.txt"), /https/);
+    await assert.rejects(() => fetchLlmsSource("https://localhost/llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://example.com/not-llms.md"), /llms\.txt/);
+    await assert.rejects(() => fetchLlmsSource("https://user:pass@example.com/llms.txt"), /credentials/);
+  });
+
+  it("enforces byte limits while streaming llms.txt responses", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response("0123456789", {
+      status: 200,
+      headers: {
+        "content-type": "text/plain"
+      }
+    });
+    try {
+      await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt", { maxBytes: 5 }), /exceeds maxBytes/);
+      const snapshot = await fetchLlmsSource("https://example.com/llms.txt", { maxBytes: 20 });
+      assert.equal(snapshot.content, "0123456789");
+      assert.equal(snapshot.bytes, 10);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("proposes, reviews, promotes, and diffs stack pack candidates from local source text", async () => {
