@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 const ignoredDirs = new Set([".git", "node_modules", "dist", "coverage"]);
 const ignoredFiles = new Set(["package-lock.json"]);
-const allowedFixturePaths = [/^tests\//, /^docs\//, /^stack-sources\//];
+const allowedFixturePaths = [/^tests\//];
 const secretPatterns = [
   /sk-[A-Za-z0-9]{20,}/,
   /(ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9]{30,}/,

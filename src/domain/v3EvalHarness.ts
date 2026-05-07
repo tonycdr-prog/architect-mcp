@@ -68,7 +68,7 @@ function evalMcpSecurity(): V3EvalCase {
       mcpServers: {
         risky: {
           command: "npx",
-                args: ["-y", "some-mcp@latest", "--token", `${"sk-"}123456789012345678901234`]
+          args: ["-y", "some-mcp@latest", "--token", `${"sk-"}123456789012345678901234`]
         }
       }
     }

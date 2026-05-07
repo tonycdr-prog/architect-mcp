@@ -175,9 +175,10 @@ function stringValue(value: unknown): string {
 function looksLikeUnpinnedPackage(command: string, arg: string): boolean {
   if (command !== "npx" && command !== "uvx") return false;
   if (arg.startsWith("-") || arg.startsWith(".") || arg.startsWith("/")) return false;
-  if (!/^[a-z0-9@/_.~^-]+$/i.test(arg)) return false;
+  if (/^(git\+|https?:|file:|workspace:)/i.test(arg)) return true;
+  if (!/^[a-z0-9@/_.~^+-]+$/i.test(arg)) return true;
   const version = packageVersion(arg);
-  return !version || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version);
+  return !version || !/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version);
 }
 
 function packageVersion(arg: string): string | undefined {
