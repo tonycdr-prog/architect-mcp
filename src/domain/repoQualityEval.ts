@@ -9,9 +9,11 @@ export function buildQualityRequirementsProfile(input: {
   answers?: string[];
   stackPreference?: string;
 } = {}): RepoQualityRequirementsProfile {
-  const goals = input.goals?.length ? input.goals : inferGoals(input.answers ?? []);
-  const constraints = input.constraints ?? [];
-  const text = [...goals, ...constraints, ...(input.answers ?? [])].join(" ").toLowerCase();
+  const suppliedGoals = cleanStrings(input.goals);
+  const answers = cleanStrings(input.answers);
+  const goals = suppliedGoals.length ? suppliedGoals : inferGoals(answers);
+  const constraints = [...cleanStrings(input.constraints), ...stackPreferenceConstraints(input.stackPreference)];
+  const text = [...goals, ...constraints, ...answers, input.stackPreference ?? ""].join(" ").toLowerCase();
   const missingQuestions = [
     ...(!goals.length ? ["What outcome should the app produce for the user?"] : []),
     ...(!/user|customer|admin|team|owner/.test(text) ? ["Who will use this, and how technical are they?"] : []),
@@ -90,14 +92,15 @@ function evaluateQuality(input: RepoQualityEvaluationInput, phase: "plan" | "rep
 
 function hardGateFindings(profile: RepoQualityRequirementsProfile, plan: RepoQualityPlan, signals: RepoQualityArtifactSignals, phase: "plan" | "repo"): RepoQualityFinding[] {
   const findings: RepoQualityFinding[] = [];
+  const requireEvidence = phase === "repo";
   if (signals.hasHardcodedSecrets) findings.push(gate("RQG001_COMMITTED_SECRET", "blocker", "security", "Secrets or secret-like values are present.", "Remove the secret, rotate it, and use environment variables plus .env.example."));
-  if ((plan.envVars?.length ?? 0) > 0 && signals.hasEnvExample === false) findings.push(gate("RQG002_ENV_EXAMPLE_MISSING", "error", "documentation", "Environment variables are needed but .env.example is missing.", "Add .env.example with names and safe placeholder values."));
-  if (signals.hasMeaningfulCi === false || signals.ciOnlyEchoes) findings.push(gate("RQG003_FAKE_CI", "error", "ci_tests", "CI does not run meaningful checks.", "CI must run real typecheck, tests, lint/build, or equivalent project checks."));
-  if (signals.hasMeaningfulTests === false || signals.testsAreTrivial) findings.push(gate("RQG004_FAKE_TESTS", "error", "ci_tests", "Tests are missing, trivial, or fake.", "Add behavior or integration tests that can fail for real regressions."));
+  if ((plan.envVars?.length ?? 0) > 0 && (signals.hasEnvExample === false || (requireEvidence && signals.hasEnvExample !== true))) findings.push(gate("RQG002_ENV_EXAMPLE_MISSING", "error", "documentation", "Environment variables are needed but .env.example is missing.", "Add .env.example with names and safe placeholder values."));
+  if (signals.hasMeaningfulCi === false || signals.ciOnlyEchoes || (requireEvidence && signals.hasMeaningfulCi !== true)) findings.push(gate("RQG003_FAKE_CI", "error", "ci_tests", "CI does not run meaningful checks.", "CI must run real typecheck, tests, lint/build, or equivalent project checks."));
+  if (signals.hasMeaningfulTests === false || signals.testsAreTrivial || (requireEvidence && signals.hasMeaningfulTests !== true)) findings.push(gate("RQG004_FAKE_TESTS", "error", "ci_tests", "Tests are missing, trivial, or fake.", "Add behavior or integration tests that can fail for real regressions."));
   if ((plan.destructiveCommands?.length ?? 0) > 0) findings.push(gate("RQG005_DESTRUCTIVE_COMMAND", "blocker", "security", "Plan includes destructive commands.", "Require explicit user approval and a rollback note before running destructive commands."));
   if (signals.unsafePermissions || (plan.permissions ?? []).some((permission) => /\*|admin|write all|full access/i.test(permission))) findings.push(gate("RQG006_UNSAFE_PERMISSIONS", "blocker", "security", "Permissions are too broad or unsafe.", "Use least-privilege scopes and explain why each permission is needed."));
-  if (signals.hasSetupInstructions === false || (phase === "repo" && signals.hasReadme === false)) findings.push(gate("RQG007_SETUP_DOCS_MISSING", "error", "documentation", "Setup instructions are missing.", "Add README setup, run, test, and deployment notes for the target user."));
-  if (signals.hasAgentsMd === false || signals.agentsMdVague) findings.push(gate("RQG008_AGENTS_MD_WEAK", "error", "agent_readiness", "AGENTS.md is missing or vague.", "Add repo-specific commands, boundaries, verification rules, and non-goals for future agents."));
+  if (signals.hasSetupInstructions === false || (requireEvidence && (signals.hasReadme !== true || signals.hasSetupInstructions !== true))) findings.push(gate("RQG007_SETUP_DOCS_MISSING", "error", "documentation", "Setup instructions are missing.", "Add README setup, run, test, and deployment notes for the target user."));
+  if (signals.hasAgentsMd === false || signals.agentsMdVague || (requireEvidence && signals.hasAgentsMd !== true)) findings.push(gate("RQG008_AGENTS_MD_WEAK", "error", "agent_readiness", "AGENTS.md is missing or vague.", "Add repo-specific commands, boundaries, verification rules, and non-goals for future agents."));
   if (profile.userLevel !== "technical" && signals.jargonHeavy) findings.push(gate("RQG009_JARGON_FOR_NOVICE", "error", "nontechnical_suitability", "User-facing explanation is too jargon-heavy.", "Use plain language and explain tradeoffs without assuming professional terminology."));
   return findings;
 }
@@ -206,8 +209,22 @@ function inferGoals(answers: string[]): string[] {
   return answers.filter((answer) => /build|create|manage|track|help|app|tool/i.test(answer)).slice(0, 5);
 }
 
+function cleanStrings(values: string[] | undefined): string[] {
+  return (values ?? []).map((value) => value.trim()).filter(Boolean);
+}
+
 function riskTerms(text: string): string[] {
   return ["auth", "payment", "secret", "database", "delete", "admin", "public"].filter((term) => text.includes(term));
+}
+
+function stackPreferenceConstraints(stackPreference: string | undefined): string[] {
+  if (!stackPreference) return [];
+  const stack = stackPreference.toLowerCase();
+  const constraints: string[] = [`Stack preference: ${stackPreference}`];
+  if (/supabase/.test(stack)) constraints.push("Supabase plans must explain auth boundaries, database access boundaries, row-level security, and deployment environment variables.");
+  if (/next/.test(stack)) constraints.push("Next.js plans must separate server/client boundaries and avoid leaking secrets into client components.");
+  if (/stripe/.test(stack)) constraints.push("Stripe plans must include webhook signature verification, idempotency, and entitlement boundaries.");
+  return constraints;
 }
 
 function gate(code: string, severity: RepoQualityFinding["severity"], dimension: RepoQualityDimension, message: string, recommendation: string): RepoQualityFinding {

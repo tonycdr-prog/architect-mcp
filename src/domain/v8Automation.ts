@@ -80,16 +80,21 @@ export function checkAgentCollaborationPlan(input: { ownership?: Array<{ agent: 
 }
 
 export function runFailureModeDrills(input: { cases?: string[] } = {}) {
-  const cases = input.cases ?? ["skipped verification", "fake root cause", "dependency churn", "broad rewrite", "misplaced secrets", "ui server leak", "rule overreach"];
-  return {
-    status: "pass",
-    drills: cases.map((name) => ({
+  const cases = input.cases ?? [...failureDrillCatalog.keys()];
+  const drills = cases.map((name) => {
+    const detector = failureDrillCatalog.get(name);
+    return {
       name,
-      caught: true,
-      detector: detectorForDrill(name),
-      escaped: false
-    })),
-    suggestedDetectors: []
+      caught: Boolean(detector),
+      detector: detector ?? "unknown",
+      escaped: !detector,
+      fixtureEvidence: detector ? [`${slug(name)}-positive`, `${slug(name)}-negative`] : []
+    };
+  });
+  return {
+    status: drills.every((drill) => drill.caught && !drill.escaped) ? "pass" : "fail",
+    drills,
+    suggestedDetectors: drills.filter((drill) => drill.escaped).map((drill) => `Add a detector and fixtures for ${drill.name}.`)
   };
 }
 
@@ -120,9 +125,16 @@ export function reviewDocumentationIntelligence(input: { readme?: string; llmsTx
   };
 }
 
-function detectorForDrill(name: string): string {
-  if (/verification|root cause/.test(name)) return "final-response-review";
-  if (/secret/.test(name)) return "mcp-security-review";
-  if (/ui|server|rewrite/.test(name)) return "repo-structure-review";
-  return "policy-review";
+const failureDrillCatalog = new Map<string, string>([
+  ["skipped verification", "final-response-review"],
+  ["fake root cause", "final-response-review"],
+  ["dependency churn", "policy-review"],
+  ["broad rewrite", "repo-structure-review"],
+  ["misplaced secrets", "mcp-security-review"],
+  ["ui server leak", "repo-structure-review"],
+  ["rule overreach", "policy-review"]
+]);
+
+function slug(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

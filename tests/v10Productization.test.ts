@@ -30,7 +30,9 @@ describe("V10 productization implementation contract", () => {
     assert.equal(plan.constraints.some((constraint) => constraint === "Do not use sx for styling."), true);
     assert.equal(plan.constraints.some((constraint) => constraint === "Do not use Box for styling."), true);
     assert.equal(plan.screens.some((screen) => screen.route === "/orgs/:orgId/billing"), true);
+    assert.equal(plan.screens.some((screen) => screen.dataSources.some((source) => /Repository$/.test(source))), false);
     assert.equal(plan.sharedLayout.denseData.includes("DataTable"), true);
+    assert.equal(validateV10ProductizationBoundary({ dashboardScreens: plan.screens }).status, "pass");
   });
 
   it("requires every implementation slice to run the MCP loop", () => {
@@ -55,6 +57,17 @@ describe("V10 productization implementation contract", () => {
     assert.equal(review.findings.some((finding) => finding.code === "V10_RAW_REPO_CODE_STORAGE"), true);
     assert.equal(review.findings.some((finding) => finding.code === "V10_BILLING_GATES_LOCAL_MCP"), true);
     assert.equal(review.findings.some((finding) => finding.code === "V10_PRIMER_BOX_STYLING"), true);
+  });
+
+  it("requires explicit tenant scope for org routes and product storage", () => {
+    const review = validateV10ProductizationBoundary({
+      routes: [{ path: "/v1/orgs/:orgId/projects", repositoryBoundary: "ProjectRepository" }],
+      storageEntities: [{ table: "projects", purpose: "Hosted project records" }]
+    });
+
+    assert.equal(review.status, "fail");
+    assert.equal(review.findings.some((finding) => finding.code === "V10_ROUTE_TENANT_SCOPE"), true);
+    assert.equal(review.findings.some((finding) => finding.code === "V10_STORAGE_TENANT_SCOPE"), true);
   });
 
   it("runs the V10 eval harness", () => {

@@ -26,12 +26,12 @@ export function selectLocalOrchestrationRecipe(input: { request?: string; risk?:
 
 export function evaluateScenarioAcceptance(input: { scenario?: string; intentReady?: boolean; contractReady?: boolean; reviewPassed?: boolean; verified?: boolean; finalResponseHonest?: boolean; artifactScores?: Array<{ status?: string }> } = {}) {
   const checks = [
-    { id: "intent", passed: input.intentReady !== false },
-    { id: "contract", passed: input.contractReady !== false },
-    { id: "review", passed: input.reviewPassed !== false },
+    { id: "intent", passed: input.intentReady === true },
+    { id: "contract", passed: input.contractReady === true },
+    { id: "review", passed: input.reviewPassed === true },
     { id: "verification", passed: input.verified === true },
-    { id: "final-response", passed: input.finalResponseHonest !== false },
-    { id: "artifacts", passed: (input.artifactScores ?? []).every((score) => score.status !== "fail") }
+    { id: "final-response", passed: input.finalResponseHonest === true },
+    { id: "artifacts", passed: Boolean(input.artifactScores?.length) && (input.artifactScores ?? []).every((score) => score.status === "pass") }
   ];
   const failed = checks.filter((check) => !check.passed);
   return {
@@ -108,7 +108,9 @@ export function reviewToolLoopQuality(input: { toolsRun?: string[]; risky?: bool
   if (input.risky && !tools.has("create_pre_edit_contract")) findings.push("Risky work skipped pre-edit contract.");
   if (!tools.has("review_repo_structure") && !tools.has("review_implementation_against_contract")) findings.push("Implementation was not reviewed.");
   if (!(input.verification ?? []).some((check) => check.status === "passed")) findings.push("No passed verification check supplied.");
-  if (input.finalResponse) {
+  if (!input.finalResponse?.trim()) {
+    findings.push("Final response is missing.");
+  } else {
     const missingSections = ["changed", "verified", "assumptions", "not done"].filter((section) => !new RegExp(section, "i").test(input.finalResponse ?? ""));
     if (missingSections.length > 0) findings.push(`Final response omits output-contract sections: ${missingSections.join(", ")}.`);
   }

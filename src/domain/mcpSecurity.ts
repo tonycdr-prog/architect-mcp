@@ -175,12 +175,19 @@ function stringValue(value: unknown): string {
 function looksLikeUnpinnedPackage(command: string, arg: string): boolean {
   if (command !== "npx" && command !== "uvx") return false;
   if (arg.startsWith("-") || arg.startsWith(".") || arg.startsWith("/")) return false;
-  if (!/^[a-z0-9@/_-]+$/i.test(arg)) return false;
+  if (!/^[a-z0-9@/_~^.*<>=+-]+$/i.test(arg)) return false;
+  const version = packageVersionSpec(arg);
+  if (!version) return true;
+  return !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version);
+}
+
+function packageVersionSpec(arg: string): string | undefined {
   if (arg.startsWith("@")) {
-    const parts = arg.split("@").filter(Boolean);
-    return parts.length < 2;
+    const versionDelimiter = arg.indexOf("@", 1);
+    return versionDelimiter === -1 ? undefined : arg.slice(versionDelimiter + 1);
   }
-  return !arg.includes("@");
+  const versionDelimiter = arg.lastIndexOf("@");
+  return versionDelimiter === -1 ? undefined : arg.slice(versionDelimiter + 1);
 }
 
 function count(findings: McpSecurityFinding[], severity: McpSecuritySeverity): number {

@@ -13,6 +13,10 @@ export function listStackPacks(): StackPack[] {
   return cachedStackPacks;
 }
 
+export function clearStackPackCache(): void {
+  cachedStackPacks = undefined;
+}
+
 export function resolveStackPacks(stack: StackProfile, requestedPackIds: string[] = []): StackPack[] {
   const stackPacks = listStackPacks();
   const normalizedRequestedIds = new Set(requestedPackIds.map((id) => id.toLowerCase()));

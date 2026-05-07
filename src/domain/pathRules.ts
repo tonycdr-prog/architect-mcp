@@ -32,27 +32,35 @@ export function isSourceCodeFile(path: string): boolean {
 export function matchesPathPattern(path: string, pattern: string): boolean {
   const normalizedPath = normalizePath(path);
   const normalizedPattern = normalizePath(pattern);
-  const regex = new RegExp(`^${escapeGlob(normalizedPattern)}$`);
+  const regex = new RegExp(`^${globToRegex(normalizedPattern)}$`);
   return regex.test(normalizedPath);
 }
 
 export function hasGlobSyntax(pattern: string): boolean {
   try {
-    new RegExp(`^${escapeGlob(normalizePath(pattern))}$`);
+    new RegExp(`^${globToRegex(normalizePath(pattern))}$`);
     return true;
   } catch {
     return false;
   }
 }
 
-function escapeGlob(pattern: string): string {
+function globToRegex(pattern: string): string {
   let output = "";
 
   for (let index = 0; index < pattern.length; index += 1) {
     const char = pattern[index];
     const nextChar = pattern[index + 1];
+    const previousChar = pattern[index - 1];
+    const afterGlobstar = pattern[index + 2];
 
     if (char === "*" && nextChar === "*") {
+      if (previousChar === "/" && afterGlobstar === "/") {
+        output = output.slice(0, -1);
+        output += "(?:.*/)?";
+        index += 2;
+        continue;
+      }
       output += ".*";
       index += 1;
       continue;

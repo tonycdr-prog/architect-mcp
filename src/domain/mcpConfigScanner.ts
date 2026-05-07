@@ -65,7 +65,74 @@ function scanOne(path: string, approvedServers?: string[]) {
 }
 
 function parseJsonLike(content: string): unknown {
-  const withoutLineComments = content.replace(/(^|\s)\/\/.*$/gm, "");
-  const withoutBlockComments = withoutLineComments.replace(/\/\*[\s\S]*?\*\//g, "");
-  return JSON.parse(withoutBlockComments);
+  return JSON.parse(stripJsonComments(content));
+}
+
+function stripJsonComments(content: string): string {
+  let output = "";
+  let inString = false;
+  let quote = "";
+  let escaped = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index] ?? "";
+    const next = content[index + 1] ?? "";
+
+    if (inLineComment) {
+      if (char === "\n" || char === "\r") {
+        inLineComment = false;
+        output += char;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === "*" && next === "/") {
+        inBlockComment = false;
+        index += 1;
+        continue;
+      }
+      output += char === "\n" || char === "\r" ? char : " ";
+      continue;
+    }
+
+    if (inString) {
+      output += char;
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === quote) {
+        inString = false;
+        quote = "";
+      }
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      inString = true;
+      quote = char;
+      output += char;
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      inLineComment = true;
+      index += 1;
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      inBlockComment = true;
+      output += "  ";
+      index += 1;
+      continue;
+    }
+
+    output += char;
+  }
+
+  return output;
 }

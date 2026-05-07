@@ -1,0 +1,51 @@
+domain:
+- changed-files:
+  - any-glob-to-any-file:
+    - src/domain/**
+
+tools:
+- changed-files:
+  - any-glob-to-any-file:
+    - src/tools/**
+
+schemas:
+- changed-files:
+  - any-glob-to-any-file:
+    - src/tools/schemas/**
+
+tests:
+- changed-files:
+  - any-glob-to-any-file:
+    - tests/**
+
+docs:
+- changed-files:
+  - any-glob-to-any-file:
+    - README.md
+    - docs/**
+    - llms.txt
+    - AGENTS.md
+
+examples:
+- changed-files:
+  - any-glob-to-any-file:
+    - examples/**
+
+packs:
+- changed-files:
+  - any-glob-to-any-file:
+    - packs/**
+    - foundation-packs/**
+    - policy-bundles/**
+    - stack-sources/**
+
+github:
+- changed-files:
+  - any-glob-to-any-file:
+    - .github/**
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file:
+    - package.json
+    - package-lock.json
