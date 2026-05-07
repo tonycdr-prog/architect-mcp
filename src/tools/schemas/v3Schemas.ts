@@ -1,9 +1,12 @@
 import { z } from "zod";
-import { stackPackCandidateSchema } from "./commonSchemas.js";
+import { fileSummarySchema, stackPackCandidateSchema } from "./commonSchemas.js";
+import { harnessIntentResultSchema, preEditContractSchema } from "./harnessSchemas.js";
+import { memoryProposalSchema } from "./memorySchemas.js";
+import { boundedArray, idText, longText, mediumText, optionalText, pathText } from "./schemaLimits.js";
 
 export const mcpSecurityReviewInputSchema = z.object({
   config: z.unknown(),
-  approvedServers: z.array(z.string()).optional(),
+  approvedServers: boundedArray(idText, 200).optional(),
   allowShell: z.boolean().optional()
 }).strict();
 
@@ -12,8 +15,8 @@ export const v3EvalHarnessInputSchema = z.object({
 }).strict();
 
 export const artifactQualityInputSchema = z.object({
-  agentsMd: z.string().optional(),
-  llmsTxt: z.string().optional()
+  agentsMd: optionalText(longText),
+  llmsTxt: optionalText(longText)
 }).strict().refine((input) => Boolean(input.agentsMd || input.llmsTxt), {
   message: "Provide agentsMd, llmsTxt, or both."
 });
@@ -30,30 +33,30 @@ export const clientRecipeInputSchema = z.object({
 }).strict();
 
 export const finalResponseReviewInputSchema = z.object({
-  response: z.string().min(1),
-  requiredChecks: z.array(z.string()).optional()
+  response: longText,
+  requiredChecks: boundedArray(mediumText, 100).optional()
 }).strict();
 
 export const mcpConfigFileScanInputSchema = z.object({
-  rootPath: z.string().optional(),
+  rootPath: pathText.optional(),
   includeUserConfig: z.boolean().optional(),
-  approvedServers: z.array(z.string()).optional()
+  approvedServers: boundedArray(idText, 200).optional()
 }).strict();
 
 export const agentSessionReviewInputSchema = z.object({
-  intent: z.unknown().optional(),
-  contract: z.unknown().optional(),
-  changedFiles: z.array(z.unknown()).optional(),
+  intent: harnessIntentResultSchema.optional(),
+  contract: preEditContractSchema.optional(),
+  changedFiles: boundedArray(fileSummarySchema, 1_000).optional(),
   verification: z.array(z.object({
-    check: z.string(),
+    check: mediumText,
     status: z.enum(["not_run", "passed", "failed", "skipped"]),
-    note: z.string().optional()
-  }).strict()).optional(),
-  finalResponse: z.string().optional(),
-  memories: z.array(z.unknown()).optional(),
-  request: z.string().optional()
+    note: optionalText(mediumText)
+  }).strict()).max(100).optional(),
+  finalResponse: optionalText(longText),
+  memories: boundedArray(memoryProposalSchema, 200).optional(),
+  request: optionalText(mediumText)
 }).strict();
 
 export const hostedPolicyAuditInputSchema = z.object({
-  toolNames: z.array(z.string()).optional()
+  toolNames: boundedArray(idText, 500).optional()
 }).strict();

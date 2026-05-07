@@ -12,6 +12,10 @@ describe("client integration recipes", () => {
     assert.equal(ids.includes("stack-pack-promotion"), true);
     assert.equal(ids.includes("memory-pr-review"), true);
     assert.equal(result.recipes.every((recipe) => recipe.calls.length > 0), true);
+    assert.deepEqual(
+      result.recipes.find((recipe) => recipe.id === "guided-yolo-pre-edit")?.calls[0]?.arguments,
+      { input: { request: "fix this with best practices", mode: "guided-yolo" } }
+    );
   });
 
   it("filters to a requested recipe", () => {

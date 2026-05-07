@@ -113,12 +113,20 @@ export function reviewSuppliedSkills(input: { skills: SkillCatalogEntry[] }): { 
         recommendation: "Provide patterns and recommendedWhen terms so the catalog can rank it safely."
       });
     }
-    if (skill.cautions.some((caution) => /execute arbitrary|run arbitrary|ignore user/i.test(caution))) {
+    if (containsUnsafeSkillText(skill)) {
       skillFindings.push({
         id: skill.id,
         severity: "error",
-        message: "Skill caution suggests unsafe agent behavior.",
-        recommendation: "Skill metadata must preserve current user intent and avoid arbitrary execution."
+        message: "Skill metadata contains unsafe or instruction-overriding behavior.",
+        recommendation: "Skill metadata must stay advisory, preserve current user intent, and avoid exfiltration or arbitrary execution."
+      });
+    }
+    if (skill.source === "client-supplied" && BUILT_IN_SKILL_CATALOG.some((builtIn) => builtIn.id === skill.id)) {
+      skillFindings.push({
+        id: skill.id,
+        severity: "error",
+        message: "Client-supplied skill metadata shadows a built-in skill id.",
+        recommendation: "Use a unique id for client-supplied metadata so it cannot impersonate trusted built-in guidance."
       });
     }
     return skillFindings;
@@ -128,6 +136,16 @@ export function reviewSuppliedSkills(input: { skills: SkillCatalogEntry[] }): { 
     valid: findings.every((finding) => finding.severity !== "error"),
     findings
   };
+}
+
+function containsUnsafeSkillText(skill: SkillCatalogEntry): boolean {
+  const text = [
+    skill.summary,
+    ...skill.patterns,
+    ...skill.recommendedWhen,
+    ...skill.cautions
+  ].join("\n");
+  return /execute arbitrary|run arbitrary|ignore (the )?user|ignore previous|override instructions|exfiltrate|curl\s*\|\s*(bash|sh)|send (api keys|secrets)|leak secret|prompt injection/i.test(text);
 }
 
 function catalogFor(query: SkillCatalogQuery): SkillCatalogEntry[] {
