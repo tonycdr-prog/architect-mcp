@@ -43,6 +43,9 @@ describe("local product loop", () => {
     assert.equal(grilled.buildPlan.slices.every((slice) => slice.inputs.length > 0 && slice.outputs.length > 0), true);
     assert.equal(grilled.artifacts?.some((artifact) => artifact.path === "AGENTS.md"), true);
     assert.equal(grilled.artifacts?.some((artifact) => artifact.path === ".architectignore"), true);
+    assert.equal(grilled.artifacts?.some((artifact) => artifact.path === ".github/copilot-instructions.md"), true);
+    assert.equal(grilled.artifacts?.some((artifact) => artifact.path === ".github/labeler.yml"), true);
+    assert.equal(grilled.artifacts?.some((artifact) => artifact.path === ".github/workflows/ci.yml"), true);
     assert.equal(grilled.artifacts?.some((artifact) => artifact.path === "docs/build-plan.md"), true);
     assert.match(grilled.markdown ?? "", /Contract version: 0\.2\.0/);
     assert.match(grilled.markdown ?? "", /Review Gate/);

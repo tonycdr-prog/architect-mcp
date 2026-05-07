@@ -11,6 +11,7 @@ This repository uses architect-mcp as a local-first standards, architecture, and
 - Typecheck: `npm run typecheck`
 - Test: `npm test`
 - Build: `npm run build`
+- Full release readiness: `npm run release:check`
 
 ## Build Order For Coding Agents
 1. Run /grill-me and stop if any blocker remains.
@@ -45,3 +46,8 @@ This repository uses architect-mcp as a local-first standards, architecture, and
 - State which checks were run and whether they passed, failed, were skipped, or were not run.
 - Do not claim a root cause without evidence from code, test output, or tool output.
 - Call out assumptions, remaining gaps, and any intentionally deferred work.
+
+## Security And Dependency Hygiene
+- Follow `SECURITY.md` for vulnerability reports; do not put secrets or exploit details in public issues.
+- Dependabot PRs are allowed for npm and GitHub Actions, but agents must review changelogs, compatibility risk, and CI results before merging.
+- Keep `.env.example` templates commit-safe when environment variables are introduced; never commit real `.env` files.

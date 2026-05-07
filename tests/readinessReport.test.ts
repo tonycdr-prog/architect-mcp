@@ -23,7 +23,7 @@ describe("V10 readiness release gates", () => {
     assert.equal(packageJson.files.includes("LICENSE"), true);
     assert.equal(packageJson.files.includes("SECURITY.md"), true);
     assert.match(readFileSync("docs/hosted-api-shape.md", "utf8"), /POST \/v1\/reviews\/session/);
-    assert.match(readFileSync("README.md", "utf8"), /npm run check:v3/);
+    assert.match(readFileSync("README.md", "utf8"), /npm run release:check/);
     assert.match(readFileSync("llms.txt", "utf8"), /docs\/hosted-api-shape\.md/);
   });
 });

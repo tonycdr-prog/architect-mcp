@@ -1,7 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import { createBaselineFromFindings } from "../domain/baseline.js";
 import { reviewBuildPlan } from "../domain/buildPlanReviewer.js";
 import { createReviewReport } from "../domain/reviewReport.js";
@@ -132,7 +133,8 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         baseline: baselineSchema.optional(),
         maxDetailedFindings: z.number().int().positive().optional(),
         summarizeLineWarningsBelow: z.number().int().nonnegative().optional(),
-        gate: reviewGateSchema.optional()
+        gate: reviewGateSchema.optional(),
+        allowOutsideCwd: z.boolean().default(false)
       },
       outputSchema: reviewOutputSchema
     },
@@ -192,6 +194,19 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       };
     })
   );
+}
+
+function assertLocalScanAllowed(rootPath: string, options: { allowOutsideCwd?: boolean }): void {
+  const realRoot = realpathSync(rootPath);
+  const realCwd = realpathSync(process.cwd());
+  if (isInsideOrEqual(realRoot, realCwd)) return;
+  if (options.allowOutsideCwd) return;
+  throw new Error(`Refusing to scan ${realRoot}; review_local_workspace only scans inside ${realCwd} unless allowOutsideCwd is explicitly set for a trusted local run.`);
+}
+
+function isInsideOrEqual(child: string, parent: string): boolean {
+  const rel = relative(parent, child);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel) && rel !== "..");
 }
 
 async function readArchitectIgnore(rootPath: string): Promise<string[]> {

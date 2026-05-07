@@ -24,6 +24,22 @@ describe("reviewMcpConfigSecurity", () => {
     assert.equal(review.findings.some((finding) => finding.code === "MCPSEC003_UNPINNED_DEPENDENCY"), true);
   });
 
+  it("flags semver ranges as unpinned executable MCP dependencies", () => {
+    const review = reviewMcpConfigSecurity({
+      config: {
+        mcpServers: {
+          ranged: {
+            command: "npx",
+            args: ["-y", "@scope/example-mcp@^1.2.3"]
+          }
+        }
+      }
+    });
+
+    assert.equal(review.status, "warn");
+    assert.equal(review.findings.some((finding) => finding.code === "MCPSEC003_UNPINNED_DEPENDENCY"), true);
+  });
+
   it("flags shell execution and supports Cursor and Claude Desktop style shapes", () => {
     const shell = reviewMcpConfigSecurity({ config: configs.shellRisk });
     const cursor = reviewMcpConfigSecurity({ config: configs.cursorShape, approvedServers: ["filesystem"] });

@@ -47,7 +47,7 @@ export function hasGlobSyntax(pattern: string): boolean {
   }
 }
 
-function escapeGlob(pattern: string): string {
+function globToRegex(pattern: string): string {
   let output = "";
 
   for (let index = 0; index < pattern.length; index += 1) {
@@ -62,6 +62,12 @@ function escapeGlob(pattern: string): string {
     }
 
     if (char === "*" && nextChar === "*") {
+      if (previousChar === "/" && afterGlobstar === "/") {
+        output = output.slice(0, -1);
+        output += "(?:.*/)?";
+        index += 2;
+        continue;
+      }
       output += ".*";
       index += 1;
       continue;

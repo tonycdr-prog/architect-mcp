@@ -165,6 +165,13 @@ export function runV10EvalHarness() {
       passed: validateV10ProductizationBoundary({ storageEntities: [{ table: "repo_files", orgScoped: true, purpose: "Store raw repo code" }] }).status === "fail"
     },
     {
+      name: "org routes and storage must declare tenant scope",
+      passed: validateV10ProductizationBoundary({
+        routes: [{ path: "/v1/orgs/:orgId/projects", repositoryBoundary: "ProjectRepository" }],
+        storageEntities: [{ table: "projects", purpose: "Project records" }]
+      }).status === "fail"
+    },
+    {
       name: "billing cannot gate local MCP safety",
       passed: validateV10ProductizationBoundary({ billingGates: [{ feature: "local safety checks", gatesLocalMcp: true }] }).status === "fail"
     },
@@ -201,4 +208,8 @@ function statusFromFindings(findings: V10Finding[]): V10ReadinessStatus {
 
 function isRolloutMode(mode: string | undefined): mode is V10RolloutMode {
   return mode === "suggest" || mode === "warn" || mode === "block";
+}
+
+function isGlobalStorageEntity(table: string): boolean {
+  return table === "users";
 }

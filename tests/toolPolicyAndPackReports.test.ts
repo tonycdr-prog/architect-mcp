@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { classifyToolPolicy } from "../src/domain/toolPolicy.js";
 import { createStackPackCoverageMatrix, scoreStackPacks } from "../src/domain/packReports.js";
+import { registeredArchitectureToolNames } from "../src/tools/toolRegistry.js";
 
 describe("hosted policy and pack reports", () => {
   it("classifies hosted-safe, local-only, and future-adapter tools", () => {
@@ -12,6 +13,17 @@ describe("hosted policy and pack reports", () => {
     assert.equal(report.tools.find((tool) => tool.name === "extract_harness_memory")?.policy, "future-adapter");
     assert.equal(report.tools.find((tool) => tool.name === "not_a_real_tool")?.policy, "unknown");
     assert.equal(report.warnings.length, 1);
+  });
+
+  it("classifies the shared registered tool list including V10 and repo quality tools", () => {
+    const toolNames = registeredArchitectureToolNames(true);
+    const originalOrder = [...toolNames];
+    const report = classifyToolPolicy(toolNames);
+
+    assert.deepEqual(toolNames, originalOrder);
+    assert.equal(report.tools.some((tool) => tool.name === "get_v10_productization_blueprint"), true);
+    assert.equal(report.tools.some((tool) => tool.name === "audit_generated_repo_quality"), true);
+    assert.equal(report.tools.some((tool) => tool.name === "review_local_workspace" && tool.policy === "local-only"), true);
   });
 
   it("scores stack packs and exposes coverage matrix rows", () => {

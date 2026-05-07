@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync, rmSync } from "node:fs";
 
 type Step = {
   name: string;
@@ -39,6 +40,47 @@ if (missingPackageFiles.length > 0) {
   throw new Error(`Package dry-run is missing required V3 files: ${missingPackageFiles.join(", ")}`);
 }
 
+const repoOnlyPackageFiles = [
+  "scripts/checkV3Readiness.ts",
+  "scripts/checkStagedReadiness.ts",
+  "scripts/ingestLlmsSources.ts"
+];
+const packagedRepoOnlyFiles = repoOnlyPackageFiles.filter((path) => packedPaths.has(path));
+if (packagedRepoOnlyFiles.length > 0) {
+  throw new Error(`Package dry-run includes repo-only TypeScript scripts: ${packagedRepoOnlyFiles.join(", ")}`);
+}
+
+const packedManifest = readPackedManifest();
+const repoOnlyPackageScripts = [
+  "check:v3",
+  "check:v10",
+  "release:check",
+  "ingest:llms",
+  "dev",
+  "dev:http",
+  "prepack",
+  "postpack"
+];
+const leakedPackageScripts = repoOnlyPackageScripts.filter((script) => Boolean(packedManifest.scripts?.[script]));
+if (leakedPackageScripts.length > 0) {
+  throw new Error(`Packed package.json includes repo-only npm scripts: ${leakedPackageScripts.join(", ")}`);
+}
+
+const maintainerLocalPathPattern = new RegExp(["", "Users", "tonycordner", ""].join("\\/"));
+const trackedFiles = execFileSync("git", ["ls-files"], {
+  encoding: "utf8",
+  stdio: ["ignore", "pipe", "inherit"]
+})
+  .split("\n")
+  .filter(Boolean)
+  .filter((path) => !path.startsWith("node_modules/") && !path.startsWith("dist/") && !path.endsWith(".snap"));
+for (const trackedFile of trackedFiles) {
+  const content = readFileSync(trackedFile, "utf8");
+  if (maintainerLocalPathPattern.test(content)) {
+    throw new Error(`${trackedFile} contains a maintainer-local absolute path.`);
+  }
+}
+
 const { createMcpReadinessReport } = await import("../dist/domain/readinessReport.js") as typeof import("../dist/domain/readinessReport.js");
 const readiness = await createMcpReadinessReport();
 if (!readiness.ready) {
@@ -55,4 +97,23 @@ function run(step: Step): void {
   execFileSync(step.command, step.args, {
     stdio: "inherit"
   });
+}
+
+function readPackedManifest(): { scripts?: Record<string, string> } {
+  const packOutput = execFileSync("npm", ["pack", "--json"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"]
+  });
+  const packedArtifacts = JSON.parse(packOutput) as Array<{ filename?: string }>;
+  const filename = packedArtifacts[0]?.filename;
+  if (!filename) throw new Error("npm pack did not return a package filename.");
+
+  try {
+    return JSON.parse(execFileSync("tar", ["-xOf", filename, "package/package.json"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"]
+    })) as { scripts?: Record<string, string> };
+  } finally {
+    rmSync(filename, { force: true });
+  }
 }

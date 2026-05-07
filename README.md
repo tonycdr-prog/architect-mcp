@@ -492,7 +492,7 @@ Hosted safety:
 - Hosted mode must not expose `review_local_workspace`.
 - Attempts to call local workspace scanning when it is not registered return an MCP tool error.
 
-MCP readiness should pass before release: `npm run check:v3` runs typecheck, tests, build, audit, package dry-run inclusion, and `mcp_readiness_report`. V5-V10 staged readiness is exposed through `npm run check:v5`, `npm run check:v6`, `npm run check:v7`, `npm run check:v8`, `npm run check:v9`, and `npm run check:v10`; each chains the V3 release check and then runs the relevant staged eval harness. The underlying readiness tool checks pack validation, policy bundle validation, contract/artifact validation, self-review, hosted safety, V5-V10 staged evals, tool schema policy, and release scripts.
+MCP readiness should pass before release: `npm run release:check` runs the current full staged readiness gate. `npm run check:v3` runs typecheck, tests, build, audit, package dry-run inclusion, and `mcp_readiness_report`. V5-V10 staged readiness is exposed through `npm run check:v5`, `npm run check:v6`, `npm run check:v7`, `npm run check:v8`, `npm run check:v9`, and `npm run check:v10`; each chains the V3 release check and then runs the relevant staged eval harness. The underlying readiness tool checks pack validation, policy bundle validation, contract/artifact validation, self-review, hosted safety, V5-V10 staged evals, tool schema policy, and release scripts.
 
 For richer hosted reviews, clients should include optional file-summary signals:
 
@@ -523,7 +523,9 @@ npm ci && npm run build
 npm run start:http
 ```
 
-When publishing as an npm package, `package.json` includes `files` entries for both `dist/` and `packs/` so runtime pack loading works outside the source checkout.
+When publishing as an npm package, `package.json` includes `files` entries for `dist/`, packs, policy bundles, source metadata, docs, `README.md`, `LICENSE`, and `SECURITY.md` so runtime pack loading and provenance work outside the source checkout. Repo-only TypeScript readiness scripts are intentionally not included in the package tarball, and publish-time manifest preparation strips repo-only npm scripts from the packed `package.json`.
+
+Security reports should follow `SECURITY.md`. Do not put vulnerabilities, secrets, exploit details, or private repository data in public issues.
 
 ## Example Brief
 

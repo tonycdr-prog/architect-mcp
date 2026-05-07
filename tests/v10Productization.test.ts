@@ -30,6 +30,7 @@ describe("V10 productization implementation contract", () => {
     assert.equal(plan.constraints.some((constraint) => constraint === "Do not use sx for styling."), true);
     assert.equal(plan.constraints.some((constraint) => constraint === "Do not use Box for styling."), true);
     assert.equal(plan.screens.some((screen) => screen.route === "/orgs/:orgId/billing"), true);
+    assert.equal(plan.screens.some((screen) => screen.dataSources.some((source) => /Repository$/.test(source))), false);
     assert.equal(plan.sharedLayout.denseData.includes("DataTable"), true);
     assert.equal(validateV10ProductizationBoundary({
       routes: getV10ProductizationBlueprint().routes,

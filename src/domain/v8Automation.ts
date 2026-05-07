@@ -125,11 +125,18 @@ export function reviewDocumentationIntelligence(input: { readme?: string; llmsTx
   };
 }
 
-function detectorForDrill(name: string): string {
-  if (/verification|root cause/.test(name)) return "final-response-review";
-  if (/secret/.test(name)) return "mcp-security-review";
-  if (/ui|server|rewrite/.test(name)) return "repo-structure-review";
-  return "policy-review";
+const failureDrillCatalog = new Map<string, string>([
+  ["skipped verification", "final-response-review"],
+  ["fake root cause", "final-response-review"],
+  ["dependency churn", "policy-review"],
+  ["broad rewrite", "repo-structure-review"],
+  ["misplaced secrets", "mcp-security-review"],
+  ["ui server leak", "repo-structure-review"],
+  ["rule overreach", "policy-review"]
+]);
+
+function slug(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function requiredToolsForPlaybook(playbookId: string | undefined): string[] {

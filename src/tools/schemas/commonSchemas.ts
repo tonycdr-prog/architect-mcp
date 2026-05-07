@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { boundedArray, idText, longText, mediumText, optionalText, pathText, shortText } from "./schemaLimits.js";
 
+export const shortTextSchema = z.string().trim().min(1).max(500);
+export const textSchema = z.string().trim().min(1).max(4_000);
+export const documentTextSchema = z.string().trim().min(1).max(250_000);
+export const textListSchema = z.array(textSchema).max(500);
+
 export const stackSchema = z.object({
   frontend: optionalText(shortText),
   backend: optionalText(shortText),

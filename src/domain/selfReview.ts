@@ -27,7 +27,7 @@ export const ARCHITECT_MCP_BRIEF: ProjectBrief = {
     }
   },
   risk: "Agents creating monolithic files, mixing MCP tool wiring into domain logic, exposing hosted filesystem scans, or accepting vague best-practice packs.",
-  verification: ["npm run typecheck", "npm test", "npm run build", "architect-mcp self-review"]
+  verification: ["npm run typecheck", "npm test", "npm run build", "npm run check:v10"]
 };
 
 export async function runArchitectSelfReview(rootPath = process.cwd()) {

@@ -96,6 +96,7 @@ function evaluateQuality(input: RepoQualityEvaluationInput, phase: "plan" | "rep
 
 function hardGateFindings(profile: RepoQualityRequirementsProfile, plan: RepoQualityPlan, signals: RepoQualityArtifactSignals, phase: "plan" | "repo"): RepoQualityFinding[] {
   const findings: RepoQualityFinding[] = [];
+  const requireEvidence = phase === "repo";
   if (signals.hasHardcodedSecrets) findings.push(gate("RQG001_COMMITTED_SECRET", "blocker", "security", "Secrets or secret-like values are present.", "Remove the secret, rotate it, and use environment variables plus .env.example."));
   if ((plan.envVars?.length ?? 0) > 0 && signals.hasEnvExample !== true) findings.push(gate("RQG002_ENV_EXAMPLE_MISSING", "error", "documentation", "Environment variables are needed but .env.example is missing.", "Add .env.example with names and safe placeholder values."));
   if (signals.hasMeaningfulCi === false || signals.ciOnlyEchoes) findings.push(gate("RQG003_FAKE_CI", "error", "ci_tests", "CI does not run meaningful checks.", "CI must run real typecheck, tests, lint/build, or equivalent project checks."));
@@ -226,8 +227,22 @@ function inferGoals(answers: string[]): string[] {
   return answers.filter((answer) => /build|create|manage|track|help|app|tool/i.test(answer)).slice(0, 5);
 }
 
+function cleanStrings(values: string[] | undefined): string[] {
+  return (values ?? []).map((value) => value.trim()).filter(Boolean);
+}
+
 function riskTerms(text: string): string[] {
   return ["auth", "payment", "secret", "database", "delete", "admin", "public"].filter((term) => text.includes(term));
+}
+
+function stackPreferenceConstraints(stackPreference: string | undefined): string[] {
+  if (!stackPreference) return [];
+  const stack = stackPreference.toLowerCase();
+  const constraints: string[] = [`Stack preference: ${stackPreference}`];
+  if (/supabase/.test(stack)) constraints.push("Supabase plans must explain auth boundaries, database access boundaries, row-level security, and deployment environment variables.");
+  if (/next/.test(stack)) constraints.push("Next.js plans must separate server/client boundaries and avoid leaking secrets into client components.");
+  if (/stripe/.test(stack)) constraints.push("Stripe plans must include webhook signature verification, idempotency, and entitlement boundaries.");
+  return constraints;
 }
 
 function gate(code: string, severity: RepoQualityFinding["severity"], dimension: RepoQualityDimension, message: string, recommendation: string): RepoQualityFinding {

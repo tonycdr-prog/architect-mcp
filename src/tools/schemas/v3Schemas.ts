@@ -11,7 +11,7 @@ export const mcpSecurityReviewInputSchema = z.object({
 }).strict();
 
 export const v3EvalHarnessInputSchema = z.object({
-  suites: z.array(z.enum(["harness", "memory", "mcp-security", "artifact-quality", "stack-pack"])).optional()
+  suites: z.array(z.enum(["harness", "memory", "mcp-security", "artifact-quality", "stack-pack"])).max(5).optional()
 }).strict();
 
 export const artifactQualityInputSchema = z.object({
@@ -25,7 +25,8 @@ export const stackPackPromotionFilesSchema = z.object({
   candidate: stackPackCandidateSchema,
   writeFiles: z.boolean().optional(),
   allowOverwrite: z.boolean().optional(),
-  bump: z.enum(["none", "patch", "minor", "major"]).optional()
+  bump: z.enum(["none", "patch", "minor", "major"]).optional(),
+  packDirectory: textSchema.optional()
 }).strict();
 
 export const clientRecipeInputSchema = z.object({
