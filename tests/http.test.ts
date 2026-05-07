@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { request } from "node:http";
 import type { AddressInfo } from "node:net";
-import { createHttpApp } from "../src/http.js";
+import { createHttpApp, parsePort } from "../src/http.js";
 
 describe("HTTP transport entrypoint", () => {
   it("returns JSON-RPC parse errors for malformed MCP JSON", async () => {
@@ -58,6 +58,112 @@ describe("HTTP transport entrypoint", () => {
       assert.equal(badHost.status, 403);
       assert.equal(badOrigin.status, 403);
       assert.equal(good.status, 200);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("enforces configured Origin allowlist strictly", async () => {
+    const server = await listen({
+      allowedHosts: new Set(["127.0.0.1"]),
+      allowedOrigins: new Set(["https://127.0.0.1"])
+    });
+    try {
+      const response = await httpRequest(server, {
+        method: "GET",
+        path: "/health",
+        headers: {
+          host: "127.0.0.1",
+          origin: "http://127.0.0.1"
+        }
+      });
+
+      assert.equal(response.status, 403);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("validates PORT before listen is attempted", () => {
+    assert.equal(parsePort("0"), 0);
+    assert.equal(parsePort("65535"), 65535);
+    assert.throws(() => parsePort("abc"), /Invalid PORT/);
+    assert.throws(() => parsePort("65536"), /Invalid PORT/);
+  });
+
+  it("cleans up server and transport when connect fails", async () => {
+    let serverClosed = 0;
+    let transportClosed = 0;
+    const server = await listen({
+      serverFactory: () => ({
+        async connect() {
+          throw new Error("connect failed");
+        },
+        async close() {
+          serverClosed += 1;
+        }
+      }),
+      transportFactory: () => ({
+        async handleRequest() {
+          throw new Error("should not handle");
+        },
+        async close() {
+          transportClosed += 1;
+        }
+      })
+    });
+    try {
+      const response = await httpRequest(server, {
+        method: "POST",
+        path: "/mcp",
+        headers: {
+          "content-type": "application/json",
+          host: "127.0.0.1"
+        },
+        body: "{}"
+      });
+
+      assert.equal(response.status, 500);
+      assert.equal(serverClosed, 1);
+      assert.equal(transportClosed, 1);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("cleans up server and transport when request handling fails", async () => {
+    let serverClosed = 0;
+    let transportClosed = 0;
+    const server = await listen({
+      serverFactory: () => ({
+        async connect() {},
+        async close() {
+          serverClosed += 1;
+        }
+      }),
+      transportFactory: () => ({
+        async handleRequest() {
+          throw new Error("handler failed");
+        },
+        async close() {
+          transportClosed += 1;
+        }
+      })
+    });
+    try {
+      const response = await httpRequest(server, {
+        method: "POST",
+        path: "/mcp",
+        headers: {
+          "content-type": "application/json",
+          host: "127.0.0.1"
+        },
+        body: "{}"
+      });
+
+      assert.equal(response.status, 500);
+      assert.equal(serverClosed, 1);
+      assert.equal(transportClosed, 1);
     } finally {
       await close(server);
     }

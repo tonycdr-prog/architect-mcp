@@ -5,16 +5,28 @@ import type { ErrorRequestHandler, NextFunction, Request, Response } from "expre
 import { fileURLToPath } from "node:url";
 import { createArchitectServer } from "./server/createArchitectServer.js";
 
-const port = Number.parseInt(process.env.PORT ?? "3000", 10);
+const port = parsePort(process.env.PORT ?? "3000");
 const host = process.env.HOST ?? "0.0.0.0";
 const jsonBodyLimit = process.env.JSON_BODY_LIMIT ?? "10mb";
 const configuredAllowedHosts = parseCsvSet(process.env.ALLOWED_HOSTS);
 const configuredAllowedOrigins = parseCsvSet(process.env.ALLOWED_ORIGINS);
 
+type HttpMcpServer = {
+  connect(transport: unknown): Promise<void>;
+  close(): Promise<void>;
+};
+
+type HttpTransport = {
+  handleRequest(req: Request, res: Response, body: unknown): Promise<void>;
+  close(): Promise<void>;
+};
+
 export type HttpAppOptions = {
   allowedHosts?: Set<string>;
   allowedOrigins?: Set<string>;
   jsonBodyLimit?: string;
+  serverFactory?: () => HttpMcpServer;
+  transportFactory?: () => HttpTransport;
 };
 
 export function createHttpApp(options: HttpAppOptions = {}) {
@@ -35,11 +47,11 @@ export function createHttpApp(options: HttpAppOptions = {}) {
   });
 
   app.post("/mcp", async (req: Request, res: Response) => {
-    const server = createArchitectServer({
+    const server = options.serverFactory?.() ?? createArchitectServer({
       enableLocalWorkspaceTool: false
     });
 
-    const transport = new StreamableHTTPServerTransport({
+    const transport = options.transportFactory?.() ?? new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined
     });
 
@@ -82,6 +94,17 @@ export function startHttpServer(options: HttpAppOptions = {}) {
   return server;
 }
 
+export function parsePort(value: string): number {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`Invalid PORT value "${value}". Expected an integer from 0 to 65535.`);
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+    throw new Error(`Invalid PORT value "${value}". Expected an integer from 0 to 65535.`);
+  }
+  return parsed;
+}
+
 function validateHostHeader(allowedHosts: Set<string>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const hostHeader = req.headers.host;
@@ -108,9 +131,9 @@ function validateOriginHeader(allowedHosts: Set<string>, allowedOrigins: Set<str
     try {
       const parsed = new URL(origin);
       const normalizedOrigin = parsed.origin.toLowerCase();
-      const originAllowed = allowedOrigins.has(origin.toLowerCase()) ||
-        allowedOrigins.has(normalizedOrigin) ||
-        isAllowedHost(parsed.hostname, allowedHosts);
+      const originAllowed = allowedOrigins.size > 0
+        ? allowedOrigins.has(origin.toLowerCase()) || allowedOrigins.has(normalizedOrigin)
+        : isAllowedHost(parsed.hostname, allowedHosts);
       if (originAllowed) {
         next();
         return;
