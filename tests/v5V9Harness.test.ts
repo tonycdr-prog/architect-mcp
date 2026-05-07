@@ -102,21 +102,24 @@ describe("V5-V9 MCP-driven implementation surface", () => {
       assert.equal(Array.isArray((await callJson(client, "review_standards_refactor", { request: { stackPacks: contract.stackPacks } })).suggestions), true);
       assert.equal((await callJson(client, "minimize_policy_set", { request: { brief: cleanMcpServerFixture.brief } })).compactProfile.length > 0, true);
       assert.equal((await callJson(client, "select_review_playbook", { request: { request: "fix auth bug" } })).playbook.id, "security-sensitive-change");
-      assert.equal((await callJson(client, "review_playbook_conformance", { request: { toolsRun: ["interpret_implementation_intent"], verification: [] } })).valid, false);
+      assert.equal((await callJson(client, "review_playbook_conformance", { request: { playbookId: "security-sensitive-change", toolsRun: ["interpret_implementation_intent", "review_repo_structure", "review_agent_final_response"], verification: ["npm test"] } })).valid, false);
       assert.equal((await callJson(client, "check_agent_collaboration_plan", { request: { ownership: [{ agent: "a", files: ["src/a.ts"] }, { agent: "b", files: ["src/a.ts"] }] } })).valid, false);
       assert.equal((await callJson(client, "run_failure_mode_drills", {})).status, "pass");
+      assert.equal((await callJson(client, "run_failure_mode_drills", { request: { cases: ["unknown drill"] } })).status, "fail");
       assert.match((await callJson(client, "calibrate_rule_impact", { request: { findings: [finding] } })).previewGateChange, /warn|fail|pass|strict/);
       assert.equal((await callJson(client, "review_documentation_intelligence", { request: { readme: "hello", toolNames: ["missing_tool"] } })).status, "warn");
 
       assert.equal((await callJson(client, "select_local_orchestration_recipe", { request: { request: "review existing repo" } })).recipe.tools.length > 0, true);
       assert.equal((await callJson(client, "select_local_orchestration_recipe", { request: { request: "fix auth bug" } })).recipe.id, "security-sensitive-change");
-      assert.equal((await callJson(client, "evaluate_scenario_acceptance", { request: { verified: true } })).status, "pass");
-      assert.equal((await callJson(client, "normalize_mcp_result", { request: { findings: [finding], evidence: ["npm test passed"] } })).stoplight, "yellow");
+      assert.equal((await callJson(client, "evaluate_scenario_acceptance", { request: { verified: true } })).status, "fail");
+      assert.equal((await callJson(client, "evaluate_scenario_acceptance", { request: { intentReady: true, contractReady: true, reviewPassed: true, verified: true, finalResponseHonest: true, artifactScores: [{ status: "pass" }] } })).status, "pass");
+      assert.equal((await callJson(client, "normalize_mcp_result", { request: { status: "pass", findings: [finding], evidence: ["npm test passed"] } })).status, "warn");
       assert.equal((await callJson(client, "plan_context_budget", { request: { mode: "compact", findings: [finding] } })).mode, "compact");
       assert.equal((await callJson(client, "route_evidence", { request: { findings: [finding], sources: [{ id: "hono", snapshotPath: "stack-sources/ingested/hono.md", sha256: "abc" }] } })).evidence[0].id, "ev-1");
       assert.equal((await callJson(client, "create_local_dry_run_plan", { request: { request: "risky auth refactor", risky: true } })).gates.includes("pre-edit contract"), true);
       assert.equal((await callJson(client, "review_tool_loop_quality", { request: { risky: true, toolsRun: [], verification: [] } })).status, "fail");
-      assert.match((await callJson(client, "review_tool_loop_quality", { request: { risky: false, toolsRun: ["review_repo_structure"], verification: [{ status: "passed" }], finalResponse: "Changed files only." } })).findings[0], /verified|assumptions|not done/);
+      assert.equal((await callJson(client, "review_tool_loop_quality", { request: { risky: false, toolsRun: ["review_repo_structure"], verification: [{ status: "passed" }] } })).status, "fail");
+      assert.match((await callJson(client, "review_tool_loop_quality", { request: { risky: false, toolsRun: ["review_repo_structure"], verification: [{ status: "passed" }], finalResponse: "Changed files only." } })).findings[0], /verification|verified|assumptions|not done/i);
       assert.equal((await callJson(client, "run_v9_eval_harness", {})).status, "pass");
     } finally {
       await close();

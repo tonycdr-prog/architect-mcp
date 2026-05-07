@@ -197,7 +197,7 @@ export const scenarioAcceptanceRequestSchema = z.object({
 }).strict();
 
 export const normalizeResultRequestSchema = z.object({
-  status: z.string().optional(),
+  status: z.enum(["pass", "warn", "fail"]).optional(),
   findings: z.array(reviewFindingSchema).optional(),
   evidence: z.array(z.string()).optional(),
   assumptions: z.array(z.string()).optional(),

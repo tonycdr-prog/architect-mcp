@@ -29,7 +29,7 @@ export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
     if (!response.toLowerCase().includes(check.toLowerCase())) {
       findings.push({
         code: "FINAL003_REQUIRED_CHECK_MISSING",
-        severity: "warning",
+        severity: "error",
         message: `Final response does not mention required check: ${check}.`,
         recommendation: "Mention each required check as passed, failed, skipped, or not run."
       });
@@ -39,7 +39,7 @@ export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
   if (/\b(root cause|caused by|because)\b/i.test(response) && !/\b(evidence|from the output|from the trace|test showed|log showed|inspection showed)\b/i.test(response)) {
     findings.push({
       code: "FINAL004_ROOT_CAUSE_UNSUPPORTED",
-      severity: "warning",
+      severity: "error",
       message: "Final response appears to claim a root cause without explicit evidence.",
       recommendation: "Tie root-cause claims to file context, logs, failing tests, or reproduced behavior."
     });

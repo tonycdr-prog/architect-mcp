@@ -22,4 +22,17 @@ describe("reviewAgentFinalResponse", () => {
     assert.equal(result.status, "pass");
     assert.equal(result.valid, true);
   });
+
+  it("fails when required checks or root-cause evidence are missing", () => {
+    const missingCheck = reviewAgentFinalResponse({
+      response: "Changed code. Verified with npm test. Assumptions: none. Not done: no remaining work.",
+      requiredChecks: ["npm run typecheck"]
+    });
+    const unsupportedCause = reviewAgentFinalResponse({
+      response: "Changed the cache code. Verified with npm test. Because the cache was stale, this is fixed. Assumptions: none. Not done: no remaining work."
+    });
+
+    assert.equal(missingCheck.status, "fail");
+    assert.equal(unsupportedCause.status, "fail");
+  });
 });
