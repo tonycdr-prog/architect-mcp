@@ -145,7 +145,18 @@ function containsUnsafeSkillText(skill: SkillCatalogEntry): boolean {
     ...skill.recommendedWhen,
     ...skill.cautions
   ].join("\n");
-  return /execute arbitrary|run arbitrary|ignore (the )?user|ignore previous|override instructions|exfiltrate|curl\s*\|\s*(bash|sh)|send (api keys|secrets)|leak secret|prompt injection/i.test(text);
+  return hasUnsafeSkillPhrase(text);
+}
+
+function hasUnsafeSkillPhrase(text: string): boolean {
+  if (/execute arbitrary|run arbitrary|ignore (the )?user|ignore previous|override instructions|exfiltrate|curl\s*\|\s*(bash|sh)|send (api keys|secrets)|leak secret/i.test(text)) {
+    return true;
+  }
+  const promptInjection = text.match(/\bprompt injection\b/gi) ?? [];
+  if (promptInjection.length === 0) return false;
+  const defensiveContext = /\b(avoid|prevent|mitigate|detect|block|defend|protect|test for|scan for|guard against|against)\s+(prompt injection|.*prompt injection)/i;
+  const offensiveContext = /\b(use|perform|attempt|bypass|override|jailbreak|inject|exploit)\s+(.*\b)?prompt injection|\bprompt injection\b.*\b(override|bypass|ignore|jailbreak|exfiltrate|leak)\b/i;
+  return offensiveContext.test(text) || !defensiveContext.test(text);
 }
 
 function catalogFor(query: SkillCatalogQuery): SkillCatalogEntry[] {

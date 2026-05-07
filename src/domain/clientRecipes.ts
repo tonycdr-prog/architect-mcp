@@ -6,8 +6,8 @@ export function listClientIntegrationRecipes(input: { recipe?: string } = {}) {
       purpose: "Interpret vague implementation requests before an agent edits code.",
       calls: [
         { tool: "interpret_implementation_intent", arguments: { input: { request: "fix this with best practices", mode: "guided-yolo" } } },
-        { tool: "create_pre_edit_contract", arguments: { input: { intent: "interpret_implementation_intent result" } }, when: "decision is confirm_before_edit or blastRadius is high" },
-        { tool: "review_implementation_against_contract", arguments: { input: { contract: "pre-edit contract", changedFiles: "changed file summaries", verification: "checks run" } }, when: "after files change" }
+        { tool: "create_pre_edit_contract", arguments: { intent: "interpret_implementation_intent result" }, when: "decision is confirm_before_edit or blastRadius is high" },
+        { tool: "review_implementation_against_contract", arguments: { contract: "pre-edit contract", changedFiles: "changed file summaries", verification: "checks run" }, when: "after files change" }
       ],
       clientPolicy: "Proceed on green, log assumptions on yellow, ask one plain-English question on red or risky yellow."
     },

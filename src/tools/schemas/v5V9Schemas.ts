@@ -11,13 +11,21 @@ const reviewFindingSchema = z.object({
   recommendation: mediumText
 }).strict();
 
+const reviewGroupSchema = z.object({
+  key: idText,
+  count: z.number().int().nonnegative().max(100_000),
+  severity: z.enum(["error", "warning"]),
+  samplePaths: boundedArray(pathText, 50).optional(),
+  recommendation: mediumText
+}).strict();
+
 const reviewReportSchema = z.object({
   score: z.number().optional(),
   grade: z.string().optional(),
   mode: z.string().optional(),
   gate: z.unknown().optional(),
   summary: z.unknown().optional(),
-  groups: boundedArray(z.unknown(), 5_000).optional(),
+  groups: boundedArray(reviewGroupSchema, 1_000).optional(),
   priorityFindings: boundedArray(reviewFindingSchema, 5_000).optional(),
   violations: boundedArray(reviewFindingSchema, 5_000).optional()
 }).passthrough();

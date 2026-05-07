@@ -16,6 +16,10 @@ describe("client integration recipes", () => {
       result.recipes.find((recipe) => recipe.id === "guided-yolo-pre-edit")?.calls[0]?.arguments,
       { input: { request: "fix this with best practices", mode: "guided-yolo" } }
     );
+    assert.deepEqual(
+      result.recipes.find((recipe) => recipe.id === "guided-yolo-pre-edit")?.calls[1]?.arguments,
+      { intent: "interpret_implementation_intent result" }
+    );
   });
 
   it("filters to a requested recipe", () => {
