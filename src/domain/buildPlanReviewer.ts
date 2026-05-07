@@ -1,4 +1,5 @@
 import { createFinding } from "./findingMetadata.js";
+import { matchesPathPattern } from "./pathRules.js";
 import type { BuildPlan, BuildPlanReviewOptions, ReviewViolation } from "./types.js";
 
 export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions = {}): ReviewViolation[] {
@@ -14,6 +15,24 @@ export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions
       severity: "error",
       message: "Build plan does not start with the agent harness slice.",
       recommendation: "Generate AGENTS.md, docs/architecture-contract.md, and editor rules before implementation slices."
+    }));
+  }
+
+  for (const duplicateId of duplicates(ids)) {
+    findings.push(createFinding({
+      code: "ARCH018_BUILD_PLAN_ORDER",
+      severity: "error",
+      message: `Build plan contains duplicate slice id: ${duplicateId}.`,
+      recommendation: "Use stable unique slice ids so implementation gates can be tracked unambiguously."
+    }));
+  }
+
+  for (const duplicateOrder of duplicates(slices.map((slice) => String(slice.order)))) {
+    findings.push(createFinding({
+      code: "ARCH018_BUILD_PLAN_ORDER",
+      severity: "error",
+      message: `Build plan contains duplicate slice order: ${duplicateOrder}.`,
+      recommendation: "Use one unique order value per slice so agents execute the plan deterministically."
     }));
   }
 
@@ -57,7 +76,7 @@ export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions
       }
     }
 
-    if (slice.forbiddenFiles.some((file) => slice.files.includes(file))) {
+    if (slice.forbiddenFiles.some((pattern) => slice.files.some((file) => matchesPathPattern(file, pattern)))) {
       findings.push(createFinding({
         code: "ARCH015_PLAN_MONOLITH_RISK",
         severity: "error",
@@ -68,6 +87,16 @@ export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions
   }
 
   return findings;
+}
+
+function duplicates(values: string[]): string[] {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) repeated.add(value);
+    seen.add(value);
+  }
+  return [...repeated];
 }
 
 function checksFromContract(contract: BuildPlanReviewOptions["contract"]): string[] {

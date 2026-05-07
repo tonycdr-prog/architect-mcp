@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateContract } from "../src/domain/contract.js";
@@ -14,7 +14,7 @@ import { reviewFileSummaries } from "../src/domain/reviewer.js";
 import { reviewProposedFilePlan } from "../src/domain/planReviewer.js";
 import { analyzeStackPackConflicts, deriveStackPackFromIngestedSource, diffStackPackVersions, promoteStackPackCandidate, proposeStackPackRules, reviewStackPackCandidate, stackPackExpansionStrategy } from "../src/domain/stackPackWorkflow.js";
 import { resolveStackPacks, validateStackPacks } from "../src/domain/stackPacks.js";
-import { scanWorkspace } from "../src/infrastructure/scanWorkspace.js";
+import { scanWorkspace, scanWorkspaceWithMetadata } from "../src/infrastructure/scanWorkspace.js";
 import {
   generatedAppBadFixture,
   generatedAppGoodFixture,
@@ -117,8 +117,7 @@ describe("reviewFileSummaries", () => {
       }
     ]);
 
-    assert.equal(violations.length, 1);
-    assert.equal(violations[0]?.severity, "error");
+    assert.equal(violations.some((violation) => violation.code === "ARCH007_SHARED_IMPORTS_FEATURE" && violation.severity === "error"), true);
   });
 
   it("flags client components that import server modules", () => {
@@ -130,8 +129,7 @@ describe("reviewFileSummaries", () => {
       }
     ]);
 
-    assert.equal(violations.length, 1);
-    assert.equal(violations[0]?.severity, "error");
+    assert.equal(violations.some((violation) => violation.code === "ARCH003_CLIENT_SERVER_LEAK" && violation.severity === "error"), true);
   });
 
   it("flags UI files with direct database access", () => {
@@ -142,8 +140,7 @@ describe("reviewFileSummaries", () => {
       }
     ]);
 
-    assert.equal(violations.length, 1);
-    assert.equal(violations[0]?.severity, "error");
+    assert.equal(violations.some((violation) => violation.code === "ARCH002_UI_DB_ACCESS" && violation.severity === "error"), true);
   });
 
   it("allows common public client env vars in UI files", () => {
@@ -351,11 +348,52 @@ describe("reviewBuildPlan", () => {
     assert.equal(violations.some((violation) => violation.code === "ARCH019_BUILD_PLAN_VERIFICATION" && violation.severity === "error"), true);
   });
 
+  it("rejects duplicate build-plan slice ids and order values", () => {
+    const plan = generateBuildPlan(messyReactFixture.brief);
+    const violations = reviewBuildPlan({
+      ...plan,
+      slices: [
+        plan.slices[0]!,
+        {
+          ...plan.slices[0]!,
+          order: plan.slices[1]!.order
+        },
+        plan.slices[1]!
+      ]
+    });
+
+    assert.equal(violations.filter((violation) => violation.code === "ARCH018_BUILD_PLAN_ORDER").length >= 2, true);
+  });
+
+  it("applies glob patterns in build-plan forbidden files", () => {
+    const plan = generateBuildPlan(messyReactFixture.brief);
+    const violations = reviewBuildPlan({
+      ...plan,
+      slices: [
+        {
+          ...plan.slices[0]!,
+          forbiddenFiles: ["src/features/**/page.tsx"],
+          files: ["src/features/billing/page.tsx"]
+        }
+      ]
+    });
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK"), true);
+  });
+
   it("flags implementation output that ignored the harness plan", () => {
     const violations = reviewFileSummaries([
       { path: "src/App.tsx", lines: 260, imports: ["@/db/client", "@/features/customers"] },
       { path: "src/features/customers/CustomerPage.tsx", lines: 120 },
       { path: "src/features/customers/customerState.ts", lines: 80 }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), true);
+  });
+
+  it("runs implementation drift checks for one-file generated repos", () => {
+    const violations = reviewFileSummaries([
+      { path: "src/App.tsx", lines: 260, imports: ["@/features/customers"] }
     ]);
 
     assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), true);
@@ -780,6 +818,23 @@ describe("createReviewReport", () => {
     assert.equal(report.gate.thresholds.maxErrors, 0);
     assert.equal(report.gate.thresholds.maxWarnings, 2);
   });
+
+  it("does not improve review scores because findings are ignored or grouped", () => {
+    const findings = [
+      {
+        code: "ARCH001_OVERSIZED_FILE" as const,
+        confidence: "medium" as const,
+        severity: "warning" as const,
+        path: "docs/audits/data.json",
+        message: "File has 5000 lines, above the 300-line review threshold.",
+        recommendation: "Split it."
+      }
+    ];
+    const unsuppressed = createReviewReport(findings, { ignorePatterns: [] });
+    const suppressed = createReviewReport(findings);
+
+    assert.equal(suppressed.score <= unsuppressed.score, true);
+  });
 });
 
 describe("scanWorkspace", () => {
@@ -789,6 +844,7 @@ describe("scanWorkspace", () => {
       "import api from './api';",
       "export { api };",
       "const literal = process.env.SECRET_KEY;",
+      "const bracket = process.env['OTHER_SECRET'];",
       "const dynamic = process.env[envName];"
     ].join("\n"));
 
@@ -796,7 +852,23 @@ describe("scanWorkspace", () => {
     const sample = summaries.find((summary) => summary.path === "sample.ts");
 
     assert.deepEqual(sample?.imports, ["./api"]);
-    assert.deepEqual(sample?.envAccesses, ["SECRET_KEY"]);
+    assert.deepEqual(sample?.envAccesses, ["OTHER_SECRET", "SECRET_KEY"]);
+  });
+
+  it("applies ignore patterns during traversal and reports truncation metadata", async () => {
+    const root = await mkdtemp(join(tmpdir(), "architect-mcp-ignore-test-"));
+    await mkdir(join(root, "ignored"), { recursive: true });
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "ignored", "secret.ts"), "const secret = process.env.SECRET_KEY;\n");
+    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
+    await writeFile(join(root, "src", "b.ts"), "export const b = 1;\n");
+
+    const ignored = await scanWorkspace(root, 10, ["ignored/**"]);
+    const limited = await scanWorkspaceWithMetadata(root, 1);
+
+    assert.equal(ignored.some((summary) => summary.path === "ignored/secret.ts"), false);
+    assert.equal(limited.files.length, 1);
+    assert.equal(limited.truncated, true);
   });
 });
 

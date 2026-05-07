@@ -36,6 +36,14 @@ export function matchesPathPattern(path: string, pattern: string): boolean {
   return regex.test(normalizedPath);
 }
 
+export function matchesPathPrefixOrPattern(path: string, pattern: string): boolean {
+  const normalizedPath = normalizePath(path);
+  const normalizedPattern = normalizePath(pattern);
+  return normalizedPath === normalizedPattern ||
+    normalizedPath.startsWith(`${normalizedPattern}/`) ||
+    matchesPathPattern(normalizedPath, normalizedPattern);
+}
+
 export function hasGlobSyntax(pattern: string): boolean {
   try {
     new RegExp(`^${escapeGlob(normalizePath(pattern))}$`);
@@ -51,8 +59,16 @@ function escapeGlob(pattern: string): string {
   for (let index = 0; index < pattern.length; index += 1) {
     const char = pattern[index];
     const nextChar = pattern[index + 1];
+    const previousChar = pattern[index - 1];
+    const afterNextChar = pattern[index + 2];
 
     if (char === "*" && nextChar === "*") {
+      if (previousChar === "/" && afterNextChar === "/") {
+        output = output.slice(0, -1);
+        output += "(?:/.*)?";
+        index += 2;
+        continue;
+      }
       output += ".*";
       index += 1;
       continue;

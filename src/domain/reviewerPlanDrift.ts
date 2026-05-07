@@ -1,10 +1,9 @@
 import { createFinding } from "./findingMetadata.js";
-import { isGeneratedFile, isSourceCodeFile } from "./pathRules.js";
+import { isGeneratedFile, isSourceCodeFile, matchesPathPattern } from "./pathRules.js";
 import type { BuildPlan, FileSummary, ReviewViolation } from "./types.js";
 
 export function reviewImplementationPlanDrift(files: Array<FileSummary & { path: string }>, filePaths: string[], buildPlan?: BuildPlan): ReviewViolation[] {
   const violations: ReviewViolation[] = [];
-  if (files.length < 3) return violations;
   const hasMonolithProneImplementation = files.some((file) => /(^|\/)(App|app|page|index|server|main)\.(tsx|ts|jsx|js)$/.test(file.path) || /^src\/features\//.test(file.path));
   const hasFeatureImplementation = files.some((file) => /^src\/features\//.test(file.path));
   const hasTests = filePaths.some((path) => /(^|\/)(tests|__tests__)\/|\.test\.(ts|tsx|js|jsx)$/.test(path));
@@ -85,11 +84,7 @@ function stripGlob(value: string): string {
 }
 
 function matchesPlanPattern(path: string, pattern: string): boolean {
-  const escaped = pattern
-    .split("**").map((part) => part
-      .split("*").map((segment) => segment.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")
-    ).join(".*");
-  return new RegExp(`^${escaped}$`).test(path);
+  return matchesPathPattern(path, pattern);
 }
 
 function looksLikePath(value: string): boolean {
