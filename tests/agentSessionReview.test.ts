@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createPreEditContract, interpretImplementationIntent } from "../src/domain/harness.js";
 import { reviewAgentSession } from "../src/domain/agentSessionReview.js";
+import type { MemoryProposal } from "../src/domain/types.js";
 
 describe("reviewAgentSession", () => {
   it("combines intent, contract, verification, and final response into one report", () => {
@@ -28,4 +29,38 @@ describe("reviewAgentSession", () => {
     assert.equal(report.sections.some((section) => section.name === "implementation-contract"), true);
     assert.equal(report.sections.some((section) => section.name === "final-response"), true);
   });
+
+  it("reviews verification and memory safety even when other context is missing", () => {
+    const failedVerification = reviewAgentSession({
+      verification: [{ check: "npm test", status: "failed", note: "tests failed" }]
+    });
+    const secretMemory = reviewAgentSession({
+      memories: [memory({ sensitivity: "secret", policyAction: "auto_store" })]
+    });
+
+    assert.equal(failedVerification.status, "fail");
+    assert.equal(failedVerification.sections.some((section) => section.name === "verification"), true);
+    assert.equal(secretMemory.status, "fail");
+    assert.equal(secretMemory.sections.some((section) => section.name === "memory"), true);
+  });
 });
+
+function memory(overrides: Partial<MemoryProposal> = {}): MemoryProposal {
+  return {
+    id: "m1",
+    kind: "preference",
+    scope: "user",
+    statement: "Use memory",
+    rationale: "test",
+    confidence: "medium",
+    risk: "green",
+    sensitivity: "internal",
+    policyAction: "auto_store",
+    tags: ["memory"],
+    tokenEstimate: 20,
+    source: { kind: "user_statement", summary: "memory" },
+    invalidatedBy: "never",
+    targetPath: "user/preference.jsonl",
+    ...overrides
+  };
+}

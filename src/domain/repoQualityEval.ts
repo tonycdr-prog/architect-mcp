@@ -9,11 +9,13 @@ export function buildQualityRequirementsProfile(input: {
   answers?: string[];
   stackPreference?: string;
 } = {}): RepoQualityRequirementsProfile {
-  const goals = input.goals?.length ? input.goals : inferGoals(input.answers ?? []);
-  const constraints = input.constraints ?? [];
-  const text = [...goals, ...constraints, ...(input.answers ?? [])].join(" ").toLowerCase();
+  const answers = cleanList(input.answers);
+  const goals = cleanList(input.goals);
+  const constraints = cleanList(input.constraints);
+  const usableGoals = goals.length ? goals : inferGoals(answers);
+  const text = [...usableGoals, ...constraints, ...answers].join(" ").toLowerCase();
   const missingQuestions = [
-    ...(!goals.length ? ["What outcome should the app produce for the user?"] : []),
+    ...(!usableGoals.length ? ["What outcome should the app produce for the user?"] : []),
     ...(!/user|customer|admin|team|owner/.test(text) ? ["Who will use this, and how technical are they?"] : []),
     ...(!/data|store|save|database|local|account|auth|login/.test(text) ? ["What data must be stored, and does it need accounts or login?"] : []),
     ...(!/deploy|host|local|mobile|web|desktop/.test(text) ? ["Where should this run first: local, web, mobile, or hosted?"] : []),
@@ -21,12 +23,16 @@ export function buildQualityRequirementsProfile(input: {
   ];
   return {
     userLevel: input.userLevel ?? (/non.?technical|vibe|beginner|novice/.test(text) ? "beginner" : "technical"),
-    goals,
+    goals: usableGoals,
     constraints,
     knownRisks: riskTerms(text),
     missingQuestions,
     confidence: missingQuestions.length >= 3 ? "low" : missingQuestions.length ? "medium" : "high"
   };
+}
+
+function cleanList(values: string[] | undefined): string[] {
+  return values?.map((value) => value.trim()).filter(Boolean) ?? [];
 }
 
 export function evaluateRepoPlanQuality(input: RepoQualityEvaluationInput = {}) {

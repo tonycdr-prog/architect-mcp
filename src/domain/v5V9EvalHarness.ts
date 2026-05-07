@@ -59,7 +59,14 @@ function runStage(stage: V5V9Stage): Array<{ stage: V5V9Stage; name: string; pas
   }
   const contract = generateContract(brief);
   const recipe = selectLocalOrchestrationRecipe({ request: "review existing repo" });
-  const acceptance = evaluateScenarioAcceptance({ verified: true, artifactScores: [{ status: "pass" }] });
+  const acceptance = evaluateScenarioAcceptance({
+    intentReady: true,
+    contractReady: true,
+    reviewPassed: true,
+    verified: true,
+    finalResponseHonest: true,
+    artifactScores: [{ status: "pass" }]
+  });
   return [
     { stage, name: "orchestration recipe selects tools", passed: recipe.recipe.tools.length > 0, detail: recipe.recipe.id },
     { stage, name: "scenario acceptance passes", passed: acceptance.status === "pass", detail: acceptance.plainEnglish },

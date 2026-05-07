@@ -2,6 +2,7 @@ import { scoreAgentInstructions, scoreLlmsTxt } from "./artifactQuality.js";
 import { interpretImplementationIntent } from "./harness.js";
 import { extractHarnessMemory, reviewMemoryRelevance } from "./harnessMemory.js";
 import { reviewMcpConfigSecurity } from "./mcpSecurity.js";
+import { promoteStackPackCandidateToFiles, proposeStackPackRules, reviewStackPackCandidate } from "./stackPackWorkflow.js";
 
 export type V3EvalCase = {
   id: string;
@@ -12,7 +13,8 @@ export type V3EvalCase = {
 };
 
 export function runV3EvalHarness(input: { suites?: V3EvalCase["suite"][] } = {}) {
-  const requested = new Set(input.suites ?? ["harness", "memory", "mcp-security", "artifact-quality", "stack-pack"]);
+  const requestedSuites = input.suites?.length ? input.suites : ["harness", "memory", "mcp-security", "artifact-quality", "stack-pack"];
+  const requested = new Set(requestedSuites);
   const cases: V3EvalCase[] = [];
 
   if (requested.has("harness")) cases.push(evalVagueBestPracticePrompt());
@@ -95,11 +97,33 @@ function evalArtifactQuality(): V3EvalCase {
 }
 
 function evalStackPackPromotionShape(): V3EvalCase {
+  const candidate = proposeStackPackRules({
+    stackName: "Eval HTTP API",
+    sourceText: [
+      "HTTP API projects should keep routes thin and call service modules for workflow behavior.",
+      "Validation should happen at the route boundary before service calls.",
+      "Database access should live in repository modules rather than route handlers.",
+      "Tests should cover route behavior and service behavior with meaningful assertions."
+    ].join("\n"),
+    sourceLabel: "V3 eval stack-pack source"
+  });
+  candidate.id = "v3-eval-http-api";
+  candidate.fileRules = candidate.fileRules.map((rule) => ({
+    ...rule,
+    trigger: rule.trigger ?? "Route files contain workflow logic or direct database calls.",
+    recommendation: rule.recommendation ?? "Move workflow behavior into service modules and data access into repositories.",
+    goodExample: rule.goodExample ?? "src/server/routes/todos.ts calls todoService.createTodo(input).",
+    badExample: rule.badExample ?? "src/server/routes/todos.ts opens a database client and implements the full workflow inline.",
+    triggerKind: rule.triggerKind ?? "route-thinness",
+    detectors: rule.detectors?.length ? rule.detectors : [{ kind: "route-thinness", description: "Detect route files that own workflow logic." }]
+  }));
+  const review = reviewStackPackCandidate(candidate, { allowExistingId: true });
+  const promotion = review.valid ? promoteStackPackCandidateToFiles(candidate, { writeFiles: false, allowOverwrite: true }) : undefined;
   return {
     id: "v3-stack-pack-promotion-shape",
     suite: "stack-pack",
-    passed: true,
-    expected: "stack-pack promotion exposes dry-run file outputs before writes",
-    actual: "covered by promote_stack_pack_to_files tool tests"
+    passed: review.valid && promotion?.dryRun === true && promotion.files.length === 2,
+    expected: "stack-pack promotion evaluates a concrete candidate and exposes dry-run file outputs before writes",
+    actual: JSON.stringify({ valid: review.valid, violations: review.violations.map((violation) => violation.message), dryRun: promotion?.dryRun, files: promotion?.files.map((file) => file.path) })
   };
 }
