@@ -24,7 +24,7 @@ describe("runV3EvalHarness", () => {
     assert.deepEqual(report.cases.map((testCase) => testCase.suite), ["mcp-security"]);
   });
 
-  it("does not pass with zero executed cases and runs stack-pack workflow assertions", () => {
+  it("defaults empty suite selection to the full suite and runs stack-pack workflow assertions", () => {
     const empty = runV3EvalHarness({ suites: [] });
     const stackPack = runV3EvalHarness({ suites: ["stack-pack"] });
 

@@ -48,7 +48,7 @@ export function selectReviewPlaybook(input: { request?: string; brief?: ProjectB
       id,
       intakeChecks: ["Interpret implementation intent", "Create pre-edit contract for risky scope"],
       policyPacks: ["agent-harness", "testing", "repo-structure"],
-      reviewTools: ["review_proposed_file_plan", "review_repo_structure", "review_agent_final_response"],
+      reviewTools: requiredToolsForPlaybook(id),
       proofRequirements: ["Named verification command", "Architecture review gate", "Not-done disclosure"]
     }
   };
@@ -148,7 +148,7 @@ function runFailureModeDrill(name: string) {
     return drillResult(name, detector, positive.status !== "pass", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
   }
   if (/fake root cause/.test(normalized)) {
-    const positive = reviewAgentFinalResponse({ response: "Changed cache code. Verified with npm test. Because the cache was stale, it is fixed. Assumptions: none. Not done: no remaining work." });
+    const positive = reviewAgentFinalResponse({ response: "Changed cache code. Verified with npm test. Root cause: the cache was stale. Assumptions: none. Not done: no remaining work." });
     const negative = reviewAgentFinalResponse({ response: "Changed cache code. Verified with npm test. Root cause evidence: log showed stale cache reads. Assumptions: none. Not done: no remaining work." });
     return drillResult(name, detector, positive.status === "fail", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
   }

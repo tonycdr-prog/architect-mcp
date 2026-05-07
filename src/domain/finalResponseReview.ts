@@ -36,7 +36,7 @@ export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
     }
   }
 
-  if (/\b(root cause|caused by|because)\b/i.test(response) && !/\b(evidence|from the output|from the trace|test showed|log showed|inspection showed)\b/i.test(response)) {
+  if (claimsRootCause(response) && !/\b(evidence|from the output|from the trace|test showed|log showed|inspection showed)\b/i.test(response)) {
     findings.push({
       code: "FINAL004_ROOT_CAUSE_UNSUPPORTED",
       severity: "error",
@@ -73,4 +73,8 @@ export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
     },
     findings
   };
+}
+
+function claimsRootCause(response: string): boolean {
+  return /\b(root cause|caused by|fixed because|bug was due to|issue was due to|problem was due to|regression came from)\b/i.test(response);
 }
