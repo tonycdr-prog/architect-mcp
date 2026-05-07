@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,10 +24,16 @@ export function listPolicyBundles(): { bundles: PolicyBundle[] } {
 export function validatePolicyBundles(): { valid: boolean; errors: string[]; bundleCount: number } {
   const errors: string[] = [];
   const ids = new Set<string>();
-  for (const bundle of loadPolicyBundles()) {
-    if (ids.has(bundle.id)) errors.push(`Duplicate policy bundle id: ${bundle.id}`);
-    ids.add(bundle.id);
-    if (!/^\d+\.\d+\.\d+$/.test(bundle.version)) errors.push(`${bundle.id}: version must be semver.`);
+  try {
+    const { bundles } = loadPolicyBundleFiles();
+    errors.push(...validatePolicyBundleManifest(bundles));
+    for (const { bundle } of bundles) {
+      if (ids.has(bundle.id)) errors.push(`Duplicate policy bundle id: ${bundle.id}`);
+      ids.add(bundle.id);
+      if (!/^\d+\.\d+\.\d+$/.test(bundle.version)) errors.push(`${bundle.id}: version must be semver.`);
+    }
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
   return { valid: errors.length === 0, errors, bundleCount: ids.size };
 }
@@ -135,11 +142,59 @@ export function previewPatternCard(input: { card: { id?: string; summary?: strin
 }
 
 function loadPolicyBundles(): PolicyBundle[] {
+  return loadPolicyBundleFiles().bundles.map((entry) => entry.bundle);
+}
+
+function loadPolicyBundleFiles(): { directory: string; bundles: Array<{ file: string; content: string; bundle: PolicyBundle }> } {
   const dir = resolvePolicyBundleDirectory();
-  return readdirSync(dir)
+  const bundles = readdirSync(dir)
     .filter((file) => file.endsWith(".json"))
+    .filter((file) => file !== "manifest.json")
     .sort()
-    .map((file) => policyBundleSchema.parse(JSON.parse(readFileSync(join(dir, file), "utf8"))));
+    .map((file) => {
+      const content = readFileSync(join(dir, file), "utf8");
+      return {
+        file,
+        content,
+        bundle: policyBundleSchema.parse(JSON.parse(content))
+      };
+    });
+  return { directory: dir, bundles };
+}
+
+function validatePolicyBundleManifest(bundles: Array<{ file: string; content: string; bundle: PolicyBundle }>): string[] {
+  const errors: string[] = [];
+  const dir = resolvePolicyBundleDirectory();
+  try {
+    const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")) as {
+      entries?: Array<{ id?: string; version?: string; sha256?: string }>;
+    };
+    const entries = new Map<string | undefined, { id?: string; version?: string; sha256?: string }>();
+    for (const entry of manifest.entries ?? []) {
+      if (entries.has(entry.id)) errors.push(`Duplicate policy-bundle manifest entry: ${entry.id ?? "missing-id"}`);
+      entries.set(entry.id, entry);
+    }
+    const discoveredIds = new Set<string>();
+    for (const { bundle, content } of bundles) {
+      discoveredIds.add(bundle.id);
+      const entry = entries.get(bundle.id);
+      if (!entry) {
+        errors.push(`${bundle.id}: missing policy-bundle manifest entry`);
+        continue;
+      }
+      const hash = createHash("sha256").update(content).digest("hex");
+      if (entry.version !== bundle.version) errors.push(`${bundle.id}: policy-bundle manifest version ${entry.version} does not match bundle version ${bundle.version}`);
+      if (entry.sha256 !== hash) errors.push(`${bundle.id}: policy-bundle content changed without updating policy-bundles/manifest.json`);
+    }
+    for (const entry of manifest.entries ?? []) {
+      if (entry.id && !discoveredIds.has(entry.id)) {
+        errors.push(`${entry.id}: stale policy-bundle manifest entry has no matching bundle file`);
+      }
+    }
+  } catch (error) {
+    errors.push(`Could not validate policy-bundle manifest: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return errors;
 }
 
 function resolvePolicyBundleDirectory(): string {

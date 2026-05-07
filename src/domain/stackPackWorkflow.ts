@@ -1,12 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createFinding } from "./findingMetadata.js";
 import { extractEvidenceLines } from "./llmsEvidence.js";
-import { fetchLlmsSource, listIngestedLlmsSources } from "./llmsSources.js";
+import { fetchLlmsSource, listIngestedLlmsSources, readIngestedLlmsSnapshot } from "./llmsSources.js";
 import { candidateRulesForText, slugify, titleize } from "./stackPackCandidateRules.js";
 import { analyzeStackPackConflicts } from "./stackPackConflicts.js";
 import { bumpVersion, diffManifestEntries, nextPackManifest, readPackManifest } from "./stackPackPromotionFiles.js";
-import { listStackPacks } from "./stackPacks.js";
+import { clearStackPackCache, listStackPacks } from "./stackPacks.js";
 import type { IngestedLlmsSource, LlmsSourceSnapshot, ReviewViolation, StackPack, StackPackCandidate, StackPackCandidateInput, StackPackConflict } from "./types.js";
 
 export { analyzeStackPackConflicts } from "./stackPackConflicts.js";
@@ -97,7 +97,7 @@ export function deriveStackPackFromIngestedSource(sourceId: string): {
     throw new Error(`Ingested llms.txt source ${sourceId} is not usable: ${ingested.error ?? "missing local snapshot path"}.`);
   }
 
-  const sourceText = readFileSync(resolve(process.cwd(), ingested.path), "utf8");
+  const sourceText = readIngestedLlmsSnapshot(ingested.path);
   const matchedEvidence = extractEvidenceLines(sourceText);
   const candidate = proposeStackPackRules({
     stackName: `${ingested.stack} LLMs Derived`,
@@ -144,7 +144,19 @@ export function reviewStackPackCandidate(candidate: StackPackCandidate, options:
     violations.push(candidateFinding("Candidate has no file rules.", "Add enforceable file rules with triggers, detectors, and examples."));
   }
 
+  const ruleKeys = new Map<string, string>();
   for (const rule of candidate.fileRules) {
+    const ruleKey = [
+      rule.name.trim().toLowerCase(),
+      rule.triggerKind ?? "",
+      (rule.appliesToPaths ?? []).join("|").toLowerCase()
+    ].join("::");
+    const previousRuleName = ruleKeys.get(ruleKey);
+    if (previousRuleName) {
+      violations.push(candidateFinding(`Duplicate candidate rule detected: ${rule.name}.`, `Merge it with ${previousRuleName} or make the trigger/path scope distinct.`));
+    }
+    ruleKeys.set(ruleKey, rule.name);
+
     if (isVagueRule(rule.rule) || isVagueRule(rule.trigger ?? "") || isVagueRule(rule.recommendation ?? "")) {
       violations.push(candidateFinding(`Rule ${rule.name} is too generic to enforce.`, "Replace vague best-practice language with a trigger condition, violation pattern, and specific remediation."));
     }
@@ -190,8 +202,8 @@ export function promoteStackPackCandidateToFiles(candidate: StackPackCandidate, 
     allowExistingId: true
   });
   const packDirectory = options.packDirectory ?? "packs";
-  const packPath = `packs/${promotion.pack.id}.json`;
-  const manifestPath = "packs/manifest.json";
+  const packPath = `${packDirectory.replace(/\/$/, "")}/${promotion.pack.id}.json`;
+  const manifestPath = `${packDirectory.replace(/\/$/, "")}/manifest.json`;
   const absolutePackDirectory = resolve(process.cwd(), packDirectory);
   const absolutePackPath = resolve(absolutePackDirectory, `${promotion.pack.id}.json`);
   const existingPack = packDirectory === "packs" ? listStackPacks().find((pack) => pack.id === promotion.pack.id) : undefined;
@@ -228,6 +240,7 @@ export function promoteStackPackCandidateToFiles(candidate: StackPackCandidate, 
     }
     writeFileSync(absolutePackPath, packContent, "utf8");
     writeFileSync(resolve(absolutePackDirectory, "manifest.json"), manifestContent, "utf8");
+    clearStackPackCache();
     warnings.push("Wrote stack-pack files. Run validate_stack_packs before using the promoted pack.");
   }
 

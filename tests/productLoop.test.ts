@@ -9,6 +9,7 @@ import { createReviewReport } from "../src/domain/reviewReport.js";
 import { reviewFileSummaries } from "../src/domain/reviewer.js";
 import { classifyReviewLifecycle } from "../src/domain/reviewLifecycle.js";
 import { validateStackPacks } from "../src/domain/stackPacks.js";
+import { validatePolicyBundles } from "../src/domain/v6Governance.js";
 import {
   cleanMcpServerFixture,
   existingLayoutFixture,
@@ -144,6 +145,13 @@ describe("local product loop", () => {
 
     assert.equal(validation.valid, true);
     assert.equal(validation.packCount, 5);
+  });
+
+  it("requires manifest-backed integrity for policy bundles", () => {
+    const validation = validatePolicyBundles();
+
+    assert.equal(validation.valid, true);
+    assert.equal(validation.bundleCount, 3);
   });
 
   it("applies a /grill-me answer and returns the updated brief", () => {

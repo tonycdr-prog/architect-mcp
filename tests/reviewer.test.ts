@@ -4,6 +4,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateContract } from "../src/domain/contract.js";
+import { diffArchitectureContracts } from "../src/domain/contractDiff.js";
 import { grillMe } from "../src/domain/intake.js";
 import { generateBuildPlan } from "../src/domain/buildPlan.js";
 import { reviewBuildPlan } from "../src/domain/buildPlanReviewer.js";
@@ -417,6 +418,7 @@ describe("stack pack workflow", () => {
     await assert.rejects(() => fetchLlmsSource("https://localhost/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://localhost./llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://[0:0:0:0:0:0:0:1]/llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://[::ffff:127.0.0.1]/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://example.com/not-llms.md"), /llms\.txt/);
     await assert.rejects(() => fetchLlmsSource("https://user:pass@example.com/llms.txt"), /credentials/);
     await assert.rejects(() => fetchLlmsSource("https://example.com:444/llms.txt"), /explicit port/);
@@ -450,6 +452,21 @@ describe("stack pack workflow", () => {
     });
     try {
       await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt"), /localhost, private, or link-local/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("rejects redirects away from llms.txt paths", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(null, {
+      status: 302,
+      headers: {
+        location: "https://example.com/index.html"
+      }
+    });
+    try {
+      await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt"), /llms\.txt/);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -551,6 +568,20 @@ describe("stack pack workflow", () => {
     assert.equal(conflicts.some((conflict) => conflict.code === "duplicate-rule"), true);
     assert.equal(conflicts.some((conflict) => conflict.code === "overlapping-path-trigger"), true);
   });
+
+  it("rejects duplicate rules inside a stack-pack candidate", () => {
+    const candidate = proposeStackPackRules({
+      stackName: "Acme Hono Runtime",
+      sourceText: "Hono server route handlers should stay thin and call service modules for workflow orchestration.",
+      sourceLabel: "local reviewed source"
+    });
+    candidate.fileRules.push({ ...candidate.fileRules[0] });
+
+    const review = reviewStackPackCandidate(candidate);
+
+    assert.equal(review.valid, false);
+    assert.equal(review.violations.some((violation) => violation.message.includes("Duplicate candidate rule")), true);
+  });
 });
 
 describe("resolveStackPacks", () => {
@@ -586,6 +617,25 @@ describe("generateContract", () => {
 
     assert.deepEqual(contract.stackPacks.map((pack) => pack.id), ["nextjs", "supabase"]);
     assert.equal(contract.fileRules.some((rule) => rule.trigger), true);
+  });
+
+  it("reports removed stack packs in architecture contract diffs", () => {
+    const before = generateContract({
+      idea: "A Next.js app with Supabase",
+      stack: {
+        frontend: "Next.js",
+        database: "Supabase"
+      }
+    });
+    const after = {
+      ...before,
+      stackPacks: before.stackPacks.filter((pack) => pack.id !== "supabase")
+    };
+
+    const diff = diffArchitectureContracts(before, after);
+
+    assert.equal(diff.breaking, true);
+    assert.equal(diff.changes.some((change) => change.kind === "stack-pack-removed"), true);
   });
 
   it("maps canonical contract directories to an existing repo layout", () => {

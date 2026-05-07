@@ -114,6 +114,8 @@ describe("V5-V9 MCP-driven implementation surface", () => {
       assert.equal((await callJson(client, "normalize_mcp_result", { request: { findings: [finding], evidence: ["npm test passed"] } })).stoplight, "yellow");
       assert.equal((await callJson(client, "plan_context_budget", { request: { mode: "compact", findings: [finding] } })).mode, "compact");
       assert.equal((await callJson(client, "route_evidence", { request: { findings: [finding], sources: [{ id: "hono", snapshotPath: "stack-sources/ingested/hono.md", sha256: "abc" }] } })).evidence[0].id, "ev-1");
+      assert.equal((await callJson(client, "route_evidence", { request: { findings: [finding], sources: [{ id: "hono", snapshotPath: "stack-sources/ingested/hono.md", sha256: "abc" }] } })).evidence[0].source, undefined);
+      assert.equal((await callJson(client, "route_evidence", { request: { findings: [{ ...finding, message: "Hono route handlers need source-backed review." }], sources: [{ id: "hono", snapshotPath: "stack-sources/ingested/hono.md", sha256: "abc" }] } })).evidence[0].source.id, "hono");
       assert.equal((await callJson(client, "create_local_dry_run_plan", { request: { request: "risky auth refactor", risky: true } })).gates.includes("pre-edit contract"), true);
       assert.equal((await callJson(client, "review_tool_loop_quality", { request: { risky: true, toolsRun: [], verification: [] } })).status, "fail");
       assert.match((await callJson(client, "review_tool_loop_quality", { request: { risky: false, toolsRun: ["review_repo_structure"], verification: [{ status: "passed" }], finalResponse: "Changed files only." } })).findings[0], /verified|assumptions|not done/);
