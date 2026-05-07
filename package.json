@@ -9,11 +9,13 @@
   },
   "files": [
     "dist",
-    "scripts",
     "packs",
     "policy-bundles",
     "foundation-packs",
-    "stack-sources",
+    "stack-sources/llms-sources.json",
+    "stack-sources/nextjs.md",
+    "stack-sources/react-vite.md",
+    "stack-sources/ingested/index.json",
     "examples",
     "docs",
     "llms.txt",
@@ -21,6 +23,7 @@
     "package.json"
   ],
   "scripts": {
+    "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "tsc -p tsconfig.json",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -33,7 +36,7 @@
     "check:v8": "tsx scripts/checkStagedReadiness.ts v8",
     "check:v9": "tsx scripts/checkStagedReadiness.ts v9",
     "check:v10": "tsx scripts/checkStagedReadiness.ts v10",
-    "release:check": "npm run check:v3",
+    "release:check": "npm run check:v10",
     "ingest:llms": "tsx scripts/ingestLlmsSources.ts",
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/http.ts",

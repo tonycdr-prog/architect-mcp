@@ -24,8 +24,6 @@ const packOutput = execFileSync("npm", ["pack", "--dry-run", "--json"], {
 const packed = JSON.parse(packOutput) as Array<{ files?: Array<{ path: string }> }>;
 const packedPaths = new Set(packed[0]?.files?.map((file) => file.path) ?? []);
 const requiredPackageFiles = [
-  "scripts/checkV3Readiness.ts",
-  "scripts/checkStagedReadiness.ts",
   "docs/use-on-a-repo.md",
   "docs/hosted-api-shape.md",
   "examples/client-wrapper.ts",

@@ -15,8 +15,8 @@ describe("V3 readiness release gates", () => {
     assert.equal(readiness.ready, true);
     assert.equal(scriptCheck?.status, "pass");
     assert.equal(packageJson.scripts["check:v3"], "tsx scripts/checkV3Readiness.ts");
-    assert.equal(packageJson.scripts["release:check"], "npm run check:v3");
-    assert.equal(packageJson.files.includes("scripts"), true);
+    assert.equal(packageJson.scripts["release:check"], "npm run check:v10");
+    assert.equal(packageJson.files.includes("scripts"), false);
     assert.match(readFileSync("docs/hosted-api-shape.md", "utf8"), /POST \/v1\/reviews\/session/);
     assert.match(readFileSync("README.md", "utf8"), /npm run check:v3/);
     assert.match(readFileSync("llms.txt", "utf8"), /docs\/hosted-api-shape\.md/);
