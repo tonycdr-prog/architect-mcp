@@ -158,7 +158,7 @@ export function runV10EvalHarness() {
     {
       name: "Primer dashboard follows MCP component constraints",
       passed: planPrimerDashboard().constraints.some((constraint) => /Do not use sx/.test(constraint)) &&
-        validateV10ProductizationBoundary({ dashboardScreens: planPrimerDashboard().screens, routes: v10ApiRoutes, storageEntities: v10StorageEntities, policyRollouts: [{ mode: "warn", preservesLocalInstructions: true, hasEmergencyDisable: true }] }).status !== "fail"
+        validateV10ProductizationBoundary({ dashboardScreens: planPrimerDashboard().screens, routes: v10ApiRoutes, storageEntities: v10StorageEntities, policyRollouts: [{ mode: "warn", preservesLocalInstructions: true, hasEmergencyDisable: true }] }).status === "pass"
     },
     {
       name: "boundary review fails raw code persistence",
