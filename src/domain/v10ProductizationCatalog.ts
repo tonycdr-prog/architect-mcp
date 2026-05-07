@@ -85,15 +85,15 @@ export const v10ApiRoutes: V10ApiRoute[] = [
 ];
 
 export const v10DashboardScreens: V10DashboardScreen[] = [
-  screen("/orgs/:orgId", "Org overview", ["PageLayout", "PageHeader", "NavList", "DataTable", "StateLabel"], ["OrgRepository", "ProjectRepository"], ["semantic heading order", "keyboard navigation"]),
-  screen("/orgs/:orgId/projects/:projectId", "Project dashboard", ["PageLayout", "UnderlineNav", "DataTable", "Label", "ActionMenu"], ["ProjectRepository", "ReviewRepository"], ["table headers", "descriptive action labels"]),
-  screen("/orgs/:orgId/projects/:projectId/reviews/:reviewId", "Review report", ["PageLayout", "Timeline", "Label", "Flash", "Button"], ["ReviewRepository"], ["status not conveyed by color alone", "focus error summary"]),
-  screen("/orgs/:orgId/policies", "Policy library", ["PageLayout", "DataTable", "ActionMenu", "Dialog", "Button"], ["PolicyRepository"], ["dialog labelled title", "keyboard dismissal"]),
-  screen("/orgs/:orgId/policies/:policyId", "Policy detail", ["PageLayout", "SegmentedControl", "DataTable", "ConfirmationDialog"], ["PolicyRepository"], ["destructive action confirmation"]),
-  screen("/orgs/:orgId/github", "GitHub connections", ["PageLayout", "Banner", "DataTable", "Button"], ["IntegrationRepository"], ["clear OAuth/install labels"]),
-  screen("/orgs/:orgId/team", "Team settings", ["PageLayout", "DataTable", "SelectPanel", "TextInput"], ["OrgRepository"], ["form labels", "invitation error focus"]),
-  screen("/orgs/:orgId/billing", "Usage and billing", ["PageLayout", "ProgressBar", "DataTable", "Button"], ["BillingRepository"], ["quota text alongside progress color"]),
-  screen("/orgs/:orgId/audit", "Audit log", ["PageLayout", "DataTable", "Label", "RelativeTime"], ["OrgRepository"], ["time text readable without hover"])
+  screen("/orgs/:orgId", "Org overview", ["PageLayout", "PageHeader", "NavList", "DataTable", "StateLabel"], ["HostedApi.orgs", "HostedApi.projects"], ["semantic heading order", "keyboard navigation"]),
+  screen("/orgs/:orgId/projects/:projectId", "Project dashboard", ["PageLayout", "UnderlineNav", "DataTable", "Label", "ActionMenu"], ["HostedApi.projects", "HostedApi.reviews"], ["table headers", "descriptive action labels"]),
+  screen("/orgs/:orgId/projects/:projectId/reviews/:reviewId", "Review report", ["PageLayout", "Timeline", "Label", "Flash", "Button"], ["HostedApi.reviews"], ["status not conveyed by color alone", "focus error summary"]),
+  screen("/orgs/:orgId/policies", "Policy library", ["PageLayout", "DataTable", "ActionMenu", "Dialog", "Button"], ["HostedApi.policies"], ["dialog labelled title", "keyboard dismissal"]),
+  screen("/orgs/:orgId/policies/:policyId", "Policy detail", ["PageLayout", "SegmentedControl", "DataTable", "ConfirmationDialog"], ["HostedApi.policies"], ["destructive action confirmation"]),
+  screen("/orgs/:orgId/github", "GitHub connections", ["PageLayout", "Banner", "DataTable", "Button"], ["HostedApi.github"], ["clear OAuth/install labels"]),
+  screen("/orgs/:orgId/team", "Team settings", ["PageLayout", "DataTable", "SelectPanel", "TextInput"], ["HostedApi.orgs"], ["form labels", "invitation error focus"]),
+  screen("/orgs/:orgId/billing", "Usage and billing", ["PageLayout", "ProgressBar", "DataTable", "Button"], ["HostedApi.billing"], ["quota text alongside progress color"]),
+  screen("/orgs/:orgId/audit", "Audit log", ["PageLayout", "DataTable", "Label", "RelativeTime"], ["HostedApi.audit"], ["time text readable without hover"])
 ];
 
 export const v10ImplementationSlices: V10ImplementationSlice[] = [
