@@ -39,6 +39,7 @@ export function createV10ImplementationSlicePlan(input: { sliceId?: string } = {
   const selected = input.sliceId ? v10ImplementationSlices.filter((slice) => slice.id === input.sliceId) : v10ImplementationSlices;
   return {
     slices: selected,
+    warnings: input.sliceId && selected.length === 0 ? [`No V10 implementation slice matched ${input.sliceId}.`] : [],
     mcpLoopRequired: true,
     beforeEverySlice: ["interpret_implementation_intent", "load_triggered_stack_guidance", "create_pre_edit_contract", "review_proposed_file_plan"],
     afterEverySlice: ["review_implementation_against_contract", "review_repo_structure", "review_agent_session", "score_agent_artifacts", "mcp_readiness_report"],
@@ -60,6 +61,7 @@ export function planPrimerDashboard(input: { screenRoute?: string } = {}) {
       "Loading and error states must preserve keyboard focus and announce status."
     ],
     screens,
+    warnings: input.screenRoute && screens.length === 0 ? [`No V10 dashboard screen matched ${input.screenRoute}.`] : [],
     sharedLayout: {
       shell: ["PageLayout", "PageHeader", "NavList"],
       status: ["Label", "StateLabel", "Banner", "Flash"],
@@ -73,7 +75,7 @@ export function planPrimerDashboard(input: { screenRoute?: string } = {}) {
 export function validateV10ProductizationBoundary(input: V10BoundaryReviewRequest = {}) {
   const findings: V10Finding[] = [];
   for (const route of input.routes ?? []) {
-    if (route.path.includes(":orgId") && route.tenantScoped === false) {
+    if (route.path.includes(":orgId") && route.tenantScoped !== true) {
       findings.push(finding("V10_ROUTE_TENANT_SCOPE", "fail", "product-api", `${route.path} includes orgId but is not tenant-scoped.`, "Require org_id authorization before repository access."));
     }
     if (!route.repositoryBoundary) {
@@ -84,7 +86,7 @@ export function validateV10ProductizationBoundary(input: V10BoundaryReviewReques
     }
   }
   for (const entity of input.storageEntities ?? []) {
-    if (entity.table !== "users" && entity.orgScoped === false) {
+    if (entity.table !== "users" && entity.orgScoped !== true) {
       findings.push(finding("V10_STORAGE_TENANT_SCOPE", "fail", "storage", `${entity.table} is product data without org scope.`, "Add org_id or document why the entity is global infrastructure metadata."));
     }
     if (/raw repo code|source files/i.test(entity.purpose ?? "")) {
@@ -103,10 +105,10 @@ export function validateV10ProductizationBoundary(input: V10BoundaryReviewReques
     if (!isRolloutMode(rollout.mode)) {
       findings.push(finding("V10_POLICY_ROLLOUT_MODE", "fail", "remote-policy", `Unsupported rollout mode ${rollout.mode ?? "missing"}.`, "Use suggest, warn, or block."));
     }
-    if (rollout.preservesLocalInstructions === false) {
+    if (rollout.preservesLocalInstructions !== true) {
       findings.push(finding("V10_POLICY_LOCAL_CONFLICT", "fail", "remote-policy", "Remote policy can override local repo instructions silently.", "Surface the conflict and require explicit resolution."));
     }
-    if (rollout.hasEmergencyDisable === false) {
+    if (rollout.hasEmergencyDisable !== true) {
       findings.push(finding("V10_POLICY_NO_DISABLE", "warn", "remote-policy", "Policy rollout lacks emergency disable.", "Add an emergency disable or rollback path."));
     }
   }

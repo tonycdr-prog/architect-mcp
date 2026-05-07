@@ -30,6 +30,7 @@ describe("V10 productization implementation contract", () => {
     assert.equal(plan.constraints.some((constraint) => constraint === "Do not use sx for styling."), true);
     assert.equal(plan.constraints.some((constraint) => constraint === "Do not use Box for styling."), true);
     assert.equal(plan.screens.some((screen) => screen.route === "/orgs/:orgId/billing"), true);
+    assert.equal(plan.screens.every((screen) => !screen.dataSources.some((source) => /Repository$/.test(source))), true);
     assert.equal(plan.sharedLayout.denseData.includes("DataTable"), true);
   });
 
@@ -40,6 +41,11 @@ describe("V10 productization implementation contract", () => {
     assert.equal(plan.slices.length, 10);
     assert.equal(plan.slices.every((slice) => slice.mcpToolsBefore.includes("review_proposed_file_plan")), true);
     assert.equal(plan.slices.every((slice) => slice.mcpToolsAfter.includes("review_agent_session")), true);
+  });
+
+  it("warns when V10 filters do not match anything", () => {
+    assert.equal(createV10ImplementationSlicePlan({ sliceId: "missing-slice" }).warnings.length, 1);
+    assert.equal(planPrimerDashboard({ screenRoute: "/missing" }).warnings.length, 1);
   });
 
   it("flags productization boundary regressions", () => {
@@ -55,6 +61,27 @@ describe("V10 productization implementation contract", () => {
     assert.equal(review.findings.some((finding) => finding.code === "V10_RAW_REPO_CODE_STORAGE"), true);
     assert.equal(review.findings.some((finding) => finding.code === "V10_BILLING_GATES_LOCAL_MCP"), true);
     assert.equal(review.findings.some((finding) => finding.code === "V10_PRIMER_BOX_STYLING"), true);
+  });
+
+  it("requires explicit tenant and policy safety evidence", () => {
+    const review = validateV10ProductizationBoundary({
+      routes: [{ path: "/v1/orgs/:orgId/projects", repositoryBoundary: "ProjectRepository", auth: "org-role" }],
+      storageEntities: [{ table: "projects", purpose: "Project records." }],
+      policyRollouts: [{ mode: "warn" }]
+    });
+
+    assert.equal(review.status, "fail");
+    assert.equal(review.findings.some((finding) => finding.code === "V10_ROUTE_TENANT_SCOPE"), true);
+    assert.equal(review.findings.some((finding) => finding.code === "V10_STORAGE_TENANT_SCOPE"), true);
+    assert.equal(review.findings.some((finding) => finding.code === "V10_POLICY_LOCAL_CONFLICT"), true);
+  });
+
+  it("makes the generated dashboard plan pass the dashboard boundary validator", () => {
+    const review = validateV10ProductizationBoundary({
+      dashboardScreens: planPrimerDashboard().screens
+    });
+
+    assert.equal(review.status, "pass");
   });
 
   it("runs the V10 eval harness", () => {
