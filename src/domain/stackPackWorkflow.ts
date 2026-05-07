@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createFinding } from "./findingMetadata.js";
 import { extractEvidenceLines } from "./llmsEvidence.js";
-import { fetchLlmsSource, listIngestedLlmsSources } from "./llmsSources.js";
+import { fetchLlmsSource, listIngestedLlmsSources, readIngestedLlmsSnapshot } from "./llmsSources.js";
 import { candidateRulesForText, slugify, titleize } from "./stackPackCandidateRules.js";
 import { analyzeStackPackConflicts } from "./stackPackConflicts.js";
 import { bumpVersion, diffManifestEntries, nextPackManifest, readPackManifest } from "./stackPackPromotionFiles.js";
@@ -70,7 +70,7 @@ export function proposeStackPackRules(input: StackPackCandidateInput): StackPack
   };
 }
 
-export async function ingestLlmsTxt(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number } = {}): Promise<{ snapshot: LlmsSourceSnapshot; candidate: StackPackCandidate }> {
+export async function ingestLlmsTxt(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number; timeoutMs?: number } = {}): Promise<{ snapshot: LlmsSourceSnapshot; candidate: StackPackCandidate }> {
   const snapshot = await fetchLlmsSource(sourceIdOrUrl, options);
   return {
     snapshot,
@@ -97,7 +97,7 @@ export function deriveStackPackFromIngestedSource(sourceId: string): {
     throw new Error(`Ingested llms.txt source ${sourceId} is not usable: ${ingested.error ?? "missing local snapshot path"}.`);
   }
 
-  const sourceText = readFileSync(resolve(process.cwd(), ingested.path), "utf8");
+  const sourceText = readIngestedLlmsSnapshot(ingested.path);
   const matchedEvidence = extractEvidenceLines(sourceText);
   const candidate = proposeStackPackRules({
     stackName: `${ingested.stack} LLMs Derived`,
@@ -144,7 +144,19 @@ export function reviewStackPackCandidate(candidate: StackPackCandidate, options:
     violations.push(candidateFinding("Candidate has no file rules.", "Add enforceable file rules with triggers, detectors, and examples."));
   }
 
+  const ruleKeys = new Map<string, string>();
   for (const rule of candidate.fileRules) {
+    const ruleKey = [
+      rule.name.trim().toLowerCase(),
+      rule.triggerKind ?? "",
+      (rule.appliesToPaths ?? []).join("|").toLowerCase()
+    ].join("::");
+    const previousRuleName = ruleKeys.get(ruleKey);
+    if (previousRuleName) {
+      violations.push(candidateFinding(`Duplicate candidate rule detected: ${rule.name}.`, `Merge it with ${previousRuleName} or make the trigger/path scope distinct.`));
+    }
+    ruleKeys.set(ruleKey, rule.name);
+
     if (isVagueRule(rule.rule) || isVagueRule(rule.trigger ?? "") || isVagueRule(rule.recommendation ?? "")) {
       violations.push(candidateFinding(`Rule ${rule.name} is too generic to enforce.`, "Replace vague best-practice language with a trigger condition, violation pattern, and specific remediation."));
     }
@@ -215,7 +227,7 @@ export function promoteStackPackCandidateToFiles(candidate: StackPackCandidate, 
   ];
   const warnings = [
     ...promotion.warnings,
-    "Dry-run by default. Set writeFiles=true to write packs/<id>.json and update packs/manifest.json."
+    `Dry-run by default. Set writeFiles=true to write ${packPath} and update ${manifestPath}.`
   ];
 
   if (exists && !versionChanged && options.allowOverwrite) {

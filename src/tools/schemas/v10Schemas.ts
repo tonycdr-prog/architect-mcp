@@ -104,11 +104,13 @@ export const v10BlueprintOutputSchema = z.object({
   }).strict()),
   dashboardScreens: z.array(v10DashboardScreenSchema),
   implementationSlices: z.array(v10ImplementationSliceSchema),
+  warnings: z.array(z.string()),
   nonNegotiables: z.array(z.string())
 }).strict();
 
 export const v10SlicePlanOutputSchema = z.object({
   slices: z.array(v10ImplementationSliceSchema),
+  warnings: z.array(z.string()),
   mcpLoopRequired: z.boolean(),
   beforeEverySlice: z.array(z.string()),
   afterEverySlice: z.array(z.string()),
@@ -119,6 +121,7 @@ export const v10DashboardPlanOutputSchema = z.object({
   primerSource: z.string(),
   constraints: z.array(z.string()),
   screens: z.array(v10DashboardScreenSchema),
+  warnings: z.array(z.string()),
   sharedLayout: z.record(z.string(), z.array(z.string()))
 }).strict();
 

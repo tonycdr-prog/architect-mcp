@@ -8,6 +8,8 @@ export type ContractDiff = {
 export type ContractDiffChange = {
   kind:
     | "pack-version"
+    | "stack-pack-added"
+    | "stack-pack-removed"
     | "required-directory-added"
     | "required-directory-removed"
     | "error-rule-added"
@@ -33,15 +35,32 @@ export function diffArchitectureContracts(before: ArchitectureContract, after: A
 
 function diffPackVersions(before: ArchitectureContract, after: ArchitectureContract): ContractDiffChange[] {
   const beforePacks = new Map(before.stackPacks.map((pack) => [pack.id, pack.version]));
+  const afterPacks = new Map(after.stackPacks.map((pack) => [pack.id, pack.version]));
   const changes: ContractDiffChange[] = [];
 
   for (const pack of after.stackPacks) {
     const previousVersion = beforePacks.get(pack.id);
-    if (previousVersion && previousVersion !== pack.version) {
+    if (!previousVersion) {
+      changes.push({
+        kind: "stack-pack-added",
+        severity: "breaking",
+        message: `Stack pack added: ${pack.id}@${pack.version}.`
+      });
+    } else if (previousVersion !== pack.version) {
       changes.push({
         kind: "pack-version",
         severity: "breaking",
         message: `Stack pack ${pack.id} changed from ${previousVersion} to ${pack.version}.`
+      });
+    }
+  }
+
+  for (const pack of before.stackPacks) {
+    if (!afterPacks.has(pack.id)) {
+      changes.push({
+        kind: "stack-pack-removed",
+        severity: "breaking",
+        message: `Stack pack removed: ${pack.id}@${pack.version}.`
       });
     }
   }

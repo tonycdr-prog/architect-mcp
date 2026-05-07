@@ -33,7 +33,8 @@ export function registerPackTools(server: McpServer): void {
     },
     async ({ request }) => safeJsonResponse(() => fetchLlmsSource(request.source, {
       preferFull: request.preferFull,
-      maxBytes: request.maxBytes
+      maxBytes: request.maxBytes,
+      timeoutMs: request.timeoutMs
     }))
   );
 
@@ -60,7 +61,8 @@ export function registerPackTools(server: McpServer): void {
     },
     async ({ request }) => safeJsonResponse(() => ingestLlmsTxt(request.source, {
       preferFull: request.preferFull,
-      maxBytes: request.maxBytes
+      maxBytes: request.maxBytes,
+      timeoutMs: request.timeoutMs
     }))
   );
 

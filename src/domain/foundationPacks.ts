@@ -60,17 +60,21 @@ function validateFoundationPackManifest(): string[] {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
       entries?: Array<{ id?: string; version?: string; sha256?: string }>;
     };
-    const entries = new Map((manifest.entries ?? []).map((entry) => [entry.id, entry]));
+    const entries = new Map<string | undefined, { id?: string; version?: string; sha256?: string }>();
+    for (const entry of manifest.entries ?? []) {
+      if (entries.has(entry.id)) errors.push(`Duplicate foundation-pack manifest entry: ${entry.id ?? "missing-id"}`);
+      entries.set(entry.id, entry);
+    }
     const packFiles = readdirSync(packDirectory)
       .filter((file) => file.endsWith(".json"))
       .filter((file) => file !== "manifest.json")
       .sort();
-    const seenPackIds = new Set<string>();
+    const discoveredPackIds = new Set<string>();
 
     for (const file of packFiles) {
       const content = readFileSync(join(packDirectory, file), "utf8");
       const pack = JSON.parse(content) as { id?: string; version?: string };
-      if (pack.id) seenPackIds.add(pack.id);
+      if (pack.id) discoveredPackIds.add(pack.id);
       const entry = entries.get(pack.id);
       if (!entry) {
         errors.push(`${pack.id ?? file}: missing foundation-pack manifest entry`);
@@ -83,7 +87,7 @@ function validateFoundationPackManifest(): string[] {
     }
 
     for (const entry of manifest.entries ?? []) {
-      if (entry.id && !seenPackIds.has(entry.id)) {
+      if (entry.id && !discoveredPackIds.has(entry.id)) {
         errors.push(`${entry.id}: stale foundation-pack manifest entry has no matching pack file`);
       }
     }

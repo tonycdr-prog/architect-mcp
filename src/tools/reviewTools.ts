@@ -48,7 +48,7 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       });
       const report = createReviewReport(violations, { mode: "ci" });
       return {
-        summary: summarizeViolations(violations),
+        summary: summarizeViolations(report.violations),
         report,
         violations: report.violations
       };
@@ -107,7 +107,7 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         gate
       });
       return {
-        summary: summarizeViolations(violations),
+        summary: report.summary,
         report,
         lifecycle: baseline ? classifyReviewLifecycle(violations, baseline as ReviewBaseline) : undefined,
         violations: report.violations
@@ -141,12 +141,15 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       async ({ rootPath, contract, buildPlan, directories, maxFiles, maxLines, mode, ignorePatterns, baseline, maxDetailedFindings, summarizeLineWarningsBelow, gate, allowOutsideCwd }) => safeJsonResponse(async () => {
         assertLocalScanAllowed(rootPath, { allowOutsideCwd });
         const architectIgnore = await readArchitectIgnore(rootPath);
-        const scan = await scanWorkspaceWithMetadata(rootPath, maxFiles, [...architectIgnore, ...(ignorePatterns ?? [])]);
+        const combinedIgnorePatterns = [...architectIgnore, ...(ignorePatterns ?? [])];
+        const scan = await scanWorkspaceWithMetadata(rootPath, maxFiles, {
+          ignorePatterns: combinedIgnorePatterns
+        });
         const files = scan.files;
         const violations = reviewFileSummaries(files, contract as ArchitectureContract | undefined, maxLines, directories ?? [], buildPlan);
         const report = createReviewReport(violations, {
           mode,
-          ignorePatterns: [...architectIgnore, ...(ignorePatterns ?? [])],
+          ignorePatterns: combinedIgnorePatterns,
           baseline: baseline as ReviewBaseline | undefined,
           maxDetailedFindings,
           summarizeLineWarningsBelow,
@@ -154,11 +157,8 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         });
         return {
           filesReviewed: files.length,
-          scan: {
-            truncated: scan.truncated,
-            maxFiles: scan.maxFiles
-          },
-          summary: summarizeViolations(violations),
+          scan,
+          summary: report.summary,
           report,
           lifecycle: baseline ? classifyReviewLifecycle(violations, baseline as ReviewBaseline) : undefined,
           violations: report.violations

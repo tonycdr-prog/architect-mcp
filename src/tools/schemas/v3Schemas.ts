@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { documentTextSchema, fileSummarySchema, stackPackCandidateSchema, textListSchema, textSchema } from "./commonSchemas.js";
+import { fileSummarySchema, stackPackCandidateSchema } from "./commonSchemas.js";
 import { harnessIntentResultSchema, preEditContractSchema } from "./harnessSchemas.js";
 import { memoryProposalSchema } from "./memorySchemas.js";
+import { boundedArray, idText, longText, mediumText, optionalText, pathText } from "./schemaLimits.js";
 
 export const mcpSecurityReviewInputSchema = z.object({
   config: z.unknown(),
-  approvedServers: textListSchema.optional(),
+  approvedServers: boundedArray(idText, 200).optional(),
   allowShell: z.boolean().optional()
 }).strict();
 
@@ -14,8 +15,8 @@ export const v3EvalHarnessInputSchema = z.object({
 }).strict();
 
 export const artifactQualityInputSchema = z.object({
-  agentsMd: documentTextSchema.optional(),
-  llmsTxt: documentTextSchema.optional()
+  agentsMd: optionalText(longText),
+  llmsTxt: optionalText(longText)
 }).strict().refine((input) => Boolean(input.agentsMd || input.llmsTxt), {
   message: "Provide agentsMd, llmsTxt, or both."
 });
@@ -25,7 +26,7 @@ export const stackPackPromotionFilesSchema = z.object({
   writeFiles: z.boolean().optional(),
   allowOverwrite: z.boolean().optional(),
   bump: z.enum(["none", "patch", "minor", "major"]).optional(),
-  packDirectory: textSchema.optional()
+  packDirectory: optionalText(pathText)
 }).strict();
 
 export const clientRecipeInputSchema = z.object({
@@ -33,30 +34,30 @@ export const clientRecipeInputSchema = z.object({
 }).strict();
 
 export const finalResponseReviewInputSchema = z.object({
-  response: z.string().min(1),
-  requiredChecks: z.array(z.string()).optional()
+  response: longText,
+  requiredChecks: boundedArray(mediumText, 100).optional()
 }).strict();
 
 export const mcpConfigFileScanInputSchema = z.object({
-  rootPath: textSchema.optional(),
+  rootPath: pathText.optional(),
   includeUserConfig: z.boolean().optional(),
-  approvedServers: textListSchema.optional()
+  approvedServers: boundedArray(idText, 200).optional()
 }).strict();
 
 export const agentSessionReviewInputSchema = z.object({
   intent: harnessIntentResultSchema.optional(),
   contract: preEditContractSchema.optional(),
-  changedFiles: z.array(fileSummarySchema).optional(),
+  changedFiles: boundedArray(fileSummarySchema, 1_000).optional(),
   verification: z.array(z.object({
-    check: textSchema,
+    check: mediumText,
     status: z.enum(["not_run", "passed", "failed", "skipped"]),
-    note: textSchema.optional()
-  }).strict()).optional(),
-  finalResponse: documentTextSchema.optional(),
-  memories: z.array(memoryProposalSchema).optional(),
-  request: textSchema.optional()
+    note: optionalText(mediumText)
+  }).strict()).max(100).optional(),
+  finalResponse: optionalText(longText),
+  memories: boundedArray(memoryProposalSchema, 200).optional(),
+  request: optionalText(mediumText)
 }).strict();
 
 export const hostedPolicyAuditInputSchema = z.object({
-  toolNames: textListSchema.optional()
+  toolNames: boundedArray(idText, 500).optional()
 }).strict();

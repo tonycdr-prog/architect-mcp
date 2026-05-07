@@ -8,7 +8,7 @@ import { reviewMcpConfigSecurity } from "../domain/mcpSecurity.js";
 import { createStackPackCoverageMatrix, scoreStackPacks } from "../domain/packReports.js";
 import { promoteStackPackCandidateToFiles } from "../domain/stackPackWorkflow.js";
 import { classifyToolPolicy } from "../domain/toolPolicy.js";
-import type { FileSummary, HarnessIntentResult, MemoryProposal, PreEditContract, StackPackCandidate } from "../domain/types.js";
+import type { StackPackCandidate } from "../domain/types.js";
 import { runV3EvalHarness } from "../domain/v3EvalHarness.js";
 import { safeJsonResponse } from "./responses.js";
 import { agentSessionReviewInputSchema, artifactQualityInputSchema, clientRecipeInputSchema, finalResponseReviewInputSchema, genericObjectOutputSchema, hostedPolicyAuditInputSchema, mcpConfigFileScanInputSchema, mcpSecurityReviewInputSchema, stackPackPromotionFilesSchema, v3EvalHarnessInputSchema } from "./schemas.js";
@@ -112,12 +112,12 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       outputSchema: genericObjectOutputSchema
     },
     async ({ request }) => safeJsonResponse(() => reviewAgentSession({
-      intent: request.intent as HarnessIntentResult | undefined,
-      contract: request.contract as PreEditContract | undefined,
-      changedFiles: request.changedFiles as FileSummary[] | undefined,
+      intent: request.intent,
+      contract: request.contract,
+      changedFiles: request.changedFiles,
       verification: request.verification,
       finalResponse: request.finalResponse,
-      memories: request.memories as MemoryProposal[] | undefined,
+      memories: request.memories,
       request: request.request
     }))
   );
@@ -132,7 +132,10 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       },
       outputSchema: genericObjectOutputSchema
     },
-    async ({ request }) => safeJsonResponse(() => classifyToolPolicy(request?.toolNames ?? registeredArchitectureToolNames(options.enableLocalWorkspaceTool !== false)))
+    async ({ request }) => {
+      const knownToolNames = registeredArchitectureToolNames(options.enableLocalWorkspaceTool !== false);
+      return safeJsonResponse(() => classifyToolPolicy(request?.toolNames ?? knownToolNames, { knownToolNames }));
+    }
   );
 
   server.registerTool(

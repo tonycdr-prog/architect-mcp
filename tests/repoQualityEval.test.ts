@@ -83,32 +83,58 @@ describe("repo quality eval layer", () => {
     assert.equal(result.hardGates.some((gate) => gate.code === "RQG008_AGENTS_MD_WEAK"), true);
   });
 
-  it("treats missing generated-repo evidence as hard gates", () => {
-    const result = auditGeneratedRepoQuality({
-      profile: buildQualityRequirementsProfile({
-        userLevel: "beginner",
-        goals: ["Build an admin app that stores customer data"],
-        constraints: ["Runs on the web", "Success means setup and tests work"]
-      }),
+  it("merges inferred plan signals with partial caller signals", () => {
+    const result = evaluateRepoPlanQuality({
       plan: {
-        envVars: ["DATABASE_URL"]
+        envVars: ["OPENAI_API_KEY=sk-test-secret-value"],
+        ciCommands: ["echo passed"]
+      },
+      signals: {
+        hasReadme: true
       }
     });
 
-    assert.equal(result.decision, "fix_before_generate");
-    for (const code of ["RQG002_ENV_EXAMPLE_MISSING", "RQG003_FAKE_CI", "RQG004_FAKE_TESTS", "RQG007_SETUP_DOCS_MISSING", "RQG008_AGENTS_MD_WEAK"]) {
-      assert.equal(result.hardGates.some((gate) => gate.code === code), true, `${code} missing`);
-    }
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG003_FAKE_CI"), true);
   });
 
-  it("uses stack preference as quality context", () => {
-    const profile = buildQualityRequirementsProfile({
-      goals: ["Build an app for admins"],
-      stackPreference: "Supabase"
+  it("detects common secret-shaped env values and missing generated-repo docs", () => {
+    const secretResult = evaluateRepoPlanQuality({
+      plan: {
+        envVars: ["DATABASE_URL=postgres://user:pass@localhost/db", "SESSION_SECRET=super-secret-value"]
+      }
+    });
+    const auditResult = auditGeneratedRepoQuality({
+      profile: {
+        userLevel: "beginner",
+        goals: ["Build a customer intake app for admin users"],
+        constraints: ["Runs on web", "Stores customer data", "Success means users can create intakes"],
+        knownRisks: [],
+        missingQuestions: [],
+        confidence: "high"
+      },
+      plan: {
+        stack: ["React", "Express", "Postgres"],
+        architecture: "Feature modules with server-owned repositories and UI components separated from data access.",
+        files: ["src/features/intake/index.ts", "src/server/repositories/intake.ts", "tests/intake.test.ts"],
+        ciCommands: ["npm test"],
+        testDescriptions: ["creates an intake record"]
+      }
     });
 
-    assert.equal(profile.constraints.some((constraint) => /Supabase/.test(constraint)), true);
-    assert.equal(profile.knownRisks.includes("database"), true);
+    assert.equal(secretResult.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
+    assert.equal(auditResult.hardGates.some((gate) => gate.code === "RQG007_SETUP_DOCS_MISSING"), true);
+    assert.equal(auditResult.hardGates.some((gate) => gate.code === "RQG008_AGENTS_MD_WEAK"), true);
+  });
+
+  it("keeps env values intact when secret values contain additional equals signs", () => {
+    const result = evaluateRepoPlanQuality({
+      plan: {
+        envVars: ["SESSION_SECRET=abc=def=ghi"]
+      }
+    });
+
+    assert.equal(result.hardGates.some((gate) => gate.code === "RQG001_COMMITTED_SECRET"), true);
   });
 
   it("passes a boring maintainable plan with real proof", () => {

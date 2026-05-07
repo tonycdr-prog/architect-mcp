@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import ts from "typescript";
-import { matchesPathPattern, normalizePath } from "../domain/pathRules.js";
+import { normalizePath, pathPatternToRegExp } from "../domain/pathRules.js";
 import type { FileSummary } from "../domain/types.js";
 
 const DEFAULT_IGNORES = new Set([
@@ -18,20 +18,37 @@ export type WorkspaceScanResult = {
   files: FileSummary[];
   truncated: boolean;
   maxFiles: number;
+  ignoredPatterns: string[];
 };
 
-export async function scanWorkspace(rootPath: string, maxFiles: number, ignorePatterns: string[] = []): Promise<FileSummary[]> {
-  return (await scanWorkspaceWithMetadata(rootPath, maxFiles, ignorePatterns)).files;
+type ScanWorkspaceOptions = { ignorePatterns?: string[] } | string[];
+
+export async function scanWorkspace(rootPath: string, maxFiles: number, options: ScanWorkspaceOptions = {}): Promise<FileSummary[]> {
+  return (await scanWorkspaceWithMetadata(rootPath, maxFiles, options)).files;
 }
 
-export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: number, ignorePatterns: string[] = []): Promise<WorkspaceScanResult> {
+export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: number, options: ScanWorkspaceOptions = {}): Promise<WorkspaceScanResult> {
   const summaries: FileSummary[] = [];
   const state = { truncated: false };
-  await walk(rootPath, rootPath, summaries, maxFiles, ignorePatterns, state);
-  return { files: summaries, truncated: state.truncated, maxFiles };
+  const ignoredPatterns = Array.isArray(options) ? options : options.ignorePatterns ?? [];
+  const compiledIgnores = ignoredPatterns.map(compileIgnorePattern);
+  await walk(rootPath, rootPath, summaries, maxFiles, compiledIgnores, state);
+  return {
+    files: summaries,
+    truncated: state.truncated,
+    maxFiles,
+    ignoredPatterns
+  };
 }
 
-async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number, ignorePatterns: string[], state: { truncated: boolean }): Promise<void> {
+type CompiledIgnorePattern = {
+  normalized: string;
+  regex: RegExp;
+  directoryRegex: RegExp;
+  prefix?: string;
+};
+
+async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number, ignorePatterns: CompiledIgnorePattern[], state: { truncated: boolean }): Promise<void> {
   if (summaries.length >= maxFiles) {
     state.truncated = true;
     return;
@@ -48,7 +65,6 @@ async function walk(rootPath: string, currentPath: string, summaries: FileSummar
     const absolutePath = join(currentPath, entry.name);
     const relativePath = normalizePath(relative(rootPath, absolutePath));
     if (isIgnored(relativePath, entry.isDirectory(), ignorePatterns)) continue;
-
     if (entry.isDirectory()) {
       await walk(rootPath, absolutePath, summaries, maxFiles, ignorePatterns, state);
       continue;
@@ -56,7 +72,6 @@ async function walk(rootPath: string, currentPath: string, summaries: FileSummar
 
     if (!entry.isFile()) continue;
     const metadata = await stat(absolutePath);
-
     summaries.push({
       path: relativePath,
       bytes: metadata.size,
@@ -65,11 +80,26 @@ async function walk(rootPath: string, currentPath: string, summaries: FileSummar
   }
 }
 
-function isIgnored(path: string, isDirectory: boolean, ignorePatterns: string[]): boolean {
+function compileIgnorePattern(pattern: string): CompiledIgnorePattern {
+  const normalized = normalizePath(pattern);
+  return {
+    normalized,
+    regex: pathPatternToRegExp(normalized),
+    directoryRegex: pathPatternToRegExp(normalized.endsWith("/") ? normalized : `${normalized}/`),
+    prefix: normalized.endsWith("/**") ? normalized.slice(0, -3) : undefined
+  };
+}
+
+function isIgnored(path: string, isDirectory: boolean, ignorePatterns: CompiledIgnorePattern[]): boolean {
   return ignorePatterns.some((pattern) => {
-    const normalizedPattern = normalizePath(pattern);
-    return matchesPathPattern(path, normalizedPattern) ||
-      (isDirectory && matchesPathPattern(`${path}/`, normalizedPattern.endsWith("/") ? normalizedPattern : `${normalizedPattern}/`));
+    if (pattern.prefix) {
+      const prefix = pattern.prefix;
+      return path === prefix || path.startsWith(`${prefix}/`);
+    }
+    return pattern.regex.test(path) ||
+      (isDirectory && pattern.directoryRegex.test(`${path}/`)) ||
+      path === pattern.normalized ||
+      path.startsWith(`${pattern.normalized.replace(/\/$/, "")}/`);
   });
 }
 
@@ -157,6 +187,17 @@ function extractEnvAccessesWithTypescript(content: string, path: string): string
       node.expression.name.text === "env"
     ) {
       envAccesses.add(node.name.text);
+    }
+
+    if (
+      ts.isElementAccessExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "process" &&
+      node.expression.name.text === "env" &&
+      ts.isStringLiteralLike(node.argumentExpression)
+    ) {
+      envAccesses.add(node.argumentExpression.text);
     }
 
     ts.forEachChild(node, visit);

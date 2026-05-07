@@ -60,4 +60,36 @@ describe("reviewMcpConfigSecurity", () => {
     assert.equal(review.status, "warn");
     assert.equal(review.findings.some((finding) => finding.code === "MCPSEC004_UNAPPROVED_SERVER"), true);
   });
+
+  it("flags semver ranges as unpinned executable MCP dependencies", () => {
+    const review = reviewMcpConfigSecurity({
+      config: {
+        mcpServers: {
+          ranged: {
+            command: "npx",
+            args: ["-y", "@scope/server@^1.2.3", "other-server@~2.0.0"]
+          }
+        }
+      }
+    });
+
+    assert.equal(review.status, "warn");
+    assert.equal(review.findings.filter((finding) => finding.code === "MCPSEC003_UNPINNED_DEPENDENCY").length, 2);
+  });
+
+  it("accepts exact semver with v prefix or build metadata and rejects non-registry specs", () => {
+    const review = reviewMcpConfigSecurity({
+      config: {
+        mcpServers: {
+          exact: {
+            command: "npx",
+            args: ["-y", "@scope/server@v1.2.3", "other-server@1.2.3+build.5", "git+https://example.com/server.git"]
+          }
+        }
+      }
+    });
+
+    assert.equal(review.status, "warn");
+    assert.equal(review.findings.filter((finding) => finding.code === "MCPSEC003_UNPINNED_DEPENDENCY").length, 1);
+  });
 });

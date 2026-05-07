@@ -4,7 +4,7 @@ import { generateBuildPlan } from "./buildPlan.js";
 import { generateContract, renderContractMarkdown } from "./contract.js";
 import { listFoundationPacks } from "./foundationPacks.js";
 import { getBlockers, getChallenges, scoreReadiness, scoreSpecCompleteness } from "./intakeAnalysis.js";
-import { getNextIntakeQuestionForBrief, QUESTIONS } from "./intakeQuestions.js";
+import { getNextIntakeQuestionForBrief, isBriefFieldAnswered, QUESTIONS } from "./intakeQuestions.js";
 import { resolveStackPacks } from "./stackPacks.js";
 import type { GrillMeOptions, GrillMeResult, IntakeAnswer, ProjectBrief } from "./types.js";
 
@@ -21,12 +21,11 @@ export function grillProjectBrief(brief: ProjectBrief) {
 
 export function grillMe(brief: ProjectBrief, options: GrillMeOptions = {}): GrillMeResult {
   const updatedBrief = options.answer ? applyIntakeAnswer(brief, options.answer) : brief;
-  const nextQuestion = getNextIntakeQuestion(updatedBrief);
   const missingFields = QUESTIONS
-    .filter((question) => !Boolean(updatedBrief[question.id as keyof ProjectBrief]))
+    .filter((question) => !isBriefFieldAnswered(updatedBrief, question.id as keyof ProjectBrief))
     .map((question) => question.id);
   const coveredFields = QUESTIONS
-    .filter((question) => Boolean(updatedBrief[question.id as keyof ProjectBrief]))
+    .filter((question) => isBriefFieldAnswered(updatedBrief, question.id as keyof ProjectBrief))
     .map((question) => question.id);
   const blockers = getBlockers(updatedBrief);
   const challenges = getChallenges(updatedBrief, missingFields);
@@ -48,6 +47,13 @@ export function grillMe(brief: ProjectBrief, options: GrillMeOptions = {}): Gril
   const answeredCount = QUESTIONS.length - missingFields.length;
   const readinessScore = scoreReadiness(answeredCount, allBlockers.length, challenges.length);
   const ready = readinessScore >= 75 && allBlockers.length === 0;
+  const nextQuestion = missingFields.length === 0 && challenges.length
+    ? {
+        id: `pressure:${challenges[0]?.field ?? "follow-up"}`,
+        question: challenges[0]?.question ?? getNextIntakeQuestion(updatedBrief).question,
+        recommendedAnswer: challenges[0]?.whyItMatters ?? getNextIntakeQuestion(updatedBrief).recommendedAnswer
+      }
+    : getNextIntakeQuestion(updatedBrief);
   const selectedStackPacks = resolveStackPacks(updatedBrief.stack ?? {}, options.stackPackIds ?? []).map((pack) => pack.id);
   const includeContract = options.includeContract ?? ready;
   const contract = includeContract ? generateContract(updatedBrief, options.stackPackIds ?? []) : undefined;

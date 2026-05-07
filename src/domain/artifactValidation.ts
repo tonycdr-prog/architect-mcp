@@ -1,4 +1,5 @@
 import type { RepoArtifact } from "./types.js";
+import { scoreAgentInstructions } from "./artifactQuality.js";
 import { isConcreteVerificationCommand } from "./verificationCommands.js";
 
 export type ArtifactValidationResult = {
@@ -91,17 +92,17 @@ export function validateRepoArtifacts(artifacts: RepoArtifact[]): ArtifactValida
     }
     if (artifact.path === "docs/build-plan.md") {
       if (!artifact.content.includes("Build Plan")) errors.push(`${artifact.path} is missing required section or marker: Build Plan.`);
-      if (!/^###\s+\d+\.\s+/m.test(artifact.content)) errors.push(`${artifact.path} must define ordered implementation slices.`);
-      if (!/- Checks:\s+\S+/m.test(artifact.content)) errors.push(`${artifact.path} must name verification checks for each slice.`);
-      if (!/- Stop after:\s+\S+/m.test(artifact.content)) errors.push(`${artifact.path} must state stop conditions for agent handoff.`);
+      if (!/^###\s+\d+\.\s+/m.test(artifact.content) || !hasVerificationCommand(artifact.content)) {
+        errors.push(`${artifact.path} must include ordered slices with exact verification checks.`);
+      }
       continue;
     }
-    for (const marker of REQUIRED_MARKERS) {
-      if (!artifact.content.includes(marker)) errors.push(`${artifact.path} is missing required section or marker: ${marker}.`);
-    }
-
     if (artifact.path === "AGENTS.md") {
-      if (!extractVerificationCommandCandidates(artifact.content).some(isConcreteVerificationCommand)) {
+      const score = scoreAgentInstructions(artifact.content);
+      if (score.status === "fail") {
+        errors.push(`${artifact.path} fails agent-instruction quality: ${score.findings.map((finding) => finding.message).join("; ")}`);
+      }
+      if (!extractCodeSpans(artifact.content).some(isConcreteVerificationCommand)) {
         errors.push(`${artifact.path} must include concrete verification commands.`);
       }
       if (!/Do Not Create/i.test(artifact.content) || !/(App\.tsx|page\.tsx|server\.ts|route\.ts|index\.ts)/i.test(artifact.content)) {
@@ -111,21 +112,22 @@ export function validateRepoArtifacts(artifacts: RepoArtifact[]): ArtifactValida
         errors.push(`${artifact.path} must require evidence before completion claims.`);
       }
     }
-
-    if (artifact.path === "docs/architecture-contract.md" || artifact.path === ".cursor/rules/architecture.mdc") {
-      if (!/mode|threshold|max errors|max warnings|fail/i.test(artifact.content)) {
-        errors.push(`${artifact.path} must describe review gate mode or thresholds.`);
-      }
-      if (!/Stack Packs/i.test(artifact.content) || !/Foundation Packs/i.test(artifact.content)) {
-        errors.push(`${artifact.path} must name selected stack and foundation packs.`);
-      }
+    for (const marker of REQUIRED_MARKERS) {
+      if (!artifact.content.includes(marker)) errors.push(`${artifact.path} is missing required section or marker: ${marker}.`);
     }
+    if (!/^##\s+/m.test(artifact.content)) errors.push(`${artifact.path} must contain real markdown sections, not marker words.`);
+    if (!hasVerificationCommand(artifact.content) && !/architecture review/i.test(artifact.content)) errors.push(`${artifact.path} must name exact verification or review commands.`);
   }
 
   return {
     valid: errors.length === 0,
     errors
   };
+}
+
+function hasVerificationCommand(content: string): boolean {
+  return /\b(npm|pnpm|yarn|bun)\s+(run\s+)?(test|typecheck|lint|build|check|audit)\b/i.test(content) ||
+    /\b(review_repo_structure|go test|cargo test|pytest|python -m pytest|uv run\s+\S+|dotnet test)\b/i.test(content);
 }
 
 function extractRunCommands(content: string): string[] {
@@ -145,11 +147,4 @@ function unquoteYamlScalar(value: string): string {
 
 function extractCodeSpans(content: string): string[] {
   return [...content.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
-}
-
-function extractVerificationCommandCandidates(content: string): string[] {
-  const listItems = content
-    .split("\n")
-    .map((line) => line.trim().replace(/^[-*]\s+/, "").trim());
-  return [...extractCodeSpans(content), ...listItems];
 }

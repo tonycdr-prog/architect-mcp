@@ -175,19 +175,17 @@ function stringValue(value: unknown): string {
 function looksLikeUnpinnedPackage(command: string, arg: string): boolean {
   if (command !== "npx" && command !== "uvx") return false;
   if (arg.startsWith("-") || arg.startsWith(".") || arg.startsWith("/")) return false;
-  if (!/^[a-z0-9@/_~^.*<>=+-]+$/i.test(arg)) return false;
-  const version = packageVersionSpec(arg);
-  if (!version) return true;
-  return !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version);
+  if (/^(git\+|https?:|file:|workspace:)/i.test(arg)) return true;
+  if (!/^[a-z0-9@/_.~^+-]+$/i.test(arg)) return true;
+  const version = packageVersion(arg);
+  return !version || !/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version);
 }
 
-function packageVersionSpec(arg: string): string | undefined {
-  if (arg.startsWith("@")) {
-    const versionDelimiter = arg.indexOf("@", 1);
-    return versionDelimiter === -1 ? undefined : arg.slice(versionDelimiter + 1);
-  }
-  const versionDelimiter = arg.lastIndexOf("@");
-  return versionDelimiter === -1 ? undefined : arg.slice(versionDelimiter + 1);
+function packageVersion(arg: string): string | undefined {
+  const match = arg.startsWith("@")
+    ? /^@[^/]+\/[^@]+@(.+)$/.exec(arg)
+    : /^[^@]+@(.+)$/.exec(arg);
+  return match?.[1];
 }
 
 function count(findings: McpSecurityFinding[], severity: McpSecuritySeverity): number {

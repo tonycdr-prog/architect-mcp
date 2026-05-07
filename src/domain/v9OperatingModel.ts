@@ -1,4 +1,5 @@
 import { scoreAgentInstructions, scoreLlmsTxt } from "./artifactQuality.js";
+import { reviewAgentFinalResponse } from "./finalResponseReview.js";
 import type { ReviewViolation } from "./types.js";
 
 export type OutputMode = "compact" | "standard" | "full";
@@ -25,13 +26,14 @@ export function selectLocalOrchestrationRecipe(input: { request?: string; risk?:
 }
 
 export function evaluateScenarioAcceptance(input: { scenario?: string; intentReady?: boolean; contractReady?: boolean; reviewPassed?: boolean; verified?: boolean; finalResponseHonest?: boolean; artifactScores?: Array<{ status?: string }> } = {}) {
+  const artifactScores = input.artifactScores ?? [];
   const checks = [
     { id: "intent", passed: input.intentReady === true },
     { id: "contract", passed: input.contractReady === true },
     { id: "review", passed: input.reviewPassed === true },
     { id: "verification", passed: input.verified === true },
     { id: "final-response", passed: input.finalResponseHonest === true },
-    { id: "artifacts", passed: Boolean(input.artifactScores?.length) && (input.artifactScores ?? []).every((score) => score.status === "pass") }
+    { id: "artifacts", passed: artifactScores.length > 0 && artifactScores.every((score) => score.status !== "fail") }
   ];
   const failed = checks.filter((check) => !check.passed);
   return {
@@ -45,8 +47,10 @@ export function evaluateScenarioAcceptance(input: { scenario?: string; intentRea
 
 export function normalizeMcpResult(input: { status?: string; findings?: ReviewViolation[]; evidence?: string[]; assumptions?: string[]; warnings?: string[]; notDone?: string[]; handoff?: string } = {}) {
   const findings = input.findings ?? [];
+  const derivedStatus = findings.some((finding) => finding.severity === "error") ? "fail" : findings.length ? "warn" : "pass";
+  const status = mostSevereStatus(input.status, derivedStatus);
   return {
-    status: input.status ?? (findings.some((finding) => finding.severity === "error") ? "fail" : findings.length ? "warn" : "pass"),
+    status,
     stoplight: findings.some((finding) => finding.severity === "error") ? "red" : findings.length ? "yellow" : "green",
     findings,
     evidence: input.evidence ?? [],
@@ -73,17 +77,35 @@ export function planContextBudget(input: { mode?: OutputMode; requestedTokens?: 
 
 export function routeEvidence(input: { findings?: ReviewViolation[]; sources?: Array<{ id: string; snapshotPath?: string; sha256?: string; fetchedAt?: string }>; verification?: Array<{ check: string; status: string }> } = {}) {
   const sources = input.sources ?? [];
-  return {
-    evidence: (input.findings ?? []).map((finding, index) => ({
+  const evidence = (input.findings ?? []).map((finding, index) => {
+    const source = sources.find((candidate) => sourceMatchesFinding(candidate, finding));
+    return {
       id: `ev-${index + 1}`,
       findingCode: finding.code,
       path: finding.path,
       message: finding.message,
-      source: sources[index % Math.max(1, sources.length)],
+      source,
       verification: input.verification?.[index % Math.max(1, input.verification.length)]
-    })),
-    warnings: sources.some((source) => !source.snapshotPath || !source.sha256) ? ["Some source provenance is missing snapshot path or hash."] : []
+    };
+  });
+  const unroutedSources = sources.length > 0 && evidence.some((entry) => !entry.source);
+  return {
+    evidence,
+    warnings: [
+      ...(sources.some((source) => !source.snapshotPath || !source.sha256) ? ["Some source provenance is missing snapshot path or hash."] : []),
+      ...(unroutedSources ? ["Some findings did not cite a matching source id or snapshot path, so source provenance was left unattached."] : [])
+    ]
   };
+}
+
+function sourceMatchesFinding(source: { id: string; snapshotPath?: string }, finding: ReviewViolation): boolean {
+  const haystack = `${finding.code} ${finding.path ?? ""} ${finding.message} ${finding.recommendation}`.toLowerCase();
+  const needles = [
+    source.id,
+    source.snapshotPath,
+    source.snapshotPath?.split("/").pop()?.replace(/\.[^.]+$/, "")
+  ].filter(Boolean).map((value) => value?.toLowerCase() ?? "");
+  return needles.some((needle) => needle.length > 2 && haystack.includes(needle));
 }
 
 export function createLocalDryRunPlan(input: { request?: string; risky?: boolean; expectedArtifacts?: { agentsMd?: string; llmsTxt?: string } } = {}) {
@@ -111,6 +133,10 @@ export function reviewToolLoopQuality(input: { toolsRun?: string[]; risky?: bool
   if (!input.finalResponse?.trim()) {
     findings.push("Final response is missing.");
   } else {
+    const finalReview = reviewAgentFinalResponse({
+      response: input.finalResponse
+    });
+    findings.push(...finalReview.findings.filter((finding) => finding.severity === "error").map((finding) => finding.message));
     const missingSections = ["changed", "verified", "assumptions", "not done"].filter((section) => !new RegExp(section, "i").test(input.finalResponse ?? ""));
     if (missingSections.length > 0) findings.push(`Final response omits output-contract sections: ${missingSections.join(", ")}.`);
   }
@@ -119,6 +145,13 @@ export function reviewToolLoopQuality(input: { toolsRun?: string[]; risky?: bool
     findings,
     correctiveNextStep: findings[0] ?? "Tool loop quality looks acceptable."
   };
+}
+
+function mostSevereStatus(inputStatus: string | undefined, derivedStatus: "pass" | "warn" | "fail"): "pass" | "warn" | "fail" {
+  const normalized = inputStatus === "fail" || inputStatus === "warn" || inputStatus === "pass" ? inputStatus : undefined;
+  const rank = { pass: 0, warn: 1, fail: 2 };
+  if (!normalized) return derivedStatus;
+  return rank[derivedStatus] > rank[normalized] ? derivedStatus : normalized;
 }
 
 function recipeTools(id: string): string[] {

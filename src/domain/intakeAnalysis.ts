@@ -5,10 +5,10 @@ export function getBlockers(brief: ProjectBrief): string[] {
   const blockers: string[] = [];
   if (!brief.idea?.trim()) blockers.push("Missing product idea.");
   if (!brief.users?.trim()) blockers.push("Missing primary user and job-to-be-done.");
-  if (!brief.coreFlows || brief.coreFlows.length < 2) blockers.push("Need at least two concrete V1 workflows.");
+  if (!brief.coreFlows || brief.coreFlows.filter((flow) => flow.trim()).length < 2) blockers.push("Need at least two concrete V1 workflows.");
   if (!brief.stack || Object.values(brief.stack).filter(Boolean).length === 0) blockers.push("Missing stack profile.");
   if (!brief.risk?.trim()) blockers.push("Missing expensive or embarrassing failure modes.");
-  if (!brief.verification || brief.verification.length === 0) blockers.push("Missing verification commands.");
+  if (!brief.verification || brief.verification.filter((check) => check.trim()).length === 0) blockers.push("Missing verification commands.");
   return blockers;
 }
 
@@ -113,10 +113,10 @@ export function scoreReadiness(answeredCount: number, blockerCount: number, chal
 export function scoreSpecCompleteness(brief: ProjectBrief, challenges: GrillMeChallenge[]): SpecCompleteness {
   const checks = [
     { id: "users", status: brief.users?.trim() ? "pass" as const : "fail" as const, summary: brief.users?.trim() ? "Primary user and job are named." : "Primary user and job are missing." },
-    { id: "workflows", status: brief.coreFlows && brief.coreFlows.length >= 2 ? "pass" as const : "fail" as const, summary: brief.coreFlows && brief.coreFlows.length >= 2 ? "At least two core workflows are named." : "Need at least two core workflows." },
+    { id: "workflows", status: brief.coreFlows && brief.coreFlows.filter((flow) => flow.trim()).length >= 2 ? "pass" as const : "fail" as const, summary: brief.coreFlows && brief.coreFlows.filter((flow) => flow.trim()).length >= 2 ? "At least two core workflows are named." : "Need at least two core workflows." },
     { id: "stack", status: brief.stack && Object.values(brief.stack).some(Boolean) ? "pass" as const : "fail" as const, summary: brief.stack && Object.values(brief.stack).some(Boolean) ? "Stack profile is present." : "Stack profile is missing." },
     { id: "data-ownership", status: !brief.stack?.database || mentionsDatabaseDiscipline(brief) ? "pass" as const : "warn" as const, summary: !brief.stack?.database || mentionsDatabaseDiscipline(brief) ? "Data ownership is explicit enough for the selected stack." : "Database is selected but schema/migration/repository ownership is vague." },
-    { id: "verification", status: brief.verification?.length ? "pass" as const : "fail" as const, summary: brief.verification?.length ? "Verification commands are named." : "Verification commands are missing." },
+    { id: "verification", status: brief.verification?.some((check) => check.trim()) ? "pass" as const : "fail" as const, summary: brief.verification?.some((check) => check.trim()) ? "Verification commands are named." : "Verification commands are missing." },
     { id: "harness", status: mentionsAgentHarness(brief) ? "pass" as const : "warn" as const, summary: mentionsAgentHarness(brief) ? "Agent harness expectations are mentioned." : "Agent harness artifacts are not explicitly mentioned." },
     { id: "risk", status: brief.risk?.trim() ? "pass" as const : "fail" as const, summary: brief.risk?.trim() ? "Expensive failure modes are named." : "Risk/failure modes are missing." },
     { id: "pressure-tests", status: challenges.some((challenge) => challenge.severity === "blocker") ? "fail" as const : challenges.length ? "warn" as const : "pass" as const, summary: challenges.some((challenge) => challenge.severity === "blocker") ? "Blocker pressure tests remain." : challenges.length ? "Pressure-test questions remain." : "No pressure-test questions remain." }

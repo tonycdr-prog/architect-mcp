@@ -1,4 +1,5 @@
 import { createFinding } from "./findingMetadata.js";
+import { matchesPathPattern } from "./pathRules.js";
 import type { BuildPlan, BuildPlanReviewOptions, ReviewViolation } from "./types.js";
 
 export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions = {}): ReviewViolation[] {
@@ -7,6 +8,26 @@ export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions
   const ids = slices.map((slice) => slice.id);
   const requireHarness = options.requireHarness ?? true;
   const allowedChecks = normalizeChecks(options.allowedChecks ?? checksFromContract(options.contract));
+  const duplicateIds = duplicates(plan.slices.map((slice) => slice.id));
+  const duplicateOrders = duplicates(plan.slices.map((slice) => String(slice.order)));
+
+  for (const id of duplicateIds) {
+    findings.push(createFinding({
+      code: "ARCH018_BUILD_PLAN_ORDER",
+      severity: "error",
+      message: `Build plan contains duplicate slice id: ${id}.`,
+      recommendation: "Give each build slice a stable unique id so implementation and review can map work unambiguously."
+    }));
+  }
+
+  for (const order of duplicateOrders) {
+    findings.push(createFinding({
+      code: "ARCH018_BUILD_PLAN_ORDER",
+      severity: "error",
+      message: `Build plan contains duplicate slice order: ${order}.`,
+      recommendation: "Give each build slice a unique order so agents do not skip or reorder boundaries accidentally."
+    }));
+  }
 
   if (requireHarness && ids[0] !== "agent-harness") {
     findings.push(createFinding({
@@ -57,7 +78,7 @@ export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions
       }
     }
 
-    if (slice.forbiddenFiles.some((file) => slice.files.includes(file))) {
+    if (slice.files.some((file) => slice.forbiddenFiles.some((pattern) => file === pattern || matchesPathPattern(file, pattern)))) {
       findings.push(createFinding({
         code: "ARCH015_PLAN_MONOLITH_RISK",
         severity: "error",
@@ -68,6 +89,16 @@ export function reviewBuildPlan(plan: BuildPlan, options: BuildPlanReviewOptions
   }
 
   return findings;
+}
+
+function duplicates(values: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicateValues = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) duplicateValues.add(value);
+    seen.add(value);
+  }
+  return [...duplicateValues];
 }
 
 function checksFromContract(contract: BuildPlanReviewOptions["contract"]): string[] {

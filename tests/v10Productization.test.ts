@@ -32,7 +32,12 @@ describe("V10 productization implementation contract", () => {
     assert.equal(plan.screens.some((screen) => screen.route === "/orgs/:orgId/billing"), true);
     assert.equal(plan.screens.some((screen) => screen.dataSources.some((source) => /Repository$/.test(source))), false);
     assert.equal(plan.sharedLayout.denseData.includes("DataTable"), true);
-    assert.equal(validateV10ProductizationBoundary({ dashboardScreens: plan.screens }).status, "pass");
+    assert.equal(validateV10ProductizationBoundary({
+      routes: getV10ProductizationBlueprint().routes,
+      storageEntities: getV10ProductizationBlueprint().storage,
+      dashboardScreens: plan.screens,
+      policyRollouts: [{ mode: "warn", preservesLocalInstructions: true, hasEmergencyDisable: true }]
+    }).status, "pass");
   });
 
   it("requires every implementation slice to run the MCP loop", () => {
@@ -59,15 +64,25 @@ describe("V10 productization implementation contract", () => {
     assert.equal(review.findings.some((finding) => finding.code === "V10_PRIMER_BOX_STYLING"), true);
   });
 
-  it("requires explicit tenant scope for org routes and product storage", () => {
-    const review = validateV10ProductizationBoundary({
-      routes: [{ path: "/v1/orgs/:orgId/projects", repositoryBoundary: "ProjectRepository" }],
-      storageEntities: [{ table: "projects", purpose: "Hosted project records" }]
+  it("requires explicit tenant and remote-policy safety evidence", () => {
+    const missing = validateV10ProductizationBoundary({});
+    const incomplete = validateV10ProductizationBoundary({
+      routes: [{ path: "/v1/orgs/:orgId/projects", repositoryBoundary: "ProjectRepository", auth: "org-role" }],
+      storageEntities: [{ table: "projects", purpose: "Hosted projects." }],
+      policyRollouts: [{ mode: "warn" }]
     });
 
-    assert.equal(review.status, "fail");
-    assert.equal(review.findings.some((finding) => finding.code === "V10_ROUTE_TENANT_SCOPE"), true);
-    assert.equal(review.findings.some((finding) => finding.code === "V10_STORAGE_TENANT_SCOPE"), true);
+    assert.equal(missing.status, "warn");
+    assert.equal(missing.findings.some((finding) => finding.code === "V10_ROUTE_EVIDENCE_MISSING"), true);
+    assert.equal(incomplete.status, "fail");
+    assert.equal(incomplete.findings.some((finding) => finding.code === "V10_ROUTE_TENANT_SCOPE"), true);
+    assert.equal(incomplete.findings.some((finding) => finding.code === "V10_POLICY_LOCAL_CONFLICT"), true);
+  });
+
+  it("warns when V10 filters match no known slice or dashboard screen", () => {
+    assert.equal(getV10ProductizationBlueprint({ area: "cli" }).warnings.length, 0);
+    assert.equal(createV10ImplementationSlicePlan({ sliceId: "missing" }).warnings.length, 1);
+    assert.equal(planPrimerDashboard({ screenRoute: "/missing" }).warnings.length, 1);
   });
 
   it("runs the V10 eval harness", () => {
@@ -89,6 +104,7 @@ describe("V10 productization implementation contract", () => {
       assert.equal((await callJson(client, "create_v10_implementation_slice_plan", { request: { sliceId: "v10-04-dashboard-shell" } })).slices[0].areas.includes("dashboard"), true);
       assert.equal((await callJson(client, "plan_primer_dashboard", { request: { screenRoute: "/orgs/:orgId/team" } })).screens[0].title, "Team settings");
       assert.equal((await callJson(client, "validate_v10_productization_boundary", { request: { billingGates: [{ feature: "local MCP", gatesLocalMcp: true }] } })).status, "fail");
+      assert.equal((await callJson(client, "plan_primer_dashboard", { request: { screenRoute: "/missing" } })).warnings.length, 1);
       assert.equal((await callJson(client, "run_v10_eval_harness", {})).status, "pass");
     } finally {
       await close();

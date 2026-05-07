@@ -2,28 +2,23 @@
 
 ## Supported Versions
 
-Security fixes are handled on the current `main` branch until a formal release line exists.
+Security fixes target the latest published version and the default branch.
 
 ## Reporting A Vulnerability
 
-Please do not report vulnerabilities, secrets, exploit details, or private repository data in public issues or pull request comments.
+Please report suspected vulnerabilities privately by opening a GitHub security advisory for this repository. Do not file public issues for secrets, exploit details, or private configuration data.
 
-Report security concerns privately through GitHub's private vulnerability reporting flow if it is enabled for the repository, or contact the maintainer directly with:
+Include:
 
-- the affected version or commit
-- the impacted surface, such as MCP stdio, HTTP transport, local workspace scanning, generated artifacts, or future hosted product code
-- enough detail to reproduce the issue without including real secrets
-- whether the issue appears exploitable locally, remotely, or only through a trusted client
+- affected version or commit
+- reproduction steps
+- impact and affected MCP tools or transports
+- whether credentials, local files, or remote services are involved
 
-Expected triage flow:
+## Project Security Expectations
 
-1. The maintainer acknowledges the report.
-2. The issue is reproduced or scoped.
-3. A fix is prepared privately when disclosure risk is material.
-4. The public issue or advisory is created only after sensitive details are removed.
+- Do not commit real secrets. Use `.env.example` with safe placeholders.
+- Pin executable MCP server dependencies to exact versions.
+- Keep hosted HTTP mode stateless unless a future product layer explicitly owns persistence.
+- Treat local workspace scanning and user MCP config scanning as local-only tools.
 
-## Security Expectations
-
-- Never include live credentials, tokens, customer data, private source code, or exploit payloads in reports unless explicitly requested through a private channel.
-- Prefer minimal proof-of-concept inputs over destructive commands.
-- For dependency or supply-chain findings, include package names, versions, and advisory links where available.

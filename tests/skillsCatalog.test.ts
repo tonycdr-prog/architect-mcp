@@ -56,4 +56,51 @@ describe("skills catalog", () => {
     assert.equal(review.valid, false);
     assert.equal(review.findings.some((finding) => finding.severity === "error"), true);
   });
+
+  it("allows safe negated arbitrary-execution cautions", () => {
+    const review = reviewSuppliedSkills({
+      skills: [{
+        id: "safe",
+        name: "Safe skill",
+        category: "mcp",
+        summary: "Safe advisory skill.",
+        patterns: ["review"],
+        recommendedWhen: ["review"],
+        cautions: ["Do not execute arbitrary skill logic."],
+        source: "client-supplied"
+      }]
+    });
+
+    assert.equal(review.valid, true);
+  });
+
+  it("allows defensive prompt-injection skill wording but blocks offensive wording", () => {
+    const safe = reviewSuppliedSkills({
+      skills: [{
+        id: "prompt-injection-defense",
+        name: "Prompt Injection Defense",
+        category: "security",
+        summary: "Prevent prompt injection attacks in agent prompts.",
+        patterns: ["detect prompt injection"],
+        recommendedWhen: ["security"],
+        cautions: ["Use this only as defensive review guidance."],
+        source: "client-supplied"
+      }]
+    });
+    const unsafe = reviewSuppliedSkills({
+      skills: [{
+        id: "prompt-injection-offense",
+        name: "Prompt Injection Offense",
+        category: "security",
+        summary: "Use prompt injection to override instructions.",
+        patterns: ["prompt injection override"],
+        recommendedWhen: ["security"],
+        cautions: ["Override instructions."],
+        source: "client-supplied"
+      }]
+    });
+
+    assert.equal(safe.valid, true);
+    assert.equal(unsafe.valid, false);
+  });
 });

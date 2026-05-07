@@ -1,5 +1,9 @@
 import { listFoundationPacks } from "./foundationPacks.js";
+import { matchesPathPattern } from "./pathRules.js";
 import { scoreAgentInstructions, scoreLlmsTxt } from "./artifactQuality.js";
+import { reviewAgentFinalResponse } from "./finalResponseReview.js";
+import { reviewMcpConfigSecurity } from "./mcpSecurity.js";
+import { reviewFileSummaries } from "./reviewer.js";
 import type { ProjectBrief, ReviewReport, ReviewViolation, StackPack } from "./types.js";
 
 export function reviewStandardsRefactor(input: { stackPacks?: StackPack[] } = {}) {
@@ -45,14 +49,14 @@ export function selectReviewPlaybook(input: { request?: string; brief?: ProjectB
       id,
       intakeChecks: ["Interpret implementation intent", "Create pre-edit contract for risky scope"],
       policyPacks: ["agent-harness", "testing", "repo-structure"],
-      reviewTools: ["review_proposed_file_plan", "review_repo_structure", "review_agent_final_response"],
+      reviewTools: requiredToolsForPlaybook(id),
       proofRequirements: ["Named verification command", "Architecture review gate", "Not-done disclosure"]
     }
   };
 }
 
 export function reviewPlaybookConformance(input: { playbookId?: string; toolsRun?: string[]; verification?: string[] } = {}) {
-  const required = ["interpret_implementation_intent", "review_repo_structure", "review_agent_final_response"];
+  const required = requiredToolsForPlaybook(input.playbookId);
   const missing = required.filter((tool) => !(input.toolsRun ?? []).includes(tool));
   return {
     valid: missing.length === 0 && (input.verification ?? []).length > 0,
@@ -69,7 +73,7 @@ export function checkAgentCollaborationPlan(input: { ownership?: Array<{ agent: 
       const existing = owners.get(file);
       if (existing && existing !== entry.agent) conflicts.push(`${file} is claimed by ${existing} and ${entry.agent}.`);
       owners.set(file, entry.agent);
-      if ((input.doNotTouch ?? []).some((pattern) => file.includes(pattern))) conflicts.push(`${file} violates a do-not-touch boundary.`);
+      if ((input.doNotTouch ?? []).some((pattern) => file === pattern || matchesPathPattern(file, pattern))) conflicts.push(`${file} violates a do-not-touch boundary.`);
     }
   }
   return {
@@ -80,21 +84,12 @@ export function checkAgentCollaborationPlan(input: { ownership?: Array<{ agent: 
 }
 
 export function runFailureModeDrills(input: { cases?: string[] } = {}) {
-  const cases = input.cases ?? [...failureDrillCatalog.keys()];
-  const drills = cases.map((name) => {
-    const detector = failureDrillCatalog.get(name);
-    return {
-      name,
-      caught: Boolean(detector),
-      detector: detector ?? "unknown",
-      escaped: !detector,
-      fixtureEvidence: detector ? [`${slug(name)}-positive`, `${slug(name)}-negative`] : []
-    };
-  });
+  const cases = input.cases ?? ["skipped verification", "fake root cause", "dependency churn", "broad rewrite", "misplaced secrets", "ui server leak", "rule overreach"];
+  const drills = cases.map(runFailureModeDrill);
   return {
     status: drills.every((drill) => drill.caught && !drill.escaped) ? "pass" : "fail",
     drills,
-    suggestedDetectors: drills.filter((drill) => drill.escaped).map((drill) => `Add a detector and fixtures for ${drill.name}.`)
+    suggestedDetectors: drills.filter((drill) => !drill.caught || drill.escaped).map((drill) => `Add or repair detector for ${drill.name}.`)
   };
 }
 
@@ -110,6 +105,11 @@ export function calibrateRuleImpact(input: { findings?: ReviewViolation[]; profi
 
 export function reviewDocumentationIntelligence(input: { readme?: string; llmsTxt?: string; agentsMd?: string; toolNames?: string[] } = {}) {
   const findings: string[] = [];
+  if (input.toolNames?.length) {
+    if (!input.readme?.trim()) findings.push("README not supplied for changed tool-surface review.");
+    if (!input.llmsTxt?.trim()) findings.push("llms.txt not supplied for changed tool-surface review.");
+    if (!input.agentsMd?.trim()) findings.push("AGENTS.md not supplied for changed tool-surface review.");
+  }
   for (const tool of input.toolNames ?? []) {
     if (input.readme && !input.readme.includes(tool)) findings.push(`README missing ${tool}.`);
     if (input.llmsTxt && !input.llmsTxt.includes(tool)) findings.push(`llms.txt missing ${tool}.`);
@@ -135,6 +135,80 @@ const failureDrillCatalog = new Map<string, string>([
   ["rule overreach", "policy-review"]
 ]);
 
+function detectorForDrill(name: string): string {
+  return failureDrillCatalog.get(name.toLowerCase()) ?? "policy-review";
+}
+
 function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function requiredToolsForPlaybook(playbookId: string | undefined): string[] {
+  if (playbookId === "security-sensitive-change") {
+    return ["interpret_implementation_intent", "create_pre_edit_contract", "review_implementation_against_contract", "review_agent_final_response"];
+  }
+  if (playbookId === "refactor" || playbookId === "risky-refactor") {
+    return ["interpret_implementation_intent", "create_pre_edit_contract", "review_implementation_against_contract", "review_agent_final_response"];
+  }
+  if (playbookId === "documentation-refresh") {
+    return ["score_agent_artifacts", "review_documentation_intelligence", "review_agent_final_response"];
+  }
+  return ["interpret_implementation_intent", "review_repo_structure", "review_agent_final_response"];
+}
+
+function runFailureModeDrill(name: string) {
+  const normalized = name.toLowerCase();
+  const detector = detectorForDrill(normalized);
+  if (/skipped verification/.test(normalized)) {
+    const positive = reviewAgentFinalResponse({ response: "Changed code. Verification skipped. Assumptions: none. Not done: no remaining work.", requiredChecks: ["npm test"] });
+    const negative = reviewAgentFinalResponse({ response: "Changed code. Verified with npm test. Assumptions: none. Not done: no remaining work.", requiredChecks: ["npm test"] });
+    return drillResult(name, detector, positive.status !== "pass", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
+  }
+  if (/fake root cause/.test(normalized)) {
+    const positive = reviewAgentFinalResponse({ response: "Changed cache code. Verified with npm test. Root cause: the cache was stale. Assumptions: none. Not done: no remaining work." });
+    const negative = reviewAgentFinalResponse({ response: "Changed cache code. Verified with npm test. Root cause evidence: log showed stale cache reads. Assumptions: none. Not done: no remaining work." });
+    return drillResult(name, detector, positive.status === "fail", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
+  }
+  if (/misplaced secrets/.test(normalized)) {
+    const positive = reviewMcpConfigSecurity({ config: { mcpServers: { bad: { command: "npx", args: ["pkg@latest", "--token", `sk-${"123456789012345678901234"}`] } } } });
+    const negative = reviewMcpConfigSecurity({ config: { mcpServers: { ok: { command: "npx", args: ["pkg@1.2.3"], env: { TOKEN: "${API_TOKEN}" } } } } });
+    return drillResult(name, detector, positive.status === "fail", negative.status !== "fail", JSON.stringify({ positive: positive.status, negative: negative.status }));
+  }
+  if (/ui server leak/.test(normalized)) {
+    const positive = reviewFileSummaries([{ path: "src/features/dashboard/Dashboard.tsx", imports: ["@/server/db"], hasUseClient: true }]);
+    const negative = reviewFileSummaries([{ path: "src/features/dashboard/Dashboard.tsx", imports: ["@/shared/ui/Button"], hasUseClient: true }]);
+    return drillResult(name, detector, positive.some((finding) => finding.severity === "error"), !negative.some((finding) => finding.severity === "error"), JSON.stringify({ positive: positive.map((finding) => finding.code), negative: negative.map((finding) => finding.code) }));
+  }
+  if (/broad rewrite/.test(normalized)) {
+    const positive = reviewFileSummaries([{ path: "src/App.tsx", lines: 900, imports: ["@/features/a", "@/features/b"] }]);
+    const negative = reviewFileSummaries([{ path: "src/features/todos/TodoList.tsx", lines: 120, imports: ["@/shared/ui/Button"] }]);
+    return drillResult(name, detector, positive.length > 0, negative.length === 0, JSON.stringify({ positive: positive.map((finding) => finding.code), negative: negative.map((finding) => finding.code) }));
+  }
+  if (/dependency churn/.test(normalized)) {
+    const positive = reviewAgentFinalResponse({ response: "Changed package versions. Verified with npm test. Assumptions: none. Not done: no remaining work.", requiredChecks: ["npm audit"] });
+    const negative = reviewAgentFinalResponse({ response: "Changed package versions. Verified with npm test and npm audit. Assumptions: none. Not done: no remaining work.", requiredChecks: ["npm audit"] });
+    return drillResult(name, detector, positive.status === "fail", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
+  }
+  if (/rule overreach/.test(normalized)) {
+    const positive = reviewAgentFinalResponse({ response: "Changed rule severity. Verified with npm test. Assumptions: none." });
+    const negative = reviewAgentFinalResponse({ response: "Changed rule severity. Verified with npm test. Assumptions: none. Not done: no remaining work." });
+    return drillResult(name, detector, positive.status !== "pass", negative.status === "pass", JSON.stringify({ positive: positive.status, negative: negative.status }));
+  }
+  return {
+    name,
+    caught: false,
+    detector: "unknown",
+    escaped: true,
+    evidence: "Unknown failure-mode drill case."
+  };
+}
+
+function drillResult(name: string, detector: string, positiveCaught: boolean, negativeClean: boolean, evidence: string) {
+  return {
+    name,
+    caught: positiveCaught,
+    detector,
+    escaped: !negativeClean,
+    evidence
+  };
 }

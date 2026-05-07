@@ -22,4 +22,21 @@ describe("reviewAgentFinalResponse", () => {
     assert.equal(result.status, "pass");
     assert.equal(result.valid, true);
   });
+
+  it("fails when required checks or root-cause evidence are missing without treating every because as causal proof", () => {
+    const missingCheck = reviewAgentFinalResponse({
+      response: "Changed code. Verified with npm test. Assumptions: none. Not done: no remaining work.",
+      requiredChecks: ["npm run typecheck"]
+    });
+    const unsupportedCause = reviewAgentFinalResponse({
+      response: "Changed the cache code. Verified with npm test. Root cause: the cache was stale. Assumptions: none. Not done: no remaining work."
+    });
+    const nonCausalBecause = reviewAgentFinalResponse({
+      response: "Changed code comments. Because of time, typecheck was not run. Assumptions: none. Not done: typecheck remains."
+    });
+
+    assert.equal(missingCheck.status, "fail");
+    assert.equal(unsupportedCause.status, "fail");
+    assert.equal(nonCausalBecause.findings.some((finding) => finding.code === "FINAL004_ROOT_CAUSE_UNSUPPORTED"), false);
+  });
 });

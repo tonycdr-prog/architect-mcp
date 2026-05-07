@@ -10,12 +10,12 @@ const DEFAULT_POLICY: Required<MemoryPolicy> = {
 
 export function extractHarnessMemory(input: MemoryExtractionInput): { proposals: MemoryProposal[]; warnings: string[]; futureAdapter: { storage: "none"; githubReady: boolean; note: string } } {
   const policy = { ...DEFAULT_POLICY, ...input.policy };
-  const proposals = [
+  const proposals = dedupeMemoryProposals([
     ...fromRequest(input.request, input.projectName, policy),
     ...fromIntent(input.intent, input.projectName, policy),
     ...fromContract(input.contract, input.projectName, policy),
     ...fromSessionSummary(input.sessionSummary, input.projectName, policy)
-  ].filter((proposal, index, all) => all.findIndex((candidate) => candidate.statement === proposal.statement && candidate.scope === proposal.scope) === index);
+  ]);
 
   return {
     proposals,
@@ -40,7 +40,9 @@ export function applyHarnessMemory(input: MemoryRelevanceInput): MemoryApplicati
   let tokenEstimate = 0;
 
   for (const item of ranked) {
-    if (item.memory.policyAction === "discard") {
+    if (item.memory.sensitivity === "secret") {
+      discarded.push({ id: item.memory.id, reason: "Secret-like memory must never be applied." });
+    } else if (item.memory.policyAction === "discard") {
       discarded.push({ id: item.memory.id, reason: "Memory policy says discard." });
     } else if (item.memory.risk === "red") {
       discarded.push({ id: item.memory.id, reason: "Red memory needs explicit confirmation before use." });
@@ -63,6 +65,54 @@ export function applyHarnessMemory(input: MemoryRelevanceInput): MemoryApplicati
       ? ["Yellow memory is advisory; current user instructions still win."]
       : []
   };
+}
+
+function dedupeMemoryProposals(proposals: MemoryProposal[]): MemoryProposal[] {
+  const byKey = new Map<string, MemoryProposal>();
+  for (const proposal of proposals) {
+    const key = `${proposal.scope}:${proposal.statement}`;
+    const existing = byKey.get(key);
+    byKey.set(key, existing ? mergeMemoryRisk(existing, proposal) : proposal);
+  }
+  return [...byKey.values()];
+}
+
+function mergeMemoryRisk(left: MemoryProposal, right: MemoryProposal): MemoryProposal {
+  const sensitivity = higherSensitivity(left.sensitivity, right.sensitivity);
+  const risk = sensitivity === "secret" ? "red" : higherRisk(left.risk, right.risk);
+  return {
+    ...left,
+    confidence: higherConfidence(left.confidence, right.confidence),
+    risk,
+    sensitivity,
+    policyAction: mergedPolicyAction(left.policyAction, right.policyAction, risk, sensitivity),
+    tags: [...new Set([...left.tags, ...right.tags])],
+    reviewNote: sensitivity === "secret" ? "Ask before storing or applying." : left.reviewNote ?? right.reviewNote
+  };
+}
+
+function higherConfidence(left: "high" | "medium" | "low", right: "high" | "medium" | "low"): "high" | "medium" | "low" {
+  const order = ["low", "medium", "high"];
+  return order.indexOf(right) > order.indexOf(left) ? right : left;
+}
+
+function higherSensitivity(left: MemorySensitivity, right: MemorySensitivity): MemorySensitivity {
+  const order: MemorySensitivity[] = ["public", "internal", "sensitive", "secret"];
+  return order.indexOf(right) > order.indexOf(left) ? right : left;
+}
+
+function higherRisk(left: MemoryRisk, right: MemoryRisk): MemoryRisk {
+  const order: MemoryRisk[] = ["green", "yellow", "red"];
+  return order.indexOf(right) > order.indexOf(left) ? right : left;
+}
+
+function mergedPolicyAction(left: MemoryPolicyAction, right: MemoryPolicyAction, risk: MemoryRisk, sensitivity: MemorySensitivity): MemoryPolicyAction {
+  if (sensitivity === "secret") return "discard";
+  const order: MemoryPolicyAction[] = ["auto_store", "batch_review", "confirm_now", "discard"];
+  const stricter = order.indexOf(right) > order.indexOf(left) ? right : left;
+  if (risk === "red" && order.indexOf(stricter) < order.indexOf("confirm_now")) return "confirm_now";
+  if (risk === "yellow" && order.indexOf(stricter) < order.indexOf("batch_review")) return "batch_review";
+  return stricter;
 }
 
 export function reviewMemoryRelevance(input: MemoryRelevanceInput): { valid: boolean; findings: Array<{ id: string; severity: "warning" | "error"; message: string; recommendation: string }> } {

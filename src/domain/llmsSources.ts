@@ -1,8 +1,13 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { lookup } from "node:dns/promises";
+import { existsSync, readFileSync } from "node:fs";
+import { isIP } from "node:net";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { IngestedLlmsSource, LlmsSource, LlmsSourceSnapshot } from "./types.js";
+
+const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
+const DEFAULT_MAX_BYTES = 300_000;
 
 export const KNOWN_LLMS_SOURCES: LlmsSource[] = [
   { id: "nextjs", stack: "Next.js", category: "frontend", url: "https://nextjs.org/docs/llms.txt", fullUrl: "https://nextjs.org/docs/llms-full.txt", priority: "high", notes: "Primary source for Next.js App Router and full-stack React guidance." },
@@ -70,28 +75,59 @@ export function listIngestedLlmsSources(): { generatedAt?: string; sources: Inge
   }
 }
 
-export async function fetchLlmsSource(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number } = {}): Promise<LlmsSourceSnapshot> {
-  const source = resolveLlmsSource(sourceIdOrUrl, options.preferFull);
-  const response = await fetch(source.url);
-  if (!response.ok) {
-    throw new Error(`Could not fetch ${source.url}: ${response.status} ${response.statusText}`);
+export function readIngestedLlmsSnapshot(relativeOrAbsolutePath: string): string {
+  const candidates = isAbsolute(relativeOrAbsolutePath)
+    ? [relativeOrAbsolutePath]
+    : [
+      resolve(process.cwd(), relativeOrAbsolutePath),
+      resolve(dirname(fileURLToPath(import.meta.url)), "../../", relativeOrAbsolutePath),
+      resolve(dirname(fileURLToPath(import.meta.url)), "../../../", relativeOrAbsolutePath)
+    ];
+  const existing = candidates.find((candidate) => existsSync(candidate));
+  if (!existing) {
+    throw new Error(`Could not resolve ingested llms.txt snapshot ${relativeOrAbsolutePath}. Tried: ${candidates.join(", ")}`);
   }
-  const contentType = response.headers.get("content-type") ?? "";
-  if (contentType.includes("text/html")) {
-    throw new Error(`Fetched ${source.url} but received HTML instead of llms.txt content.`);
-  }
+  return readFileSync(existing, "utf8");
+}
 
-  const content = await response.text();
-  const maxBytes = options.maxBytes ?? 300_000;
-  const clipped = content.length > maxBytes ? content.slice(0, maxBytes) : content;
-  return {
-    source,
-    fetchedAt: new Date().toISOString(),
-    sha256: createHash("sha256").update(clipped).digest("hex"),
-    bytes: Buffer.byteLength(clipped),
-    contentType: contentType || undefined,
-    content: clipped
-  };
+export async function fetchLlmsSource(sourceIdOrUrl: string, options: { preferFull?: boolean; maxBytes?: number; timeoutMs?: number } = {}): Promise<LlmsSourceSnapshot> {
+  const source = resolveLlmsSource(sourceIdOrUrl, options.preferFull);
+  const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetchWithValidatedRedirects(new URL(source.url), controller.signal);
+    if (!response.ok) {
+      throw new Error(`Could not fetch ${source.url}: ${response.status} ${response.statusText}`);
+    }
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("text/html")) {
+      throw new Error(`Fetched ${source.url} but received HTML instead of llms.txt content.`);
+    }
+    const contentLength = response.headers.get("content-length");
+    if (contentLength && Number.parseInt(contentLength, 10) > maxBytes) {
+      throw new Error(`Fetched ${source.url} exceeds maxBytes (${maxBytes}).`);
+    }
+
+    const content = await readResponseTextWithLimit(response, maxBytes, source.url, controller.signal);
+    return {
+      source,
+      fetchedAt: new Date().toISOString(),
+      sha256: createHash("sha256").update(content).digest("hex"),
+      bytes: Buffer.byteLength(content),
+      contentType: contentType || undefined,
+      content
+    };
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Timed out fetching ${source.url} after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function resolveLlmsSource(sourceIdOrUrl: string, preferFull?: boolean): LlmsSource {
@@ -103,11 +139,12 @@ function resolveLlmsSource(sourceIdOrUrl: string, preferFull?: boolean): LlmsSou
     };
   }
 
+  const url = validateCallerProvidedLlmsUrl(sourceIdOrUrl);
   return {
-    id: slugify(new URL(sourceIdOrUrl).hostname),
-    stack: new URL(sourceIdOrUrl).hostname,
+    id: slugify(url.hostname),
+    stack: url.hostname,
     category: "platform",
-    url: sourceIdOrUrl,
+    url: url.toString(),
     priority: "low",
     notes: "Caller-provided llms.txt URL."
   };
@@ -124,5 +161,149 @@ function resolveIngestedIndexPath(): string {
     resolve(dirname(fileURLToPath(import.meta.url)), "../../../stack-sources/ingested/index.json")
   ];
 
-  return candidates[0];
+  const existing = candidates.find((candidate) => existsSync(candidate));
+  return existing ?? candidates[0];
+}
+
+async function readResponseTextWithLimit(response: Response, maxBytes: number, sourceUrl: string, signal: AbortSignal): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    const text = await withAbort(response.text(), signal);
+    const bytes = Buffer.byteLength(text);
+    if (bytes > maxBytes) throw new Error(`Fetched ${sourceUrl} exceeds maxBytes (${maxBytes}).`);
+    return text;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await withAbort(reader.read(), signal);
+    if (done) break;
+    if (!value) continue;
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw new Error(`Fetched ${sourceUrl} exceeds maxBytes (${maxBytes}).`);
+    }
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function withAbort<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new Error("Operation aborted."));
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(new Error("Operation aborted."));
+    signal.addEventListener("abort", abort, { once: true });
+    operation.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", abort);
+    });
+  });
+}
+
+async function fetchWithValidatedRedirects(url: URL, signal: AbortSignal, redirectsRemaining = 5): Promise<Response> {
+  await assertSafeFetchUrl(url);
+  const response = await fetch(url, {
+    signal,
+    redirect: "manual"
+  });
+
+  if (isRedirect(response.status)) {
+    if (redirectsRemaining <= 0) {
+      throw new Error(`Too many redirects while fetching ${url.toString()}.`);
+    }
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new Error(`Redirect from ${url.toString()} did not include a Location header.`);
+    }
+    return fetchWithValidatedRedirects(new URL(location, url), signal, redirectsRemaining - 1);
+  }
+
+  return response;
+}
+
+function isRedirect(status: number): boolean {
+  return status >= 300 && status < 400;
+}
+
+function validateCallerProvidedLlmsUrl(value: string): URL {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Caller-provided llms.txt source must be a valid URL or a known source id.");
+  }
+
+  assertLlmsPath(url);
+  assertSafeUrlShape(url);
+
+  return url;
+}
+
+async function assertSafeFetchUrl(url: URL): Promise<void> {
+  assertSafeUrlShape(url);
+  assertLlmsPath(url);
+  const hostname = normalizeHostname(url.hostname);
+  if (isIP(hostname)) {
+    if (isUnsafeIpAddress(hostname)) {
+      throw new Error("Caller-provided llms.txt source must not target localhost, private, or link-local hosts.");
+    }
+    return;
+  }
+
+  const addresses = await lookup(hostname, {
+    all: true,
+    verbatim: true
+  });
+  if (addresses.some((address) => isUnsafeIpAddress(address.address))) {
+    throw new Error("Caller-provided llms.txt source resolved to a localhost, private, or link-local address.");
+  }
+}
+
+function assertLlmsPath(url: URL): void {
+  if (!/\/llms(?:-full)?\.txt$/i.test(url.pathname)) {
+    throw new Error("Caller-provided llms.txt source path must end with /llms.txt or /llms-full.txt.");
+  }
+}
+
+function assertSafeUrlShape(url: URL): void {
+  if (url.protocol !== "https:") {
+    throw new Error("Caller-provided llms.txt source must use https.");
+  }
+  if (url.username || url.password) {
+    throw new Error("Caller-provided llms.txt source must not include credentials.");
+  }
+  if (url.port) {
+    throw new Error("Caller-provided llms.txt source must not include an explicit port.");
+  }
+  if (isUnsafeHostname(url.hostname)) {
+    throw new Error("Caller-provided llms.txt source must not target localhost, private, or link-local hosts.");
+  }
+}
+
+function normalizeHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+}
+
+function isUnsafeHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname);
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) return true;
+  if (isIP(normalized)) return isUnsafeIpAddress(normalized);
+  return false;
+}
+
+function isUnsafeIpAddress(address: string): boolean {
+  const normalized = normalizeHostname(address);
+  const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (mappedIpv4) return isUnsafeIpAddress(mappedIpv4[1]);
+  if (/^::ffff:/i.test(normalized) || /^0:0:0:0:0:ffff:/i.test(normalized)) return true;
+  if (normalized === "0.0.0.0" || normalized === "::" || normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
+  if (/^127\./.test(normalized) || /^10\./.test(normalized) || /^169\.254\./.test(normalized)) return true;
+  if (/^192\.168\./.test(normalized)) return true;
+  const private172 = normalized.match(/^172\.(\d+)\./);
+  if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return true;
+  if (/^(fc|fd)[0-9a-f]{2}:/i.test(normalized) || /^fe80:/i.test(normalized)) return true;
+  return false;
 }
