@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createArchitectServer } from "../src/server/createArchitectServer.js";
@@ -490,7 +491,7 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "scan_mcp_config_files"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "review_repo_structure"), true);
       const scanAttempt = await callToolRaw(client, "review_local_workspace", {
-        rootPath: "/Users/tonycordner/Documents/GitHub/architect-mcp"
+        rootPath: join(process.cwd(), "src")
       });
       assert.equal(scanAttempt.isError, true);
     } finally {

@@ -16,6 +16,7 @@
     "examples",
     "docs",
     "llms.txt",
+    "LICENSE",
     "SECURITY.md",
     "README.md",
     "package.json"
@@ -37,7 +38,9 @@
     "ingest:llms": "tsx scripts/ingestLlmsSources.ts",
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/http.ts",
-    "start:http": "node dist/http.js"
+    "start:http": "node dist/http.js",
+    "prepack": "node scripts/preparePackageManifest.cjs",
+    "postpack": "node scripts/restorePackageManifest.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

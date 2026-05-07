@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 
 type Step = {
   name: string;
@@ -52,10 +52,34 @@ if (packagedRepoOnlyFiles.length > 0) {
   throw new Error(`Package dry-run includes repo-only TypeScript scripts: ${packagedRepoOnlyFiles.join(", ")}`);
 }
 
-for (const docsPath of ["README.md", "AGENTS.md"]) {
-  const content = readFileSync(docsPath, "utf8");
-  if (/\/Users\/tonycordner\//.test(content)) {
-    throw new Error(`${docsPath} contains a maintainer-local /Users/tonycordner path.`);
+const packedManifest = readPackedManifest();
+const repoOnlyPackageScripts = [
+  "check:v3",
+  "check:v10",
+  "release:check",
+  "ingest:llms",
+  "dev",
+  "dev:http",
+  "prepack",
+  "postpack"
+];
+const leakedPackageScripts = repoOnlyPackageScripts.filter((script) => Boolean(packedManifest.scripts?.[script]));
+if (leakedPackageScripts.length > 0) {
+  throw new Error(`Packed package.json includes repo-only npm scripts: ${leakedPackageScripts.join(", ")}`);
+}
+
+const maintainerLocalPathPattern = new RegExp(["", "Users", "tonycordner", ""].join("\\/"));
+const trackedFiles = execFileSync("git", ["ls-files"], {
+  encoding: "utf8",
+  stdio: ["ignore", "pipe", "inherit"]
+})
+  .split("\n")
+  .filter(Boolean)
+  .filter((path) => !path.startsWith("node_modules/") && !path.startsWith("dist/") && !path.endsWith(".snap"));
+for (const trackedFile of trackedFiles) {
+  const content = readFileSync(trackedFile, "utf8");
+  if (maintainerLocalPathPattern.test(content)) {
+    throw new Error(`${trackedFile} contains a maintainer-local absolute path.`);
   }
 }
 
@@ -75,4 +99,23 @@ function run(step: Step): void {
   execFileSync(step.command, step.args, {
     stdio: "inherit"
   });
+}
+
+function readPackedManifest(): { scripts?: Record<string, string> } {
+  const packOutput = execFileSync("npm", ["pack", "--json"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"]
+  });
+  const packedArtifacts = JSON.parse(packOutput) as Array<{ filename?: string }>;
+  const filename = packedArtifacts[0]?.filename;
+  if (!filename) throw new Error("npm pack did not return a package filename.");
+
+  try {
+    return JSON.parse(execFileSync("tar", ["-xOf", filename, "package/package.json"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"]
+    })) as { scripts?: Record<string, string> };
+  } finally {
+    rmSync(filename, { force: true });
+  }
 }

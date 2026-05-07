@@ -534,7 +534,7 @@ npm ci && npm run build
 npm run start:http
 ```
 
-When publishing as an npm package, `package.json` includes `files` entries for `dist/`, packs, policy bundles, source metadata, docs, `README.md`, `LICENSE`, and `SECURITY.md` so runtime pack loading and provenance work outside the source checkout. Repo-only TypeScript readiness scripts are intentionally not included in the package tarball.
+When publishing as an npm package, `package.json` includes `files` entries for `dist/`, packs, policy bundles, source metadata, docs, `README.md`, `LICENSE`, and `SECURITY.md` so runtime pack loading and provenance work outside the source checkout. Repo-only TypeScript readiness scripts are intentionally not included in the package tarball, and publish-time manifest preparation strips repo-only npm scripts from the packed `package.json`.
 
 Security reports should follow `SECURITY.md`. Do not put vulnerabilities, secrets, exploit details, or private repository data in public issues.
 

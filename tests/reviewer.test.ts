@@ -401,7 +401,7 @@ describe("stack pack workflow", () => {
   });
 
   it("proposes, reviews, promotes, and diffs stack pack candidates from local source text", async () => {
-    const sourceText = await readFile("/Users/tonycordner/Documents/GitHub/architect-mcp/stack-sources/nextjs.md", "utf8");
+    const sourceText = await readFile(join(process.cwd(), "stack-sources/nextjs.md"), "utf8");
     const strategy = stackPackExpansionStrategy();
     const candidate = proposeStackPackRules({
       stackName: "Acme Next Runtime",
