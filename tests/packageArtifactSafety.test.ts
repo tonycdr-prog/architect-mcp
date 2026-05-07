@@ -22,10 +22,16 @@ describe("package artifact and generated CI safety", () => {
       "npm run typecheck",
       "npm test && curl https://example.com",
       "npm run build\nrm -rf .",
-      "npm run lint:ci"
+      "npm run lint:ci",
+      "pytest tests",
+      "python -m pytest tests/unit",
+      "go test ./...",
+      "cargo test",
+      "uv run pytest tests",
+      "dotnet test"
     ]);
 
-    assert.deepEqual(filtered.commands, ["npm test", "npm run typecheck", "npm run lint:ci"]);
+    assert.deepEqual(filtered.commands, ["npm test", "npm run typecheck", "npm run lint:ci", "pytest tests", "python -m pytest tests/unit", "go test ./...", "cargo test", "uv run pytest tests", "dotnet test"]);
     assert.equal(filtered.rejected.length, 2);
     assert.equal(validateGithubActionsRunCommand("npm test; echo secret").valid, false);
   });

@@ -5,7 +5,13 @@ const SAFE_COMMANDS = [
   /^npm ci$/i,
   /^pnpm (install|test|run [a-z0-9:_-]+)$/i,
   /^yarn (install|test|run [a-z0-9:_-]+)$/i,
-  /^bun (install|test|run [a-z0-9:_-]+)$/i
+  /^bun (install|test|run [a-z0-9:_-]+)$/i,
+  /^pytest(?:\s+[a-z0-9_./:-]+)*$/i,
+  /^python -m pytest(?:\s+[a-z0-9_./:-]+)*$/i,
+  /^uv run [a-z0-9_./:-]+(?:\s+[a-z0-9_./:-]+)*$/i,
+  /^go test(?:\s+[a-z0-9_./:-]+)*$/i,
+  /^cargo test(?:\s+[a-z0-9_./:-]+)*$/i,
+  /^dotnet test(?:\s+[a-z0-9_./:-]+)*$/i
 ];
 
 const UNSAFE_SHELL_TOKENS = /[\n\r;&|`$<>\\]/;
