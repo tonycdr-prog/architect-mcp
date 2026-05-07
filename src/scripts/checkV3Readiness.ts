@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createMcpReadinessReport } from "../domain/readinessReport.js";
 
 type Step = {
   name: string;
@@ -39,7 +40,6 @@ if (missingPackageFiles.length > 0) {
   throw new Error(`Package dry-run is missing required V3 files: ${missingPackageFiles.join(", ")}`);
 }
 
-const { createMcpReadinessReport } = await import("../dist/domain/readinessReport.js") as typeof import("../dist/domain/readinessReport.js");
 const readiness = await createMcpReadinessReport();
 if (!readiness.ready) {
   const failures = readiness.checks

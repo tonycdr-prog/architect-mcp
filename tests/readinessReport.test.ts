@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createMcpReadinessReport } from "../src/domain/readinessReport.js";
 
-describe("V3 readiness release gates", () => {
-  it("requires release-check scripts and hosted API docs", async () => {
+describe("V10 readiness release gates", () => {
+  it("requires compiled release-check entrypoints and hosted API docs", async () => {
     const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
       scripts: Record<string, string>;
       files: string[];
@@ -14,10 +14,12 @@ describe("V3 readiness release gates", () => {
 
     assert.equal(readiness.ready, true);
     assert.equal(scriptCheck?.status, "pass");
-    assert.equal(packageJson.scripts["check:v3"], "tsx scripts/checkV3Readiness.ts");
+    assert.equal(packageJson.scripts["check:v3"], "node dist/scripts/checkV3Readiness.js");
+    assert.equal(packageJson.scripts["check:v10"], "node dist/scripts/checkStagedReadiness.js v10");
     assert.equal(packageJson.scripts["release:check"], "npm run check:v10");
     assert.equal(packageJson.scripts["secret:scan"], "node scripts/secretScan.mjs");
-    assert.equal(packageJson.files.includes("scripts"), true);
+    assert.equal(packageJson.files.includes("scripts"), false);
+    assert.equal(packageJson.files.includes("scripts/secretScan.mjs"), true);
     assert.equal(packageJson.files.includes("LICENSE"), true);
     assert.equal(packageJson.files.includes("SECURITY.md"), true);
     assert.match(readFileSync("docs/hosted-api-shape.md", "utf8"), /POST \/v1\/reviews\/session/);

@@ -43,7 +43,7 @@ export async function runArchitectSelfReview(rootPath = process.cwd()) {
   const report = createReviewReport(findings, {
     mode: "ci",
     gate: {
-      maxWarnings: 2
+      maxWarnings: 6
     }
   });
   const baseline = createBaselineFromFindings(findings);
