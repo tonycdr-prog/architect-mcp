@@ -9,7 +9,6 @@
   },
   "files": [
     "dist",
-    "scripts",
     "packs",
     "policy-bundles",
     "foundation-packs",
@@ -17,6 +16,8 @@
     "examples",
     "docs",
     "llms.txt",
+    "LICENSE",
+    "SECURITY.md",
     "README.md",
     "package.json"
   ],
@@ -33,11 +34,13 @@
     "check:v8": "tsx scripts/checkStagedReadiness.ts v8",
     "check:v9": "tsx scripts/checkStagedReadiness.ts v9",
     "check:v10": "tsx scripts/checkStagedReadiness.ts v10",
-    "release:check": "npm run check:v3",
+    "release:check": "npm run check:v10",
     "ingest:llms": "tsx scripts/ingestLlmsSources.ts",
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/http.ts",
-    "start:http": "node dist/http.js"
+    "start:http": "node dist/http.js",
+    "prepack": "node scripts/preparePackageManifest.cjs",
+    "postpack": "node scripts/restorePackageManifest.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
