@@ -44,10 +44,20 @@ export const QUESTIONS = [
 ] as const;
 
 export function getNextIntakeQuestionForBrief(brief: ProjectBrief) {
-  const answered = new Set(Object.keys(brief).filter((key) => Boolean(brief[key as keyof ProjectBrief])));
+  const answered = new Set(Object.keys(brief).filter((key) => isBriefFieldAnswered(brief, key as keyof ProjectBrief)));
   return QUESTIONS.find((question) => !answered.has(question.id)) ?? {
     id: "ready",
     question: "Are we ready to generate the architecture contract?",
     recommendedAnswer: "Yes. Generate a contract now, then review the repo structure against it."
   };
+}
+
+export function isBriefFieldAnswered(brief: ProjectBrief, field: keyof ProjectBrief): boolean {
+  const value = brief[field];
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.some((item) => typeof item !== "string" || item.trim().length > 0);
+  if (field === "stack") return Boolean(brief.stack && Object.values(brief.stack).some((item) => item?.trim()));
+  if (field === "repoLayout") return Boolean(brief.repoLayout && Object.keys(brief.repoLayout.pathMap ?? {}).length > 0);
+  if (value && typeof value === "object") return Object.keys(value).length > 0;
+  return Boolean(value);
 }

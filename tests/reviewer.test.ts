@@ -293,6 +293,7 @@ describe("reviewProposedFilePlan", () => {
     });
 
     assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK"), true);
+    assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK" && violation.severity === "error" && violation.confidence === "high"), true);
     assert.equal(violations.some((violation) => violation.code === "ARCH017_PLAN_MISSING_HARNESS"), true);
   });
 
@@ -810,6 +811,37 @@ describe("grillMe", () => {
     assert.equal(result.phase, "intake");
     assert.equal(result.blockers.some((blocker) => blocker.includes("primary user")), true);
     assert.equal(result.contract, undefined);
+  });
+
+  it("treats empty arrays as unanswered and surfaces pressure-test questions", () => {
+    const emptyArrays = grillMe({
+      idea: "App",
+      users: "Admins",
+      coreFlows: [],
+      stack: { frontend: "React" },
+      storage: "No",
+      enforcement: "Advise",
+      repoLayout: { pathMap: {} },
+      risk: "Monoliths",
+      verification: []
+    });
+    const pressureTest = grillMe({
+      idea: "Build a todo app",
+      users: "solo founders",
+      coreFlows: ["create todo", "complete todo"],
+      stack: { frontend: "React" },
+      storage: "No",
+      enforcement: "Advise",
+      repoLayout: { pathMap: { "src/features": ["src/features"] } },
+      risk: "giant files",
+      verification: ["npm test"]
+    });
+
+    assert.equal(emptyArrays.nextQuestion.id, "coreFlows");
+    assert.equal(emptyArrays.missingFields.includes("coreFlows"), true);
+    assert.equal(emptyArrays.missingFields.includes("verification"), true);
+    assert.equal(pressureTest.ready, true);
+    assert.match(pressureTest.nextQuestion.id, /^pressure:/);
   });
 
   it("selects stack packs and produces a contract for a ready brief", () => {

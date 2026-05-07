@@ -113,7 +113,7 @@ export function reviewSuppliedSkills(input: { skills: SkillCatalogEntry[] }): { 
         recommendation: "Provide patterns and recommendedWhen terms so the catalog can rank it safely."
       });
     }
-    if (skill.cautions.some((caution) => /execute arbitrary|run arbitrary|ignore user/i.test(caution))) {
+    if (skill.cautions.some(isUnsafeCaution)) {
       skillFindings.push({
         id: skill.id,
         severity: "error",
@@ -128,6 +128,11 @@ export function reviewSuppliedSkills(input: { skills: SkillCatalogEntry[] }): { 
     valid: findings.every((finding) => finding.severity !== "error"),
     findings
   };
+}
+
+function isUnsafeCaution(caution: string): boolean {
+  if (/\b(do not|don't|never|avoid|must not)\b.{0,40}\b(execute arbitrary|run arbitrary|ignore user)\b/i.test(caution)) return false;
+  return /execute arbitrary|run arbitrary|ignore user/i.test(caution);
 }
 
 function catalogFor(query: SkillCatalogQuery): SkillCatalogEntry[] {

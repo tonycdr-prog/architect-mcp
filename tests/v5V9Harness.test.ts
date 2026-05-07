@@ -80,6 +80,7 @@ describe("V5-V9 MCP-driven implementation surface", () => {
       assert.equal((await callJson(client, "simulate_policy_gate", { request: { findings: [finding] } })).simulations.length, 4);
       assert.equal(Array.isArray((await callJson(client, "analyze_standards_conflicts", {})).conflicts), true);
       assert.equal((await callJson(client, "score_repo_profile_fit", { request: { brief: cleanMcpServerFixture.brief, files: cleanMcpServerFixture.files } })).profiles.length > 0, true);
+      assert.equal((await callJson(client, "score_repo_profile_fit", { request: { brief: { idea: "Expo app", stack: { frontend: "Expo React Native" } }, files: [{ path: "app/index.tsx", lines: 10 }, { path: "components/Button.tsx", lines: 20 }, { path: "stores/session.ts", lines: 5 }] } })).best.id, "expo-react-native");
       assert.equal((await callJson(client, "review_contract_lifecycle", { request: { after: contract, findings: [finding] } })).maturity.length > 0, true);
 
       assert.equal((await callJson(client, "validate_policy_bundles", {})).valid, true);
@@ -107,6 +108,7 @@ describe("V5-V9 MCP-driven implementation surface", () => {
       assert.equal((await callJson(client, "run_failure_mode_drills", {})).status, "pass");
       assert.match((await callJson(client, "calibrate_rule_impact", { request: { findings: [finding] } })).previewGateChange, /warn|fail|pass|strict/);
       assert.equal((await callJson(client, "review_documentation_intelligence", { request: { readme: "hello", toolNames: ["missing_tool"] } })).status, "warn");
+      assert.equal((await callJson(client, "review_documentation_intelligence", { request: { toolNames: ["review_repo_structure"] } })).status, "warn");
 
       assert.equal((await callJson(client, "select_local_orchestration_recipe", { request: { request: "review existing repo" } })).recipe.tools.length > 0, true);
       assert.equal((await callJson(client, "select_local_orchestration_recipe", { request: { request: "fix auth bug" } })).recipe.id, "security-sensitive-change");
