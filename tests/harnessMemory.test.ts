@@ -69,4 +69,74 @@ describe("stateless harness memory", () => {
     assert.equal(review.valid, false);
     assert.equal(review.findings.some((finding) => finding.message.includes("secret-like")), true);
   });
+
+  it("never applies secret memories even with inconsistent metadata", () => {
+    const malformed = {
+      id: "bad-secret",
+      kind: "preference" as const,
+      scope: "user" as const,
+      statement: "Use token sk-test-value for API calls.",
+      rationale: "Malformed caller marked secret as safe.",
+      confidence: "high" as const,
+      risk: "green" as const,
+      sensitivity: "secret" as const,
+      policyAction: "auto_store" as const,
+      tags: ["api"],
+      tokenEstimate: 8,
+      source: { kind: "user_statement" as const, summary: "secret" },
+      invalidatedBy: "never",
+      targetPath: "user/preference.jsonl"
+    };
+
+    const applied = applyHarnessMemory({
+      request: "use api preference",
+      memories: [malformed]
+    });
+
+    assert.equal(applied.selected.length, 0);
+    assert.equal(applied.discarded[0]?.reason.includes("Secret-like"), true);
+  });
+
+  it("preserves secret sensitivity when normalizing duplicate proposals", () => {
+    const result = extractHarnessMemory({
+      request: [
+        "I prefer guided-yolo confirmation.",
+        "I prefer guided-yolo confirmation with secret-token-value."
+      ].join("\n"),
+      projectName: "architect-mcp"
+    });
+
+    assert.equal(result.proposals.some((proposal) => proposal.sensitivity === "secret" && proposal.policyAction === "discard"), true);
+  });
+
+  it("merges duplicate harness assumptions with the stricter risk and higher confidence", () => {
+    const intent = interpretImplementationIntent({
+      request: "fix this with best practices"
+    });
+    intent.assumptions = [
+      {
+        statement: "Keep the change scoped to the reported problem.",
+        reason: "Initial low-risk assumption.",
+        confidence: "low",
+        risk: "low",
+        invalidatedBy: "The user asks for broader cleanup."
+      },
+      {
+        statement: "Keep the change scoped to the reported problem.",
+        reason: "Later evidence shows a risky assumption.",
+        confidence: "high",
+        risk: "high",
+        invalidatedBy: "The user confirms broad refactoring."
+      }
+    ];
+
+    const result = extractHarnessMemory({ intent });
+    const duplicates = result.proposals.filter((proposal) => proposal.statement === "Keep the change scoped to the reported problem.");
+    const merged = duplicates[0];
+
+    assert.equal(duplicates.length, 1);
+    assert.equal(merged?.risk, "red");
+    assert.equal(merged?.confidence, "high");
+    assert.equal(merged?.policyAction, "confirm_now");
+  });
 });
