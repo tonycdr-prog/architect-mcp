@@ -384,12 +384,14 @@ For local MCP clients, point the command at this repo:
 {
   "mcpServers": {
     "architect-mcp": {
-      "command": "node",
-      "args": ["/Users/tonycordner/Documents/GitHub/architect-mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "architect-mcp@0.1.0"]
     }
   }
 }
 ```
+
+For a local checkout, build first and use your own absolute path to `dist/index.js`.
 
 ## Run Hosted HTTP Mode
 
