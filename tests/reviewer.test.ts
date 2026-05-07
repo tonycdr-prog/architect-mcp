@@ -415,8 +415,11 @@ describe("stack pack workflow", () => {
   it("rejects unsafe caller-supplied llms.txt fetch URLs before network access", async () => {
     await assert.rejects(() => fetchLlmsSource("http://example.com/llms.txt"), /https/);
     await assert.rejects(() => fetchLlmsSource("https://localhost/llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://localhost./llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://[0:0:0:0:0:0:0:1]/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://example.com/not-llms.md"), /llms\.txt/);
     await assert.rejects(() => fetchLlmsSource("https://user:pass@example.com/llms.txt"), /credentials/);
+    await assert.rejects(() => fetchLlmsSource("https://example.com:444/llms.txt"), /explicit port/);
   });
 
   it("enforces byte limits while streaming llms.txt responses", async () => {
@@ -432,6 +435,42 @@ describe("stack pack workflow", () => {
       const snapshot = await fetchLlmsSource("https://example.com/llms.txt", { maxBytes: 20 });
       assert.equal(snapshot.content, "0123456789");
       assert.equal(snapshot.bytes, 10);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("rejects redirects to unsafe llms.txt targets", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(null, {
+      status: 302,
+      headers: {
+        location: "https://127.0.0.1/llms.txt"
+      }
+    });
+    try {
+      await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt"), /localhost, private, or link-local/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("applies fetch timeout while reading slow response bodies", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(new ReadableStream({
+      async pull(controller) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        controller.enqueue(new TextEncoder().encode("slow"));
+        controller.close();
+      }
+    }), {
+      status: 200,
+      headers: {
+        "content-type": "text/plain"
+      }
+    });
+    try {
+      await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt", { timeoutMs: 5 }), /Timed out fetching/);
     } finally {
       globalThis.fetch = originalFetch;
     }
