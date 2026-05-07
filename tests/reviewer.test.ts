@@ -419,6 +419,7 @@ describe("stack pack workflow", () => {
     await assert.rejects(() => fetchLlmsSource("https://localhost./llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://[0:0:0:0:0:0:0:1]/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://[::ffff:127.0.0.1]/llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://[0:0:0:0:0:ffff:7f00:1]/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://example.com/not-llms.md"), /llms\.txt/);
     await assert.rejects(() => fetchLlmsSource("https://user:pass@example.com/llms.txt"), /credentials/);
     await assert.rejects(() => fetchLlmsSource("https://example.com:444/llms.txt"), /explicit port/);

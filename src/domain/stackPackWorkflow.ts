@@ -227,7 +227,7 @@ export function promoteStackPackCandidateToFiles(candidate: StackPackCandidate, 
   ];
   const warnings = [
     ...promotion.warnings,
-    "Dry-run by default. Set writeFiles=true to write packs/<id>.json and update packs/manifest.json."
+    `Dry-run by default. Set writeFiles=true to write ${packPath} and update ${manifestPath}.`
   ];
 
   if (exists && !versionChanged && options.allowOverwrite) {

@@ -298,7 +298,7 @@ function isUnsafeIpAddress(address: string): boolean {
   const normalized = normalizeHostname(address);
   const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
   if (mappedIpv4) return isUnsafeIpAddress(mappedIpv4[1]);
-  if (/^::ffff:/i.test(normalized)) return true;
+  if (/^::ffff:/i.test(normalized) || /^0:0:0:0:0:ffff:/i.test(normalized)) return true;
   if (normalized === "0.0.0.0" || normalized === "::" || normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") return true;
   if (/^127\./.test(normalized) || /^10\./.test(normalized) || /^169\.254\./.test(normalized)) return true;
   if (/^192\.168\./.test(normalized)) return true;

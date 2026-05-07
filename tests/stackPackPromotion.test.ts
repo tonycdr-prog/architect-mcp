@@ -61,6 +61,7 @@ describe("promoteStackPackCandidateToFiles", () => {
     assert.equal(dryRun.dryRun, true);
     assert.equal(dryRun.files.some((file) => file.path.endsWith("/packs/acme-zod-runtime.json")), true);
     assert.equal(dryRun.files.some((file) => file.path.endsWith("/packs/manifest.json")), true);
+    assert.equal(dryRun.warnings.some((warning) => warning.includes(`${packDirectory}/acme-zod-runtime.json`) && warning.includes(`${packDirectory}/manifest.json`)), true);
     assert.equal(written.dryRun, false);
     assert.equal(manifest.entries.some((entry) => entry.id === "acme-zod-runtime"), true);
     assert.equal(JSON.parse(readFileSync(join(packDirectory, "acme-zod-runtime.json"), "utf8")).id, "acme-zod-runtime");
