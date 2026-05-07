@@ -108,4 +108,35 @@ describe("stateless harness memory", () => {
 
     assert.equal(result.proposals.some((proposal) => proposal.sensitivity === "secret" && proposal.policyAction === "discard"), true);
   });
+
+  it("merges duplicate harness assumptions with the stricter risk and higher confidence", () => {
+    const intent = interpretImplementationIntent({
+      request: "fix this with best practices"
+    });
+    intent.assumptions = [
+      {
+        statement: "Keep the change scoped to the reported problem.",
+        reason: "Initial low-risk assumption.",
+        confidence: "low",
+        risk: "low",
+        invalidatedBy: "The user asks for broader cleanup."
+      },
+      {
+        statement: "Keep the change scoped to the reported problem.",
+        reason: "Later evidence shows a risky assumption.",
+        confidence: "high",
+        risk: "high",
+        invalidatedBy: "The user confirms broad refactoring."
+      }
+    ];
+
+    const result = extractHarnessMemory({ intent });
+    const duplicates = result.proposals.filter((proposal) => proposal.statement === "Keep the change scoped to the reported problem.");
+    const merged = duplicates[0];
+
+    assert.equal(duplicates.length, 1);
+    assert.equal(merged?.risk, "red");
+    assert.equal(merged?.confidence, "high");
+    assert.equal(merged?.policyAction, "confirm_now");
+  });
 });

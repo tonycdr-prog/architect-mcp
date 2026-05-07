@@ -82,13 +82,18 @@ function mergeMemoryRisk(left: MemoryProposal, right: MemoryProposal): MemoryPro
   const risk = sensitivity === "secret" ? "red" : higherRisk(left.risk, right.risk);
   return {
     ...left,
-    confidence: left.confidence === "high" || right.confidence === "high" ? "high" : left.confidence,
+    confidence: higherConfidence(left.confidence, right.confidence),
     risk,
     sensitivity,
-    policyAction: sensitivity === "secret" ? "discard" : left.policyAction,
+    policyAction: mergedPolicyAction(left.policyAction, right.policyAction, risk, sensitivity),
     tags: [...new Set([...left.tags, ...right.tags])],
     reviewNote: sensitivity === "secret" ? "Ask before storing or applying." : left.reviewNote ?? right.reviewNote
   };
+}
+
+function higherConfidence(left: "high" | "medium" | "low", right: "high" | "medium" | "low"): "high" | "medium" | "low" {
+  const order = ["low", "medium", "high"];
+  return order.indexOf(right) > order.indexOf(left) ? right : left;
 }
 
 function higherSensitivity(left: MemorySensitivity, right: MemorySensitivity): MemorySensitivity {
@@ -99,6 +104,15 @@ function higherSensitivity(left: MemorySensitivity, right: MemorySensitivity): M
 function higherRisk(left: MemoryRisk, right: MemoryRisk): MemoryRisk {
   const order: MemoryRisk[] = ["green", "yellow", "red"];
   return order.indexOf(right) > order.indexOf(left) ? right : left;
+}
+
+function mergedPolicyAction(left: MemoryPolicyAction, right: MemoryPolicyAction, risk: MemoryRisk, sensitivity: MemorySensitivity): MemoryPolicyAction {
+  if (sensitivity === "secret") return "discard";
+  const order: MemoryPolicyAction[] = ["auto_store", "batch_review", "confirm_now", "discard"];
+  const stricter = order.indexOf(right) > order.indexOf(left) ? right : left;
+  if (risk === "red" && order.indexOf(stricter) < order.indexOf("confirm_now")) return "confirm_now";
+  if (risk === "yellow" && order.indexOf(stricter) < order.indexOf("batch_review")) return "batch_review";
+  return stricter;
 }
 
 export function reviewMemoryRelevance(input: MemoryRelevanceInput): { valid: boolean; findings: Array<{ id: string; severity: "warning" | "error"; message: string; recommendation: string }> } {
