@@ -2,7 +2,7 @@ const LOCAL_ONLY_TOOLS = new Set(["review_local_workspace", "scan_mcp_config_fil
 const FUTURE_ADAPTER_TOOLS = new Set(["extract_harness_memory", "apply_harness_memory", "review_memory_relevance"]);
 
 export function classifyToolPolicy(toolNames: string[]) {
-  const tools = toolNames.sort().map((name) => {
+  const tools = [...toolNames].sort().map((name) => {
     const policy = LOCAL_ONLY_TOOLS.has(name)
       ? "local-only" as const
       : FUTURE_ADAPTER_TOOLS.has(name) ? "future-adapter" as const : "hosted-safe" as const;

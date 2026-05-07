@@ -269,38 +269,18 @@ export function registerV5V9Tools(server: McpServer): void {
     outputSchema: genericObjectOutputSchema
   }, async ({ request }) => safeJsonResponse(() => reviewToolLoopQuality(request)));
 
-  server.registerTool("run_v5_eval_harness", {
-    title: "Run V5 Eval Harness",
-    description: "Run deterministic V5 standards-intelligence evals.",
-    inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
-    outputSchema: genericObjectOutputSchema
-  }, async () => safeJsonResponse(() => runV5V9EvalHarness("v5")));
-
-  server.registerTool("run_v6_eval_harness", {
-    title: "Run V6 Eval Harness",
-    description: "Run deterministic V6 local-governance evals.",
-    inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
-    outputSchema: genericObjectOutputSchema
-  }, async () => safeJsonResponse(() => runV5V9EvalHarness("v6")));
-
-  server.registerTool("run_v7_eval_harness", {
-    title: "Run V7 Eval Harness",
-    description: "Run deterministic V7 strategic-planning evals.",
-    inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
-    outputSchema: genericObjectOutputSchema
-  }, async () => safeJsonResponse(() => runV5V9EvalHarness("v7")));
-
-  server.registerTool("run_v8_eval_harness", {
-    title: "Run V8 Eval Harness",
-    description: "Run deterministic V8 governance-automation evals.",
-    inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
-    outputSchema: genericObjectOutputSchema
-  }, async () => safeJsonResponse(() => runV5V9EvalHarness("v8")));
-
-  server.registerTool("run_v9_eval_harness", {
-    title: "Run V9 Eval Harness",
-    description: "Run deterministic V9 operating-model evals across V5-V9.",
-    inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
-    outputSchema: genericObjectOutputSchema
-  }, async () => safeJsonResponse(() => runV5V9EvalHarness("v9")));
+  for (const stage of [
+    ["v5", "standards-intelligence"],
+    ["v6", "local-governance"],
+    ["v7", "strategic-planning"],
+    ["v8", "governance-automation"],
+    ["v9", "operating-model"]
+  ] as const) {
+    server.registerTool(`run_${stage[0]}_eval_harness`, {
+      title: `Run ${stage[0].toUpperCase()} Eval Harness`,
+      description: `Run deterministic ${stage[0].toUpperCase()} ${stage[1]} evals.`,
+      inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
+      outputSchema: genericObjectOutputSchema
+    }, async () => safeJsonResponse(() => runV5V9EvalHarness(stage[0])));
+  }
 }

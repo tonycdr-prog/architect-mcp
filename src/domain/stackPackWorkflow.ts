@@ -6,7 +6,7 @@ import { fetchLlmsSource, listIngestedLlmsSources } from "./llmsSources.js";
 import { candidateRulesForText, slugify, titleize } from "./stackPackCandidateRules.js";
 import { analyzeStackPackConflicts } from "./stackPackConflicts.js";
 import { bumpVersion, diffManifestEntries, nextPackManifest, readPackManifest } from "./stackPackPromotionFiles.js";
-import { listStackPacks } from "./stackPacks.js";
+import { clearStackPackCache, listStackPacks } from "./stackPacks.js";
 import type { IngestedLlmsSource, LlmsSourceSnapshot, ReviewViolation, StackPack, StackPackCandidate, StackPackCandidateInput, StackPackConflict } from "./types.js";
 
 export { analyzeStackPackConflicts } from "./stackPackConflicts.js";
@@ -190,8 +190,8 @@ export function promoteStackPackCandidateToFiles(candidate: StackPackCandidate, 
     allowExistingId: true
   });
   const packDirectory = options.packDirectory ?? "packs";
-  const packPath = `packs/${promotion.pack.id}.json`;
-  const manifestPath = "packs/manifest.json";
+  const packPath = `${packDirectory.replace(/\/$/, "")}/${promotion.pack.id}.json`;
+  const manifestPath = `${packDirectory.replace(/\/$/, "")}/manifest.json`;
   const absolutePackDirectory = resolve(process.cwd(), packDirectory);
   const absolutePackPath = resolve(absolutePackDirectory, `${promotion.pack.id}.json`);
   const existingPack = packDirectory === "packs" ? listStackPacks().find((pack) => pack.id === promotion.pack.id) : undefined;
@@ -228,6 +228,7 @@ export function promoteStackPackCandidateToFiles(candidate: StackPackCandidate, 
     }
     writeFileSync(absolutePackPath, packContent, "utf8");
     writeFileSync(resolve(absolutePackDirectory, "manifest.json"), manifestContent, "utf8");
+    clearStackPackCache();
     warnings.push("Wrote stack-pack files. Run validate_stack_packs before using the promoted pack.");
   }
 

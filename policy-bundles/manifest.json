@@ -1,0 +1,20 @@
+{
+  "generatedBy": "architect-mcp",
+  "entries": [
+    {
+      "id": "balanced-local",
+      "version": "0.1.0",
+      "sha256": "e7d6206ebfbae8d1ca2dc814c3c799549586498443e6a1c3f8b134f9470556b8"
+    },
+    {
+      "id": "novice-friendly",
+      "version": "0.1.0",
+      "sha256": "f93ec767d89d3a57c3504554dda5cd2deea725a0ee122cd519c8c7baf7e40eb4"
+    },
+    {
+      "id": "strict-production",
+      "version": "0.1.0",
+      "sha256": "5dc34c0f6c0cd7d9beca2320bb239dcbb0164a5cd48e6ded66bf99887fef9388"
+    }
+  ]
+}

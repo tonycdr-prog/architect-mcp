@@ -24,7 +24,16 @@
       "arguments": {
         "input": {
           "contract": "<create_pre_edit_contract result.contract>",
-          "changedFiles": ["<file summaries>"],
+          "changedFiles": [
+            {
+              "path": "src/features/example/Example.tsx",
+              "lines": 120,
+              "imports": ["../api/example"],
+              "envAccesses": [],
+              "hasUseClient": true,
+              "hasDirectDbAccess": false
+            }
+          ],
           "verification": [{ "check": "npm test", "status": "passed" }]
         }
       }

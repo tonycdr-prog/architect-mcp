@@ -1,27 +1,32 @@
 import { z } from "zod";
 
+export const shortTextSchema = z.string().trim().min(1).max(500);
+export const textSchema = z.string().trim().min(1).max(4_000);
+export const documentTextSchema = z.string().trim().min(1).max(250_000);
+export const textListSchema = z.array(textSchema).max(500);
+
 export const stackSchema = z.object({
-  frontend: z.string().optional(),
-  backend: z.string().optional(),
-  database: z.string().optional(),
-  auth: z.string().optional(),
-  deployment: z.string().optional()
+  frontend: shortTextSchema.optional(),
+  backend: shortTextSchema.optional(),
+  database: shortTextSchema.optional(),
+  auth: shortTextSchema.optional(),
+  deployment: shortTextSchema.optional()
 }).strict();
 
 export const projectBriefSchema = z.object({
-  idea: z.string(),
-  users: z.string().optional(),
-  coreFlows: z.array(z.string()).optional(),
-  dataEntities: z.array(z.string()).optional(),
+  idea: textSchema,
+  users: textSchema.optional(),
+  coreFlows: textListSchema.optional(),
+  dataEntities: textListSchema.optional(),
   stack: stackSchema.optional(),
-  constraints: z.array(z.string()).optional(),
+  constraints: textListSchema.optional(),
   repoLayout: z.object({
-    pathMap: z.record(z.string(), z.array(z.string()))
+    pathMap: z.record(shortTextSchema, z.array(shortTextSchema).max(100))
   }).strict().optional(),
-  storage: z.string().optional(),
-  enforcement: z.string().optional(),
-  risk: z.string().optional(),
-  verification: z.array(z.string()).optional()
+  storage: textSchema.optional(),
+  enforcement: textSchema.optional(),
+  risk: textSchema.optional(),
+  verification: textListSchema.optional()
 }).strict();
 
 export const directoryRuleSchema = z.object({
@@ -98,9 +103,9 @@ export const stackPackSchema = z.object({
 }).strict();
 
 export const stackPackCandidateInputSchema = z.object({
-  stackName: z.string(),
-  sourceText: z.string(),
-  sourceLabel: z.string().optional(),
+  stackName: shortTextSchema,
+  sourceText: documentTextSchema,
+  sourceLabel: shortTextSchema.optional(),
   sourceUrl: z.string().url().optional()
 }).strict();
 

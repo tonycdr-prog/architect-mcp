@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -491,10 +492,56 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "scan_mcp_config_files"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "review_repo_structure"), true);
       const scanAttempt = await callToolRaw(client, "review_local_workspace", {
-        rootPath: join(process.cwd(), "src")
+        rootPath: process.cwd()
       });
       assert.equal(scanAttempt.isError, true);
     } finally {
+      await close();
+    }
+  });
+
+  it("refuses local workspace scans outside cwd unless explicitly allowed", async () => {
+    const { client, close } = await connectTestClient();
+    const outsideRoot = mkdtempSync(join(tmpdir(), "architect-mcp-outside-"));
+    writeFileSync(join(outsideRoot, "sample.ts"), "export const ok = true;\n", "utf8");
+    try {
+      const refused = await callToolRaw(client, "review_local_workspace", {
+        rootPath: outsideRoot
+      });
+      assert.equal(refused.isError, true);
+      assert.match(refused.content.find((content) => content.type === "text")?.text ?? "", /Refusing to scan/);
+
+      const allowed = await callJson(client, "review_local_workspace", {
+        rootPath: outsideRoot,
+        allowOutsideCwd: true
+      });
+      assert.equal(allowed.filesReviewed, 1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("does not let caller-controlled roots or symlinks bypass local scan confinement", async () => {
+    const { client, close } = await connectTestClient();
+    const outsideRoot = mkdtempSync(join(tmpdir(), "architect-mcp-symlink-target-"));
+    const linkPath = join(process.cwd(), `.architect-mcp-symlink-${Date.now()}`);
+    writeFileSync(join(outsideRoot, "sample.ts"), "export const ok = true;\n", "utf8");
+    symlinkSync(outsideRoot, linkPath, "dir");
+
+    try {
+      const refusedViaAllowedRootPath = await callToolRaw(client, "review_local_workspace", {
+        rootPath: outsideRoot,
+        allowedRootPath: outsideRoot
+      });
+      assert.equal(refusedViaAllowedRootPath.isError, true);
+
+      const refusedSymlink = await callToolRaw(client, "review_local_workspace", {
+        rootPath: linkPath
+      });
+      assert.equal(refusedSymlink.isError, true);
+      assert.match(refusedSymlink.content.find((content) => content.type === "text")?.text ?? "", /Refusing to scan/);
+    } finally {
+      rmSync(linkPath, { force: true });
       await close();
     }
   });

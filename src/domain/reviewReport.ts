@@ -34,7 +34,7 @@ export function createReviewReport(violations: ReviewViolation[], options: Revie
   const suppressed = Math.max(0, eligible.length - shownSet.size);
   const noiseSuppressed = ignored.length + groupedLineWarnings.length;
   const baselineSuppressed = baselineFindings.length;
-  const score = scoreReview(errors, warnings, noiseSuppressed);
+  const score = scoreReview(errors, warnings);
   const lifecycleGate = {
     acceptedWithoutReason: countAcceptedWithoutReason(options.baseline),
     newHighConfidenceErrors: eligible.filter((violation) => violation.severity === "error" && violation.confidence === "high").length
@@ -211,8 +211,8 @@ function defaultMinScore(mode: ReviewMode): number {
   return 70;
 }
 
-function scoreReview(errors: number, warnings: number, noiseSuppressed: number): number {
-  return Math.max(0, Math.min(100, 100 - errors * 12 - Math.min(warnings, 80) * 0.35 + Math.min(noiseSuppressed, 40) * 0.05));
+function scoreReview(errors: number, warnings: number): number {
+  return Math.max(0, Math.min(100, 100 - errors * 12 - Math.min(warnings, 80) * 0.35));
 }
 
 function gradeReview(score: number): ReviewReport["grade"] {

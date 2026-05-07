@@ -100,7 +100,9 @@ export function getChallenges(brief: ProjectBrief, missingFields: string[]): Gri
       whyItMatters: "Blocking enforcement needs deterministic checks, not general best-practice advice."
     });
   }
-  return challenges.slice(0, 8);
+  const blockers = challenges.filter((challenge) => challenge.severity === "blocker");
+  const pressureTests = challenges.filter((challenge) => challenge.severity !== "blocker").slice(0, Math.max(0, 8 - blockers.length));
+  return [...blockers, ...pressureTests];
 }
 
 export function scoreReadiness(answeredCount: number, blockerCount: number, challengeCount: number): number {

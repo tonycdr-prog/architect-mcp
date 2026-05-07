@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,10 +24,16 @@ export function listPolicyBundles(): { bundles: PolicyBundle[] } {
 export function validatePolicyBundles(): { valid: boolean; errors: string[]; bundleCount: number } {
   const errors: string[] = [];
   const ids = new Set<string>();
-  for (const bundle of loadPolicyBundles()) {
-    if (ids.has(bundle.id)) errors.push(`Duplicate policy bundle id: ${bundle.id}`);
-    ids.add(bundle.id);
-    if (!/^\d+\.\d+\.\d+$/.test(bundle.version)) errors.push(`${bundle.id}: version must be semver.`);
+  try {
+    const bundles = loadPolicyBundles();
+    errors.push(...validatePolicyBundleManifest());
+    for (const bundle of bundles) {
+      if (ids.has(bundle.id)) errors.push(`Duplicate policy bundle id: ${bundle.id}`);
+      ids.add(bundle.id);
+      if (!/^\d+\.\d+\.\d+$/.test(bundle.version)) errors.push(`${bundle.id}: version must be semver.`);
+    }
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
   return { valid: errors.length === 0, errors, bundleCount: ids.size };
 }
@@ -138,8 +145,49 @@ function loadPolicyBundles(): PolicyBundle[] {
   const dir = resolvePolicyBundleDirectory();
   return readdirSync(dir)
     .filter((file) => file.endsWith(".json"))
+    .filter((file) => file !== "manifest.json")
     .sort()
     .map((file) => policyBundleSchema.parse(JSON.parse(readFileSync(join(dir, file), "utf8"))));
+}
+
+function validatePolicyBundleManifest(): string[] {
+  const errors: string[] = [];
+  const dir = resolvePolicyBundleDirectory();
+  try {
+    const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")) as {
+      entries?: Array<{ id?: string; version?: string; sha256?: string }>;
+    };
+    const entries = new Map((manifest.entries ?? []).map((entry) => [entry.id, entry]));
+    const files = readdirSync(dir)
+      .filter((file) => file.endsWith(".json"))
+      .filter((file) => file !== "manifest.json")
+      .sort();
+    const seenBundleIds = new Set<string>();
+
+    for (const file of files) {
+      const content = readFileSync(join(dir, file), "utf8");
+      const bundle = JSON.parse(content) as { id?: string; version?: string };
+      if (bundle.id) seenBundleIds.add(bundle.id);
+      const entry = entries.get(bundle.id);
+      if (!entry) {
+        errors.push(`${bundle.id ?? file}: missing policy-bundle manifest entry`);
+        continue;
+      }
+      const hash = createHash("sha256").update(content).digest("hex");
+      if (entry.version !== bundle.version) errors.push(`${bundle.id}: policy-bundle manifest version ${entry.version} does not match bundle version ${bundle.version}`);
+      if (entry.sha256 !== hash) errors.push(`${bundle.id}: policy-bundle content changed without updating policy-bundles/manifest.json`);
+    }
+
+    for (const entry of manifest.entries ?? []) {
+      if (entry.id && !seenBundleIds.has(entry.id)) {
+        errors.push(`${entry.id}: stale policy-bundle manifest entry has no matching bundle file`);
+      }
+    }
+  } catch (error) {
+    errors.push(`Could not validate policy-bundle manifest: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  return errors;
 }
 
 function resolvePolicyBundleDirectory(): string {

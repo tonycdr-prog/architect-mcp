@@ -73,7 +73,7 @@ export function planPrimerDashboard(input: { screenRoute?: string } = {}) {
 export function validateV10ProductizationBoundary(input: V10BoundaryReviewRequest = {}) {
   const findings: V10Finding[] = [];
   for (const route of input.routes ?? []) {
-    if (route.path.includes(":orgId") && route.tenantScoped === false) {
+    if (route.path.includes(":orgId") && route.tenantScoped !== true) {
       findings.push(finding("V10_ROUTE_TENANT_SCOPE", "fail", "product-api", `${route.path} includes orgId but is not tenant-scoped.`, "Require org_id authorization before repository access."));
     }
     if (!route.repositoryBoundary) {
@@ -84,7 +84,7 @@ export function validateV10ProductizationBoundary(input: V10BoundaryReviewReques
     }
   }
   for (const entity of input.storageEntities ?? []) {
-    if (entity.table !== "users" && entity.orgScoped === false) {
+    if (!isGlobalStorageEntity(entity.table) && entity.orgScoped !== true) {
       findings.push(finding("V10_STORAGE_TENANT_SCOPE", "fail", "storage", `${entity.table} is product data without org scope.`, "Add org_id or document why the entity is global infrastructure metadata."));
     }
     if (/raw repo code|source files/i.test(entity.purpose ?? "")) {
@@ -138,10 +138,18 @@ export function runV10EvalHarness() {
     {
       name: "Primer dashboard follows MCP component constraints",
       passed: planPrimerDashboard().constraints.some((constraint) => /Do not use sx/.test(constraint))
+        && validateV10ProductizationBoundary({ dashboardScreens: planPrimerDashboard().screens }).status === "pass"
     },
     {
       name: "boundary review fails raw code persistence",
       passed: validateV10ProductizationBoundary({ storageEntities: [{ table: "repo_files", orgScoped: true, purpose: "Store raw repo code" }] }).status === "fail"
+    },
+    {
+      name: "org routes and storage must declare tenant scope",
+      passed: validateV10ProductizationBoundary({
+        routes: [{ path: "/v1/orgs/:orgId/projects", repositoryBoundary: "ProjectRepository" }],
+        storageEntities: [{ table: "projects", purpose: "Project records" }]
+      }).status === "fail"
     },
     {
       name: "billing cannot gate local MCP safety",
@@ -180,4 +188,8 @@ function statusFromFindings(findings: V10Finding[]): V10ReadinessStatus {
 
 function isRolloutMode(mode: string | undefined): mode is V10RolloutMode {
   return mode === "suggest" || mode === "warn" || mode === "block";
+}
+
+function isGlobalStorageEntity(table: string): boolean {
+  return table === "users";
 }

@@ -11,6 +11,8 @@ import { validatePolicyBundles } from "./v6Governance.js";
 import { runV5V9EvalHarness } from "./v5V9EvalHarness.js";
 import { runV10EvalHarness } from "./v10Productization.js";
 import { runRepoQualityEvalScenarios } from "./repoQualityEval.js";
+import { classifyToolPolicy } from "./toolPolicy.js";
+import { registeredArchitectureToolNames } from "../tools/toolRegistry.js";
 
 export type McpReadinessReport = {
   ready: boolean;
@@ -68,16 +70,20 @@ export async function createMcpReadinessReport(): Promise<McpReadinessReport> {
     summary: `Self-review gate ${selfReview.review.gate.status}; score ${selfReview.review.score}; findings ${selfReview.review.findings}.`
   });
 
+  const hostedPolicy = classifyToolPolicy(registeredArchitectureToolNames(false));
   checks.push({
     name: "hosted safety",
-    status: "pass",
-    summary: "Hosted server construction disables local workspace scanning; MCP policy tests verify review_local_workspace is not listed in hosted mode."
+    status: hostedPolicy.tools.some((tool) => tool.policy === "local-only") ? "fail" : "pass",
+    summary: hostedPolicy.tools.some((tool) => tool.policy === "local-only")
+      ? "Hosted tool registry includes local-only tools."
+      : `${hostedPolicy.tools.length} hosted-mode tools are classified without local-only filesystem access.`
   });
 
+  const localPolicy = classifyToolPolicy(registeredArchitectureToolNames(true));
   checks.push({
     name: "tool schema policy",
-    status: "pass",
-    summary: "Tool policy tests verify strict inputs, output schemas, predictable errors, and hosted-mode filesystem safety."
+    status: localPolicy.tools.length === registeredArchitectureToolNames(true).length ? "pass" : "fail",
+    summary: `${localPolicy.tools.length}/${registeredArchitectureToolNames(true).length} registered tools have hosted policy classification; local-only tools: ${localPolicy.summary.localOnly}.`
   });
 
   const stagedEval = runV5V9EvalHarness("v9");
