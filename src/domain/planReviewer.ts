@@ -10,10 +10,13 @@ export function reviewProposedFilePlan(plan: ProposedFilePlan): ReviewViolation[
 
   for (const file of files) {
     const responsibilities = file.responsibilities ?? [];
-    if (responsibilities.length > 3 || (APP_FILE_PATTERN.test(file.path) && /workflow|database|auth|routing|state|ui/i.test(`${file.purpose} ${responsibilities.join(" ")}`))) {
+    const responsibilityText = `${file.purpose} ${responsibilities.join(" ")}`;
+    const highRiskAppEntry = APP_FILE_PATTERN.test(file.path) && highRiskResponsibilityCount(responsibilityText) >= 4;
+    if (responsibilities.length > 3 || highRiskAppEntry || (APP_FILE_PATTERN.test(file.path) && /workflow|database|auth|routing|state|ui/i.test(responsibilityText))) {
       findings.push(createFinding({
         code: "ARCH015_PLAN_MONOLITH_RISK",
-        severity: "warning",
+        severity: highRiskAppEntry ? "error" : "warning",
+        confidence: highRiskAppEntry ? "high" : undefined,
         path: file.path,
         message: "Proposed file plan concentrates too many responsibilities in one file.",
         recommendation: "Split app entry, routes/screens, services, data access, state, and presentation into named modules."
@@ -49,4 +52,12 @@ export function reviewProposedFilePlan(plan: ProposedFilePlan): ReviewViolation[
   }
 
   return findings;
+}
+
+function highRiskResponsibilityCount(text: string): number {
+  return ["workflow", "database", "auth", "routing", "state", "ui"].filter((term) => responsibilityTermPattern(term).test(text)).length;
+}
+
+function responsibilityTermPattern(term: string): RegExp {
+  return new RegExp(`(^|[^a-z0-9])${term}([^a-z0-9]|$)`, "i");
 }

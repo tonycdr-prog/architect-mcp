@@ -15,15 +15,24 @@ export type V10BoundaryReviewRequest = {
 
 export function getV10ProductizationBlueprint(input: V10BlueprintRequest = {}) {
   const area = input.area ?? "all";
+  const routes = filterByArea(v10ApiRoutes, area);
+  const storage = filterByArea(v10StorageEntities, area);
+  const implementationSlices = v10ImplementationSlices.filter((slice) => area === "all" || slice.areas.includes(area));
+  const dashboardScreens = area === "all" || area === "dashboard" ? v10DashboardScreens : [];
+  const warnings = [
+    ...(area !== "all" && routes.length === 0 && storage.length === 0 && implementationSlices.length === 0 && dashboardScreens.length === 0
+      ? [`No V10 blueprint entries matched area ${area}.`] : [])
+  ];
   return {
     version: "v10",
     status: "implementation-contract",
     principle: "Hosted product features wrap the local-first MCP core; they do not replace or weaken it.",
-    routes: filterByArea(v10ApiRoutes, area),
-    storage: filterByArea(v10StorageEntities, area),
-    repositoryBoundaries: v10RepositoryBoundaries.filter((boundary) => area === "all" || boundary.owns.some((owned) => filterByArea(v10StorageEntities, area).some((entity) => entity.table === owned))),
-    dashboardScreens: area === "all" || area === "dashboard" ? v10DashboardScreens : [],
-    implementationSlices: v10ImplementationSlices.filter((slice) => area === "all" || slice.areas.includes(area)),
+    routes,
+    storage,
+    repositoryBoundaries: v10RepositoryBoundaries.filter((boundary) => area === "all" || boundary.owns.some((owned) => storage.some((entity) => entity.table === owned))),
+    dashboardScreens,
+    implementationSlices,
+    warnings,
     nonNegotiables: [
       "No raw repo code persistence by default.",
       "Every org-scoped route and table must enforce org_id tenant boundaries.",
@@ -39,6 +48,7 @@ export function createV10ImplementationSlicePlan(input: { sliceId?: string } = {
   const selected = input.sliceId ? v10ImplementationSlices.filter((slice) => slice.id === input.sliceId) : v10ImplementationSlices;
   return {
     slices: selected,
+    warnings: input.sliceId && selected.length === 0 ? [`No V10 implementation slice matched ${input.sliceId}.`] : [],
     mcpLoopRequired: true,
     beforeEverySlice: ["interpret_implementation_intent", "load_triggered_stack_guidance", "create_pre_edit_contract", "review_proposed_file_plan"],
     afterEverySlice: ["review_implementation_against_contract", "review_repo_structure", "review_agent_session", "score_agent_artifacts", "mcp_readiness_report"],
@@ -60,6 +70,7 @@ export function planPrimerDashboard(input: { screenRoute?: string } = {}) {
       "Loading and error states must preserve keyboard focus and announce status."
     ],
     screens,
+    warnings: input.screenRoute && screens.length === 0 ? [`No Primer dashboard screen matched ${input.screenRoute}.`] : [],
     sharedLayout: {
       shell: ["PageLayout", "PageHeader", "NavList"],
       status: ["Label", "StateLabel", "Banner", "Flash"],
@@ -72,8 +83,17 @@ export function planPrimerDashboard(input: { screenRoute?: string } = {}) {
 
 export function validateV10ProductizationBoundary(input: V10BoundaryReviewRequest = {}) {
   const findings: V10Finding[] = [];
+  if (!input.routes?.length) {
+    findings.push(finding("V10_ROUTE_EVIDENCE_MISSING", "warn", "product-api", "No product API routes were supplied for tenant/repository-boundary review.", "Supply the affected routes with auth, tenantScoped, and repositoryBoundary evidence."));
+  }
+  if (!input.storageEntities?.length) {
+    findings.push(finding("V10_STORAGE_EVIDENCE_MISSING", "warn", "storage", "No storage entities were supplied for tenant-scope review.", "Supply affected tables/entities with orgScoped and purpose evidence."));
+  }
+  if (!input.policyRollouts?.length) {
+    findings.push(finding("V10_POLICY_EVIDENCE_MISSING", "warn", "remote-policy", "No policy rollout evidence was supplied.", "Supply rollout mode, local-instruction conflict handling, and emergency disable evidence."));
+  }
   for (const route of input.routes ?? []) {
-    if (route.path.includes(":orgId") && route.tenantScoped === false) {
+    if (route.path.includes(":orgId") && route.tenantScoped !== true) {
       findings.push(finding("V10_ROUTE_TENANT_SCOPE", "fail", "product-api", `${route.path} includes orgId but is not tenant-scoped.`, "Require org_id authorization before repository access."));
     }
     if (!route.repositoryBoundary) {
@@ -84,7 +104,7 @@ export function validateV10ProductizationBoundary(input: V10BoundaryReviewReques
     }
   }
   for (const entity of input.storageEntities ?? []) {
-    if (entity.table !== "users" && entity.orgScoped === false) {
+    if (entity.table !== "users" && entity.orgScoped !== true) {
       findings.push(finding("V10_STORAGE_TENANT_SCOPE", "fail", "storage", `${entity.table} is product data without org scope.`, "Add org_id or document why the entity is global infrastructure metadata."));
     }
     if (/raw repo code|source files/i.test(entity.purpose ?? "")) {
@@ -103,10 +123,10 @@ export function validateV10ProductizationBoundary(input: V10BoundaryReviewReques
     if (!isRolloutMode(rollout.mode)) {
       findings.push(finding("V10_POLICY_ROLLOUT_MODE", "fail", "remote-policy", `Unsupported rollout mode ${rollout.mode ?? "missing"}.`, "Use suggest, warn, or block."));
     }
-    if (rollout.preservesLocalInstructions === false) {
+    if (rollout.preservesLocalInstructions !== true) {
       findings.push(finding("V10_POLICY_LOCAL_CONFLICT", "fail", "remote-policy", "Remote policy can override local repo instructions silently.", "Surface the conflict and require explicit resolution."));
     }
-    if (rollout.hasEmergencyDisable === false) {
+    if (rollout.hasEmergencyDisable !== true) {
       findings.push(finding("V10_POLICY_NO_DISABLE", "warn", "remote-policy", "Policy rollout lacks emergency disable.", "Add an emergency disable or rollback path."));
     }
   }
@@ -137,7 +157,8 @@ export function runV10EvalHarness() {
     },
     {
       name: "Primer dashboard follows MCP component constraints",
-      passed: planPrimerDashboard().constraints.some((constraint) => /Do not use sx/.test(constraint))
+      passed: planPrimerDashboard().constraints.some((constraint) => /Do not use sx/.test(constraint)) &&
+        validateV10ProductizationBoundary({ dashboardScreens: planPrimerDashboard().screens, routes: v10ApiRoutes, storageEntities: v10StorageEntities, policyRollouts: [{ mode: "warn", preservesLocalInstructions: true, hasEmergencyDisable: true }] }).status === "pass"
     },
     {
       name: "boundary review fails raw code persistence",

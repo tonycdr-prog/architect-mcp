@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import ts from "typescript";
+import { normalizePath, pathPatternToRegExp } from "../domain/pathRules.js";
 import type { FileSummary } from "../domain/types.js";
 
 const DEFAULT_IGNORES = new Set([
@@ -13,36 +14,91 @@ const DEFAULT_IGNORES = new Set([
   ".cache"
 ]);
 
-export async function scanWorkspace(rootPath: string, maxFiles: number): Promise<FileSummary[]> {
-  const summaries: FileSummary[] = [];
-  await walk(rootPath, rootPath, summaries, maxFiles);
-  return summaries;
+export type WorkspaceScanResult = {
+  files: FileSummary[];
+  truncated: boolean;
+  maxFiles: number;
+  ignoredPatterns: string[];
+};
+
+export async function scanWorkspace(rootPath: string, maxFiles: number, options: { ignorePatterns?: string[] } = {}): Promise<FileSummary[]> {
+  return (await scanWorkspaceWithMetadata(rootPath, maxFiles, options)).files;
 }
 
-async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number): Promise<void> {
-  if (summaries.length >= maxFiles) return;
+export async function scanWorkspaceWithMetadata(rootPath: string, maxFiles: number, options: { ignorePatterns?: string[] } = {}): Promise<WorkspaceScanResult> {
+  const summaries: FileSummary[] = [];
+  const state = { truncated: false };
+  const ignoredPatterns = options.ignorePatterns ?? [];
+  const compiledIgnores = ignoredPatterns.map(compileIgnorePattern);
+  await walk(rootPath, rootPath, summaries, maxFiles, compiledIgnores, state);
+  return {
+    files: summaries,
+    truncated: state.truncated,
+    maxFiles,
+    ignoredPatterns
+  };
+}
+
+type CompiledIgnorePattern = {
+  normalized: string;
+  regex: RegExp;
+  directoryRegex: RegExp;
+  prefix?: string;
+};
+
+async function walk(rootPath: string, currentPath: string, summaries: FileSummary[], maxFiles: number, ignorePatterns: CompiledIgnorePattern[], state: { truncated: boolean }): Promise<void> {
+  if (summaries.length >= maxFiles) {
+    state.truncated = true;
+    return;
+  }
 
   const entries = await readdir(currentPath, { withFileTypes: true });
   for (const entry of entries) {
-    if (summaries.length >= maxFiles) return;
+    if (summaries.length >= maxFiles) {
+      state.truncated = true;
+      return;
+    }
     if (DEFAULT_IGNORES.has(entry.name)) continue;
 
     const absolutePath = join(currentPath, entry.name);
+    const relativePath = normalizePath(relative(rootPath, absolutePath));
+    if (isIgnored(relativePath, entry.isDirectory(), ignorePatterns)) continue;
     if (entry.isDirectory()) {
-      await walk(rootPath, absolutePath, summaries, maxFiles);
+      await walk(rootPath, absolutePath, summaries, maxFiles, ignorePatterns, state);
       continue;
     }
 
     if (!entry.isFile()) continue;
     const metadata = await stat(absolutePath);
-    const path = relative(rootPath, absolutePath);
-
     summaries.push({
-      path,
+      path: relativePath,
       bytes: metadata.size,
       ...(await summarizeContent(absolutePath, metadata.size))
     });
   }
+}
+
+function compileIgnorePattern(pattern: string): CompiledIgnorePattern {
+  const normalized = normalizePath(pattern);
+  return {
+    normalized,
+    regex: pathPatternToRegExp(normalized),
+    directoryRegex: pathPatternToRegExp(normalized.endsWith("/") ? normalized : `${normalized}/`),
+    prefix: normalized.endsWith("/**") ? normalized.slice(0, -3) : undefined
+  };
+}
+
+function isIgnored(path: string, isDirectory: boolean, ignorePatterns: CompiledIgnorePattern[]): boolean {
+  return ignorePatterns.some((pattern) => {
+    if (pattern.prefix) {
+      const prefix = pattern.prefix;
+      return path === prefix || path.startsWith(`${prefix}/`);
+    }
+    return pattern.regex.test(path) ||
+      (isDirectory && pattern.directoryRegex.test(`${path}/`)) ||
+      path === pattern.normalized ||
+      path.startsWith(`${pattern.normalized.replace(/\/$/, "")}/`);
+  });
 }
 
 async function summarizeContent(path: string, bytes: number): Promise<Omit<FileSummary, "path" | "bytes">> {
@@ -129,6 +185,17 @@ function extractEnvAccessesWithTypescript(content: string, path: string): string
       node.expression.name.text === "env"
     ) {
       envAccesses.add(node.name.text);
+    }
+
+    if (
+      ts.isElementAccessExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "process" &&
+      node.expression.name.text === "env" &&
+      ts.isStringLiteralLike(node.argumentExpression)
+    ) {
+      envAccesses.add(node.argumentExpression.text);
     }
 
     ts.forEachChild(node, visit);

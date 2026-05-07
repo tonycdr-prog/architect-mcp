@@ -17,7 +17,11 @@ describe("V10 readiness release gates", () => {
     assert.equal(packageJson.scripts["check:v3"], "node dist/scripts/checkV3Readiness.js");
     assert.equal(packageJson.scripts["check:v10"], "node dist/scripts/checkStagedReadiness.js v10");
     assert.equal(packageJson.scripts["release:check"], "npm run check:v10");
+    assert.equal(packageJson.scripts["secret:scan"], "node scripts/secretScan.mjs");
     assert.equal(packageJson.files.includes("scripts"), false);
+    assert.equal(packageJson.files.includes("scripts/secretScan.mjs"), true);
+    assert.equal(packageJson.files.includes("LICENSE"), true);
+    assert.equal(packageJson.files.includes("SECURITY.md"), true);
     assert.match(readFileSync("docs/hosted-api-shape.md", "utf8"), /POST \/v1\/reviews\/session/);
     assert.match(readFileSync("README.md", "utf8"), /npm run check:v3/);
     assert.match(readFileSync("llms.txt", "utf8"), /docs\/hosted-api-shape\.md/);

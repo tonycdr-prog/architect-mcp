@@ -3,7 +3,7 @@ import type { BuildPlan, ProjectBrief } from "./types.js";
 
 export function generateBuildPlan(brief: ProjectBrief): BuildPlan {
   const archetype = inferAppArchetype(brief);
-  const checks = brief.verification?.length ? brief.verification : ["typecheck", "test", "architecture review"];
+  const checks = brief.verification?.length ? brief.verification : ["npm run typecheck", "npm test", "review_repo_structure"];
   const coreFlows = brief.coreFlows?.slice(0, 3) ?? ["first core workflow"];
   const hasFrontend = Boolean(brief.stack?.frontend);
   const hasBackend = Boolean(brief.stack?.backend);
@@ -35,7 +35,7 @@ export function generateBuildPlan(brief: ProjectBrief): BuildPlan {
         allowedDirectories: ["src/app", "src/features", "src/shared", "src/server", "src/db", "tests", "docs"],
         forbiddenFiles: ["src/App.tsx", "src/server.ts", "src/index.ts"],
         files: ["src/app or mapped app entry", "src/features or mapped feature folders", "src/server/services", "src/db"],
-        checks: ["architecture review"],
+        checks: ["review_repo_structure"],
         stopAfter: "Stop if scaffold review finds missing boundaries."
       },
       ...(hasDatabase

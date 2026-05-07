@@ -21,6 +21,19 @@ ${body}`;
 
 This repository uses architect-mcp as a local-first standards, architecture, and verification harness for coding agents. Follow these rules before making implementation changes.
 
+## Project Context
+- Purpose: ${contract.purpose}
+- Stack: ${Object.values(contract.stack).filter(Boolean).join(", ") || "not specified"}
+- Contract version: ${contract.contractVersion}
+
+## Setup Commands
+- Install dependencies using the package manager already present in the repo.
+- Prefer exact repo scripts such as \`npm run typecheck\`, \`npm test\`, and \`npm run build\` when they exist.
+
+## Testing Instructions
+- Run the narrowest meaningful test first, then run the broader verification command before completion.
+- Treat skipped, failed, or unavailable checks as not-done evidence, not success.
+
 ## Build Order For Coding Agents
 1. Run /grill-me and stop if any blocker remains.
 2. Generate or update AGENTS.md, docs/architecture-contract.md, and editor rules.
@@ -34,6 +47,10 @@ This repository uses architect-mcp as a local-first standards, architecture, and
 - Shared folders without at least two real consumers.
 - Backend routes/controllers that own business workflows instead of calling services/use-cases.
 - Database schema changes without migration ownership.
+
+## Code Boundaries
+- Keep workflow logic inside feature, service, repository, or adapter modules named by responsibility.
+- App entry files compose providers and routes; they do not own business workflows, database access, auth policy, or large state orchestration.
 
 ${body}
 

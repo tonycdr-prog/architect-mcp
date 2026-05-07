@@ -1,36 +1,37 @@
 import { z } from "zod";
+import { boundedArray, mediumText, optionalText, shortText } from "./schemaLimits.js";
 
 const userLevelSchema = z.enum(["nontechnical", "beginner", "technical"]);
 
 export const qualityRequirementsProfileSchema = z.object({
   userLevel: userLevelSchema,
-  goals: z.array(z.string()),
-  constraints: z.array(z.string()),
-  knownRisks: z.array(z.string()),
-  missingQuestions: z.array(z.string()),
+  goals: boundedArray(mediumText, 50),
+  constraints: boundedArray(mediumText, 50),
+  knownRisks: boundedArray(shortText, 50),
+  missingQuestions: boundedArray(mediumText, 20),
   confidence: z.enum(["low", "medium", "high"])
 }).strict();
 
 export const qualityRequirementsInputSchema = z.object({
   userLevel: userLevelSchema.optional(),
-  goals: z.array(z.string()).optional(),
-  constraints: z.array(z.string()).optional(),
-  answers: z.array(z.string()).optional(),
-  stackPreference: z.string().optional()
+  goals: boundedArray(mediumText, 50).optional(),
+  constraints: boundedArray(mediumText, 50).optional(),
+  answers: boundedArray(mediumText, 100).optional(),
+  stackPreference: optionalText(shortText)
 }).strict();
 
 const repoQualityPlanSchema = z.object({
-  stack: z.array(z.string()).optional(),
-  architecture: z.string().optional(),
-  tradeoffs: z.array(z.string()).optional(),
-  files: z.array(z.string()).optional(),
-  ciCommands: z.array(z.string()).optional(),
-  testDescriptions: z.array(z.string()).optional(),
-  docs: z.array(z.string()).optional(),
-  envVars: z.array(z.string()).optional(),
-  permissions: z.array(z.string()).optional(),
-  destructiveCommands: z.array(z.string()).optional(),
-  explanations: z.array(z.string()).optional()
+  stack: boundedArray(shortText, 50).optional(),
+  architecture: optionalText(mediumText),
+  tradeoffs: boundedArray(mediumText, 50).optional(),
+  files: boundedArray(shortText, 500).optional(),
+  ciCommands: boundedArray(mediumText, 100).optional(),
+  testDescriptions: boundedArray(mediumText, 100).optional(),
+  docs: boundedArray(mediumText, 100).optional(),
+  envVars: boundedArray(shortText, 100).optional(),
+  permissions: boundedArray(mediumText, 100).optional(),
+  destructiveCommands: boundedArray(mediumText, 50).optional(),
+  explanations: boundedArray(mediumText, 100).optional()
 }).strict();
 
 const repoQualitySignalsSchema = z.object({

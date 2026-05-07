@@ -23,4 +23,15 @@ describe("runV3EvalHarness", () => {
     assert.equal(report.status, "pass");
     assert.deepEqual(report.cases.map((testCase) => testCase.suite), ["mcp-security"]);
   });
+
+  it("defaults empty suite selection to the full suite and runs stack-pack workflow assertions", () => {
+    const empty = runV3EvalHarness({ suites: [] });
+    const stackPack = runV3EvalHarness({ suites: ["stack-pack"] });
+
+    assert.equal(empty.status, "pass");
+    assert.equal(empty.summary.total >= fixture.expected.minimumCases, true);
+    assert.equal(stackPack.status, "pass");
+    assert.equal(stackPack.summary.total, 1);
+    assert.match(stackPack.cases[0]?.actual ?? "", /dryRun/);
+  });
 });

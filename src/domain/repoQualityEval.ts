@@ -9,11 +9,13 @@ export function buildQualityRequirementsProfile(input: {
   answers?: string[];
   stackPreference?: string;
 } = {}): RepoQualityRequirementsProfile {
-  const goals = input.goals?.length ? input.goals : inferGoals(input.answers ?? []);
-  const constraints = input.constraints ?? [];
-  const text = [...goals, ...constraints, ...(input.answers ?? [])].join(" ").toLowerCase();
+  const answers = cleanList(input.answers);
+  const goals = cleanList(input.goals);
+  const constraints = cleanList(input.constraints);
+  const usableGoals = goals.length ? goals : inferGoals(answers);
+  const text = [...usableGoals, ...constraints, ...answers].join(" ").toLowerCase();
   const missingQuestions = [
-    ...(!goals.length ? ["What outcome should the app produce for the user?"] : []),
+    ...(!usableGoals.length ? ["What outcome should the app produce for the user?"] : []),
     ...(!/user|customer|admin|team|owner/.test(text) ? ["Who will use this, and how technical are they?"] : []),
     ...(!/data|store|save|database|local|account|auth|login/.test(text) ? ["What data must be stored, and does it need accounts or login?"] : []),
     ...(!/deploy|host|local|mobile|web|desktop/.test(text) ? ["Where should this run first: local, web, mobile, or hosted?"] : []),
@@ -21,12 +23,16 @@ export function buildQualityRequirementsProfile(input: {
   ];
   return {
     userLevel: input.userLevel ?? (/non.?technical|vibe|beginner|novice/.test(text) ? "beginner" : "technical"),
-    goals,
+    goals: usableGoals,
     constraints,
     knownRisks: riskTerms(text),
     missingQuestions,
     confidence: missingQuestions.length >= 3 ? "low" : missingQuestions.length ? "medium" : "high"
   };
+}
+
+function cleanList(values: string[] | undefined): string[] {
+  return values?.map((value) => value.trim()).filter(Boolean) ?? [];
 }
 
 export function evaluateRepoPlanQuality(input: RepoQualityEvaluationInput = {}) {
@@ -70,7 +76,7 @@ export function runRepoQualityEvalScenarios() {
 function evaluateQuality(input: RepoQualityEvaluationInput, phase: "plan" | "repo") {
   const profile = input.profile ?? buildQualityRequirementsProfile();
   const plan = input.plan ?? {};
-  const signals = input.signals ?? inferSignals(plan);
+  const signals = { ...inferSignals(plan), ...(input.signals ?? {}) };
   const hardGates = hardGateFindings(profile, plan, signals, phase);
   const scores = dimensions.map((dimension) => scoreDimension(dimension, profile, plan, signals));
   const overallScore = Math.round(scores.reduce((sum, score) => sum + score.score, 0) / scores.length);
@@ -91,13 +97,13 @@ function evaluateQuality(input: RepoQualityEvaluationInput, phase: "plan" | "rep
 function hardGateFindings(profile: RepoQualityRequirementsProfile, plan: RepoQualityPlan, signals: RepoQualityArtifactSignals, phase: "plan" | "repo"): RepoQualityFinding[] {
   const findings: RepoQualityFinding[] = [];
   if (signals.hasHardcodedSecrets) findings.push(gate("RQG001_COMMITTED_SECRET", "blocker", "security", "Secrets or secret-like values are present.", "Remove the secret, rotate it, and use environment variables plus .env.example."));
-  if ((plan.envVars?.length ?? 0) > 0 && signals.hasEnvExample === false) findings.push(gate("RQG002_ENV_EXAMPLE_MISSING", "error", "documentation", "Environment variables are needed but .env.example is missing.", "Add .env.example with names and safe placeholder values."));
+  if ((plan.envVars?.length ?? 0) > 0 && signals.hasEnvExample !== true) findings.push(gate("RQG002_ENV_EXAMPLE_MISSING", "error", "documentation", "Environment variables are needed but .env.example is missing.", "Add .env.example with names and safe placeholder values."));
   if (signals.hasMeaningfulCi === false || signals.ciOnlyEchoes) findings.push(gate("RQG003_FAKE_CI", "error", "ci_tests", "CI does not run meaningful checks.", "CI must run real typecheck, tests, lint/build, or equivalent project checks."));
   if (signals.hasMeaningfulTests === false || signals.testsAreTrivial) findings.push(gate("RQG004_FAKE_TESTS", "error", "ci_tests", "Tests are missing, trivial, or fake.", "Add behavior or integration tests that can fail for real regressions."));
   if ((plan.destructiveCommands?.length ?? 0) > 0) findings.push(gate("RQG005_DESTRUCTIVE_COMMAND", "blocker", "security", "Plan includes destructive commands.", "Require explicit user approval and a rollback note before running destructive commands."));
   if (signals.unsafePermissions || (plan.permissions ?? []).some((permission) => /\*|admin|write all|full access/i.test(permission))) findings.push(gate("RQG006_UNSAFE_PERMISSIONS", "blocker", "security", "Permissions are too broad or unsafe.", "Use least-privilege scopes and explain why each permission is needed."));
-  if (signals.hasSetupInstructions === false || (phase === "repo" && signals.hasReadme === false)) findings.push(gate("RQG007_SETUP_DOCS_MISSING", "error", "documentation", "Setup instructions are missing.", "Add README setup, run, test, and deployment notes for the target user."));
-  if (signals.hasAgentsMd === false || signals.agentsMdVague) findings.push(gate("RQG008_AGENTS_MD_WEAK", "error", "agent_readiness", "AGENTS.md is missing or vague.", "Add repo-specific commands, boundaries, verification rules, and non-goals for future agents."));
+  if (signals.hasSetupInstructions === false || (phase === "repo" && signals.hasSetupInstructions !== true) || (phase === "repo" && signals.hasReadme !== true)) findings.push(gate("RQG007_SETUP_DOCS_MISSING", "error", "documentation", "Setup instructions are missing.", "Add README setup, run, test, and deployment notes for the target user."));
+  if (signals.hasAgentsMd === false || (phase === "repo" && signals.hasAgentsMd !== true) || signals.agentsMdVague) findings.push(gate("RQG008_AGENTS_MD_WEAK", "error", "agent_readiness", "AGENTS.md is missing or vague.", "Add repo-specific commands, boundaries, verification rules, and non-goals for future agents."));
   if (profile.userLevel !== "technical" && signals.jargonHeavy) findings.push(gate("RQG009_JARGON_FOR_NOVICE", "error", "nontechnical_suitability", "User-facing explanation is too jargon-heavy.", "Use plain language and explain tradeoffs without assuming professional terminology."));
   return findings;
 }
@@ -189,13 +195,27 @@ function inferSignals(plan: RepoQualityPlan): RepoQualityArtifactSignals {
     ciOnlyEchoes: hasCiCommands ? plan.ciCommands?.every((command) => /^echo\b/i.test(command.trim())) : undefined,
     hasMeaningfulTests: hasTests ? !plan.testDescriptions?.every((test) => /trivial|placeholder|true/i.test(test)) : undefined,
     testsAreTrivial: hasTests ? plan.testDescriptions?.some((test) => /expect\(true\)|placeholder|trivial/i.test(test)) : undefined,
-    hasHardcodedSecrets: plan.envVars?.some((value) => /=\s*(sk-|pk_|ghp_|xoxb-|AKIA)/i.test(value)),
+    hasHardcodedSecrets: plan.envVars?.some(isSecretLikeEnvValue),
     unsafePermissions: plan.permissions?.some((permission) => /\*|admin|full access|write all/i.test(permission)),
     overcomplicatedStack: (plan.stack?.length ?? 0) > 5,
     underpoweredStack: /auth|payment|team|account/i.test([...profileless(plan), ...(plan.explanations ?? [])].join(" ")) && (plan.stack?.length ?? 0) <= 1,
     jargonHeavy: plan.explanations?.some((item) => /\bCQRS|event sourcing|hexagonal|idempotency|eventual consistency\b/i.test(item)),
     explainsTradeoffs: (plan.tradeoffs?.length ?? 0) > 0
   };
+}
+
+function isSecretLikeEnvValue(value: string): boolean {
+  const separatorIndex = value.indexOf("=");
+  const rawName = separatorIndex === -1 ? value : value.slice(0, separatorIndex);
+  const rawValue = separatorIndex === -1 ? "" : value.slice(separatorIndex + 1);
+  const name = rawName.trim();
+  const secret = rawValue.trim();
+  if (!secret) return false;
+  if (/^(<[^>]+>|\$\{[A-Z0-9_]+\}|your[_-]|example|placeholder|changeme|replace_me|xxx+)/i.test(secret)) return false;
+  if (/(SECRET|TOKEN|PASSWORD|PRIVATE|API[_-]?KEY|DATABASE_URL|SESSION)/i.test(name) && secret.length >= 8) return true;
+  if (/(sk-|pk_|ghp_|xoxb-|AKIA)[A-Za-z0-9_-]{8,}/i.test(secret)) return true;
+  if (/^[a-z]+:\/\/[^:\s]+:[^@\s]+@/i.test(secret)) return true;
+  return false;
 }
 
 function profileless(plan: RepoQualityPlan): string[] {

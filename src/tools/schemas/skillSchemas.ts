@@ -1,27 +1,28 @@
 import { z } from "zod";
 import { stackSchema } from "./commonSchemas.js";
+import { boundedArray, idText, mediumText, optionalText, shortText } from "./schemaLimits.js";
 
 const skillCatalogCategorySchema = z.enum(["mcp", "security", "memory", "github", "eval", "docs", "frontend", "database", "agent_harness", "verification"]);
 
 export const skillCatalogEntrySchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: idText,
+  name: shortText,
   category: skillCatalogCategorySchema,
-  summary: z.string(),
-  patterns: z.array(z.string()),
-  recommendedWhen: z.array(z.string()),
-  cautions: z.array(z.string()),
+  summary: mediumText,
+  patterns: boundedArray(shortText, 50),
+  recommendedWhen: boundedArray(shortText, 50),
+  cautions: boundedArray(mediumText, 50),
   source: z.enum(["built-in", "client-supplied"])
 }).strict();
 
 export const skillCatalogQuerySchema = z.object({
-  request: z.string().optional(),
-  categories: z.array(skillCatalogCategorySchema).optional(),
+  request: optionalText(mediumText),
+  categories: boundedArray(skillCatalogCategorySchema, 20).optional(),
   stack: stackSchema.optional(),
-  suppliedSkills: z.array(skillCatalogEntrySchema).optional(),
+  suppliedSkills: boundedArray(skillCatalogEntrySchema, 100).optional(),
   limit: z.number().int().positive().max(50).optional()
 }).strict();
 
 export const suppliedSkillsReviewSchema = z.object({
-  skills: z.array(skillCatalogEntrySchema)
+  skills: boundedArray(skillCatalogEntrySchema, 100)
 }).strict();

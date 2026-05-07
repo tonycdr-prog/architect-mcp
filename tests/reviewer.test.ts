@@ -1,9 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateContract } from "../src/domain/contract.js";
+import { diffArchitectureContracts } from "../src/domain/contractDiff.js";
 import { grillMe } from "../src/domain/intake.js";
 import { generateBuildPlan } from "../src/domain/buildPlan.js";
 import { reviewBuildPlan } from "../src/domain/buildPlanReviewer.js";
@@ -14,7 +15,7 @@ import { reviewFileSummaries } from "../src/domain/reviewer.js";
 import { reviewProposedFilePlan } from "../src/domain/planReviewer.js";
 import { analyzeStackPackConflicts, deriveStackPackFromIngestedSource, diffStackPackVersions, promoteStackPackCandidate, proposeStackPackRules, reviewStackPackCandidate, stackPackExpansionStrategy } from "../src/domain/stackPackWorkflow.js";
 import { resolveStackPacks, validateStackPacks } from "../src/domain/stackPacks.js";
-import { scanWorkspace } from "../src/infrastructure/scanWorkspace.js";
+import { scanWorkspace, scanWorkspaceWithMetadata } from "../src/infrastructure/scanWorkspace.js";
 import {
   generatedAppBadFixture,
   generatedAppGoodFixture,
@@ -293,6 +294,7 @@ describe("reviewProposedFilePlan", () => {
     });
 
     assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK"), true);
+    assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK" && violation.severity === "error" && violation.confidence === "high"), true);
     assert.equal(violations.some((violation) => violation.code === "ARCH017_PLAN_MISSING_HARNESS"), true);
   });
 
@@ -321,6 +323,18 @@ describe("reviewProposedFilePlan", () => {
 
     assert.equal(violations.length, 0);
   });
+
+  it("does not count ui inside unrelated words as a high-risk responsibility", () => {
+    const violations = reviewProposedFilePlan({
+      files: [
+        { path: "AGENTS.md", purpose: "Agent instructions." },
+        { path: "docs/architecture-contract.md", purpose: "Architecture contract." },
+        { path: "src/App.tsx", purpose: "Build and guide a simple entry point.", responsibilities: ["build shell", "guide startup"] }
+      ]
+    });
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH015_PLAN_MONOLITH_RISK" && violation.severity === "error"), false);
+  });
 });
 
 describe("reviewBuildPlan", () => {
@@ -332,6 +346,17 @@ describe("reviewBuildPlan", () => {
     });
 
     assert.equal(violations.some((violation) => violation.code === "ARCH018_BUILD_PLAN_ORDER"), true);
+  });
+
+  it("generates exact default checks that pass its own verification review", () => {
+    const plan = generateBuildPlan({
+      idea: "Todo app",
+      stack: { frontend: "React" },
+      coreFlows: ["create todo", "complete todo"]
+    });
+    const violations = reviewBuildPlan(plan);
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH019_BUILD_PLAN_VERIFICATION"), false);
   });
 
   it("rejects build-plan checks outside the brief verification set", () => {
@@ -351,11 +376,52 @@ describe("reviewBuildPlan", () => {
     assert.equal(violations.some((violation) => violation.code === "ARCH019_BUILD_PLAN_VERIFICATION" && violation.severity === "error"), true);
   });
 
+  it("rejects duplicate build-plan ids and orders", () => {
+    const plan = generateBuildPlan(messyReactFixture.brief);
+    const duplicate = {
+      ...plan,
+      slices: [
+        plan.slices[0],
+        {
+          ...plan.slices[1],
+          id: plan.slices[0].id,
+          order: plan.slices[0].order
+        },
+        ...plan.slices.slice(2)
+      ]
+    };
+
+    const violations = reviewBuildPlan(duplicate);
+
+    assert.equal(violations.some((violation) => violation.message.includes("duplicate slice id")), true);
+    assert.equal(violations.some((violation) => violation.message.includes("duplicate slice order")), true);
+  });
+
+  it("applies glob semantics to forbidden build-plan files", () => {
+    const plan = generateBuildPlan(messyReactFixture.brief);
+    const violations = reviewBuildPlan({
+      ...plan,
+      slices: plan.slices.map((slice) => slice.id === "database-boundary"
+        ? { ...slice, files: ["src/features/admin/page.tsx"] }
+        : slice)
+    });
+
+    assert.equal(violations.some((violation) => violation.message.includes("forbidden monolith-prone file")), true);
+  });
+
   it("flags implementation output that ignored the harness plan", () => {
     const violations = reviewFileSummaries([
       { path: "src/App.tsx", lines: 260, imports: ["@/db/client", "@/features/customers"] },
       { path: "src/features/customers/CustomerPage.tsx", lines: 120 },
       { path: "src/features/customers/customerState.ts", lines: 80 }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), true);
+  });
+
+  it("runs implementation drift checks for one-file generated repos", () => {
+    const violations = reviewFileSummaries([
+      { path: "src/App.tsx", lines: 260, imports: ["@/db/client", "@/features/customers"] }
     ]);
 
     assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), true);
@@ -417,6 +483,8 @@ describe("stack pack workflow", () => {
     await assert.rejects(() => fetchLlmsSource("https://localhost/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://localhost./llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://[0:0:0:0:0:0:0:1]/llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://[::ffff:127.0.0.1]/llms.txt"), /localhost, private, or link-local/);
+    await assert.rejects(() => fetchLlmsSource("https://[0:0:0:0:0:ffff:7f00:1]/llms.txt"), /localhost, private, or link-local/);
     await assert.rejects(() => fetchLlmsSource("https://example.com/not-llms.md"), /llms\.txt/);
     await assert.rejects(() => fetchLlmsSource("https://user:pass@example.com/llms.txt"), /credentials/);
     await assert.rejects(() => fetchLlmsSource("https://example.com:444/llms.txt"), /explicit port/);
@@ -450,6 +518,21 @@ describe("stack pack workflow", () => {
     });
     try {
       await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt"), /localhost, private, or link-local/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("rejects redirects away from llms.txt paths", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(null, {
+      status: 302,
+      headers: {
+        location: "https://example.com/index.html"
+      }
+    });
+    try {
+      await assert.rejects(() => fetchLlmsSource("https://example.com/llms.txt"), /llms\.txt/);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -551,6 +634,20 @@ describe("stack pack workflow", () => {
     assert.equal(conflicts.some((conflict) => conflict.code === "duplicate-rule"), true);
     assert.equal(conflicts.some((conflict) => conflict.code === "overlapping-path-trigger"), true);
   });
+
+  it("rejects duplicate rules inside a stack-pack candidate", () => {
+    const candidate = proposeStackPackRules({
+      stackName: "Acme Hono Runtime",
+      sourceText: "Hono server route handlers should stay thin and call service modules for workflow orchestration.",
+      sourceLabel: "local reviewed source"
+    });
+    candidate.fileRules.push({ ...candidate.fileRules[0] });
+
+    const review = reviewStackPackCandidate(candidate);
+
+    assert.equal(review.valid, false);
+    assert.equal(review.violations.some((violation) => violation.message.includes("Duplicate candidate rule")), true);
+  });
 });
 
 describe("resolveStackPacks", () => {
@@ -586,6 +683,25 @@ describe("generateContract", () => {
 
     assert.deepEqual(contract.stackPacks.map((pack) => pack.id), ["nextjs", "supabase"]);
     assert.equal(contract.fileRules.some((rule) => rule.trigger), true);
+  });
+
+  it("reports removed stack packs in architecture contract diffs", () => {
+    const before = generateContract({
+      idea: "A Next.js app with Supabase",
+      stack: {
+        frontend: "Next.js",
+        database: "Supabase"
+      }
+    });
+    const after = {
+      ...before,
+      stackPacks: before.stackPacks.filter((pack) => pack.id !== "supabase")
+    };
+
+    const diff = diffArchitectureContracts(before, after);
+
+    assert.equal(diff.breaking, true);
+    assert.equal(diff.changes.some((change) => change.kind === "stack-pack-removed"), true);
   });
 
   it("maps canonical contract directories to an existing repo layout", () => {
@@ -734,7 +850,7 @@ describe("createReviewReport", () => {
     assert.equal(report.gate.lifecycle?.newHighConfidenceErrors, 1);
   });
 
-  it("allows code-only baselines for lower-risk warnings", () => {
+  it("does not allow code-only baselines to suppress warning findings", () => {
     const report = createReviewReport([
       {
         code: "ARCH001_OVERSIZED_FILE",
@@ -754,8 +870,26 @@ describe("createReviewReport", () => {
       }
     });
 
-    assert.equal(report.summary.warnings, 0);
-    assert.equal(report.summary.baselineSuppressed, 1);
+    assert.equal(report.summary.warnings, 1);
+    assert.equal(report.summary.baselineSuppressed, 0);
+  });
+
+  it("does not increase review scores because findings were suppressed", () => {
+    const finding = {
+      code: "ARCH001_OVERSIZED_FILE" as const,
+      confidence: "medium" as const,
+      severity: "warning" as const,
+      path: "src/domain/a.ts",
+      message: "File has 450 lines, above the 300-line source threshold.",
+      recommendation: "Split it."
+    };
+    const unsuppressed = createReviewReport([finding]);
+    const suppressed = createReviewReport([finding], {
+      ignorePatterns: ["src/domain/a.ts"]
+    });
+
+    assert.equal(suppressed.summary.noiseSuppressed, 1);
+    assert.equal(suppressed.score <= unsuppressed.score, true);
   });
 
   it("returns a configurable review gate", () => {
@@ -789,6 +923,7 @@ describe("scanWorkspace", () => {
       "import api from './api';",
       "export { api };",
       "const literal = process.env.SECRET_KEY;",
+      "const bracket = process.env['TOKEN_SECRET'];",
       "const dynamic = process.env[envName];"
     ].join("\n"));
 
@@ -796,7 +931,23 @@ describe("scanWorkspace", () => {
     const sample = summaries.find((summary) => summary.path === "sample.ts");
 
     assert.deepEqual(sample?.imports, ["./api"]);
-    assert.deepEqual(sample?.envAccesses, ["SECRET_KEY"]);
+    assert.deepEqual(sample?.envAccesses, ["SECRET_KEY", "TOKEN_SECRET"]);
+  });
+
+  it("applies ignore patterns during traversal and reports truncation", async () => {
+    const root = await mkdtemp(join(tmpdir(), "architect-mcp-scan-"));
+    await mkdir(join(root, "ignored"), { recursive: true });
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "ignored", "secret.ts"), "const secret = process.env.SECRET;");
+    await writeFile(join(root, "src", "a.ts"), "export const a = 1;");
+    await writeFile(join(root, "src", "b.ts"), "export const b = 1;");
+
+    const ignored = await scanWorkspaceWithMetadata(root, 10, { ignorePatterns: ["ignored/**"] });
+    const truncated = await scanWorkspaceWithMetadata(root, 1);
+
+    assert.equal(ignored.files.some((summary) => summary.path.startsWith("ignored/")), false);
+    assert.equal(truncated.files.length, 1);
+    assert.equal(truncated.truncated, true);
   });
 });
 
@@ -810,6 +961,48 @@ describe("grillMe", () => {
     assert.equal(result.phase, "intake");
     assert.equal(result.blockers.some((blocker) => blocker.includes("primary user")), true);
     assert.equal(result.contract, undefined);
+  });
+
+  it("treats empty arrays as unanswered and surfaces pressure-test questions", () => {
+    const emptyArrays = grillMe({
+      idea: "App",
+      users: "Admins",
+      coreFlows: [],
+      stack: { frontend: "React" },
+      storage: "No",
+      enforcement: "Advise",
+      repoLayout: { pathMap: {} },
+      risk: "Monoliths",
+      verification: []
+    });
+    const pressureTest = grillMe({
+      idea: "Build a todo app",
+      users: "solo founders",
+      coreFlows: ["create todo", "complete todo"],
+      stack: { frontend: "React" },
+      storage: "No",
+      enforcement: "Advise",
+      repoLayout: { pathMap: { "src/features": ["src/features"] } },
+      risk: "giant files",
+      verification: ["npm test"]
+    });
+
+    assert.equal(emptyArrays.nextQuestion.id, "coreFlows");
+    assert.equal(emptyArrays.missingFields.includes("coreFlows"), true);
+    assert.equal(emptyArrays.missingFields.includes("verification"), true);
+    assert.equal(grillMe({
+      idea: "App",
+      users: "Admins",
+      coreFlows: ["create one thing"],
+      stack: { frontend: "React" },
+      storage: "No",
+      enforcement: "Advise",
+      repoLayout: { pathMap: { "src/features": ["src/features"] } },
+      risk: "Monoliths",
+      verification: ["npm test"]
+    }).missingFields.includes("coreFlows"), true);
+    assert.equal(pressureTest.ready, true);
+    assert.match(pressureTest.nextQuestion.id, /^pressure:/);
   });
 
   it("selects stack packs and produces a contract for a ready brief", () => {
