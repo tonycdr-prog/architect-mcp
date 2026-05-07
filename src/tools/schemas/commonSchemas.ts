@@ -1,44 +1,45 @@
 import { z } from "zod";
+import { boundedArray, idText, longText, mediumText, optionalText, pathText, shortText } from "./schemaLimits.js";
 
 export const stackSchema = z.object({
-  frontend: z.string().optional(),
-  backend: z.string().optional(),
-  database: z.string().optional(),
-  auth: z.string().optional(),
-  deployment: z.string().optional()
+  frontend: optionalText(shortText),
+  backend: optionalText(shortText),
+  database: optionalText(shortText),
+  auth: optionalText(shortText),
+  deployment: optionalText(shortText)
 }).strict();
 
 export const projectBriefSchema = z.object({
-  idea: z.string(),
-  users: z.string().optional(),
-  coreFlows: z.array(z.string()).optional(),
-  dataEntities: z.array(z.string()).optional(),
+  idea: mediumText,
+  users: optionalText(mediumText),
+  coreFlows: boundedArray(mediumText, 50).optional(),
+  dataEntities: boundedArray(shortText, 100).optional(),
   stack: stackSchema.optional(),
-  constraints: z.array(z.string()).optional(),
+  constraints: boundedArray(mediumText, 50).optional(),
   repoLayout: z.object({
-    pathMap: z.record(z.string(), z.array(z.string()))
+    pathMap: z.record(pathText, boundedArray(pathText, 100))
   }).strict().optional(),
-  storage: z.string().optional(),
-  enforcement: z.string().optional(),
-  risk: z.string().optional(),
-  verification: z.array(z.string()).optional()
+  storage: optionalText(mediumText),
+  enforcement: optionalText(mediumText),
+  risk: optionalText(mediumText),
+  verification: boundedArray(mediumText, 50).optional()
 }).strict();
 
 export const directoryRuleSchema = z.object({
-  path: z.string(),
-  purpose: z.string(),
+  path: pathText,
+  purpose: mediumText,
   required: z.boolean()
 }).strict();
 
 export const fileRuleSchema = z.object({
-  name: z.string(),
-  rule: z.string(),
+  name: shortText,
+  rule: mediumText,
   severity: z.enum(["error", "warning"]),
-  trigger: z.string().optional(),
-  recommendation: z.string().optional(),
-  appliesToPaths: z.array(z.string()).optional(),
-  goodExample: z.string().optional(),
-  badExample: z.string().optional(),
+  trigger: optionalText(mediumText),
+  recommendation: optionalText(mediumText),
+  appliesToPaths: boundedArray(pathText, 100).optional(),
+  goodExample: optionalText(longText),
+  badExample: optionalText(longText),
   triggerKind: z.enum([
     "line-threshold",
     "import-boundary",
@@ -55,7 +56,7 @@ export const fileRuleSchema = z.object({
     "ai-tool-safety",
     "manual-review"
   ]).optional(),
-  detectors: z.array(z.object({
+  detectors: boundedArray(z.object({
     kind: z.enum([
       "line-threshold",
       "import-boundary",
@@ -72,35 +73,35 @@ export const fileRuleSchema = z.object({
       "ai-tool-safety",
       "manual-review"
     ]),
-    description: z.string()
-  }).strict()).optional()
+    description: mediumText
+  }).strict(), 20).optional()
 }).strict();
 
 export const stackPackSourceSchema = z.object({
-  label: z.string(),
+  label: shortText,
   url: z.string().url().optional(),
-  note: z.string().optional()
+  note: optionalText(mediumText)
 }).strict();
 
 export const stackPackSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  version: z.string(),
-  rationale: z.string(),
-  sources: z.array(stackPackSourceSchema),
-  appliesTo: z.array(z.enum(["frontend", "backend", "database", "auth", "deployment"])),
-  aliases: z.array(z.string()).optional(),
-  directories: z.array(directoryRuleSchema),
-  fileRules: z.array(fileRuleSchema),
-  moduleBoundaries: z.array(z.string()),
-  testingExpectations: z.array(z.string()),
-  agentInstructions: z.array(z.string())
+  id: idText,
+  name: shortText,
+  version: shortText,
+  rationale: mediumText,
+  sources: boundedArray(stackPackSourceSchema, 50),
+  appliesTo: boundedArray(z.enum(["frontend", "backend", "database", "auth", "deployment"]), 10),
+  aliases: boundedArray(shortText, 50).optional(),
+  directories: boundedArray(directoryRuleSchema, 100),
+  fileRules: boundedArray(fileRuleSchema, 200),
+  moduleBoundaries: boundedArray(mediumText, 100),
+  testingExpectations: boundedArray(mediumText, 100),
+  agentInstructions: boundedArray(mediumText, 100)
 }).strict();
 
 export const stackPackCandidateInputSchema = z.object({
-  stackName: z.string(),
-  sourceText: z.string(),
-  sourceLabel: z.string().optional(),
+  stackName: shortText,
+  sourceText: longText,
+  sourceLabel: optionalText(shortText),
   sourceUrl: z.string().url().optional()
 }).strict();
 
@@ -118,12 +119,12 @@ export const llmsFetchSchema = z.object({
 }).strict();
 
 export const derivedStackPackSchema = z.object({
-  sourceId: z.string()
+  sourceId: idText
 }).strict();
 
 export const stackPackCandidateSchema = stackPackSchema.extend({
   confidence: z.enum(["high", "medium", "low"]),
-  reviewNotes: z.array(z.string())
+  reviewNotes: boundedArray(mediumText, 100)
 }).strict();
 
 export const appArchetypeSchema = z.enum([
@@ -138,59 +139,59 @@ export const appArchetypeSchema = z.enum([
 
 export const foundationPackSchema = z.object({
   id: z.enum(["agent-harness", "testing", "repo-structure", "ci-gates", "repo-hygiene"]),
-  name: z.string(),
-  version: z.string(),
-  rationale: z.string(),
-  sources: z.array(stackPackSourceSchema),
-  rules: z.array(z.string()),
-  artifacts: z.array(z.string()),
-  reviewQuestions: z.array(z.string())
+  name: shortText,
+  version: shortText,
+  rationale: mediumText,
+  sources: boundedArray(stackPackSourceSchema, 50),
+  rules: boundedArray(mediumText, 100),
+  artifacts: boundedArray(shortText, 100),
+  reviewQuestions: boundedArray(mediumText, 100)
 }).strict();
 
 export const architectureContractSchema = z.object({
-  contractVersion: z.string(),
+  contractVersion: shortText,
   generatedBy: z.object({
     tool: z.literal("architect-mcp"),
-    version: z.string(),
-    generatedAt: z.string()
+    version: shortText,
+    generatedAt: shortText
   }).strict(),
-  name: z.string(),
-  purpose: z.string(),
+  name: shortText,
+  purpose: mediumText,
   stack: stackSchema,
-  stackPacks: z.array(stackPackSchema),
-  directories: z.array(directoryRuleSchema),
-  fileRules: z.array(fileRuleSchema),
-  moduleBoundaries: z.array(z.string()),
-  testingExpectations: z.array(z.string()),
-  agentInstructions: z.array(z.string()),
-  foundationPacks: z.array(foundationPackSchema),
+  stackPacks: boundedArray(stackPackSchema, 50),
+  directories: boundedArray(directoryRuleSchema, 200),
+  fileRules: boundedArray(fileRuleSchema, 300),
+  moduleBoundaries: boundedArray(mediumText, 200),
+  testingExpectations: boundedArray(mediumText, 100),
+  agentInstructions: boundedArray(mediumText, 100),
+  foundationPacks: boundedArray(foundationPackSchema, 20),
   archetype: appArchetypeSchema.optional()
 }).strict();
 
 export const buildPlanSchema = z.object({
   archetype: appArchetypeSchema,
   slices: z.array(z.object({
-    id: z.string(),
-    title: z.string(),
+    id: idText,
+    title: shortText,
     order: z.number().int().positive(),
-    goal: z.string(),
-    inputs: z.array(z.string()),
-    outputs: z.array(z.string()),
-    allowedDirectories: z.array(z.string()),
-    forbiddenFiles: z.array(z.string()),
-    files: z.array(z.string()),
-    checks: z.array(z.string()),
-    stopAfter: z.string()
-  }).strict()).min(1)
+    goal: mediumText,
+    inputs: boundedArray(mediumText, 50),
+    outputs: boundedArray(mediumText, 50),
+    allowedDirectories: boundedArray(pathText, 100),
+    forbiddenFiles: boundedArray(pathText, 100),
+    files: boundedArray(pathText, 200),
+    checks: boundedArray(mediumText, 50),
+    stopAfter: mediumText
+  }).strict()).min(1).max(50)
 }).strict();
 
 export const fileSummarySchema = z.object({
-  path: z.string(),
+  path: pathText,
   lines: z.number().int().nonnegative().optional(),
   bytes: z.number().int().nonnegative().optional(),
-  imports: z.array(z.string()).optional(),
+  imports: boundedArray(pathText, 500).optional(),
   hasUseClient: z.boolean().optional(),
-  envAccesses: z.array(z.string()).optional(),
+  envAccesses: boundedArray(shortText, 200).optional(),
   hasDirectDbAccess: z.boolean().optional()
 }).strict();
 
@@ -199,14 +200,14 @@ export const reviewModeSchema = z.enum(["strict", "summary", "ci", "migration"])
 
 export const baselineSchema = z.object({
   findings: z.array(z.object({
-    code: z.string(),
-    path: z.string().optional(),
-    message: z.string().optional(),
+    code: idText,
+    path: pathText.optional(),
+    message: optionalText(mediumText),
     status: z.enum(["baseline", "accepted"]).optional(),
-    reason: z.string().optional()
+    reason: optionalText(mediumText)
   }).strict().refine((finding) => finding.status !== "accepted" || Boolean(finding.reason?.trim()), {
     message: "Accepted baseline findings require a reason."
-  }))
+  })).max(5_000)
 }).strict();
 
 export const reviewGateSchema = z.object({
@@ -217,8 +218,8 @@ export const reviewGateSchema = z.object({
 
 export const proposedFilePlanSchema = z.object({
   files: z.array(z.object({
-    path: z.string(),
-    purpose: z.string(),
-    responsibilities: z.array(z.string()).optional()
-  }).strict()).min(1)
+    path: pathText,
+    purpose: mediumText,
+    responsibilities: boundedArray(mediumText, 50).optional()
+  }).strict()).min(1).max(500)
 }).strict();
