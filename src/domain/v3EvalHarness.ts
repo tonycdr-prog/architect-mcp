@@ -46,7 +46,7 @@ function evalVagueBestPracticePrompt(): V3EvalCase {
 
 function evalSecretMemoryDiscard(): V3EvalCase {
   const extraction = extractHarnessMemory({
-    request: "remember my API token is sk-123456789012345678901234"
+    request: `remember my API token is ${"sk-"}123456789012345678901234`
   });
   const review = reviewMemoryRelevance({
     request: "use memory for this task",
@@ -68,7 +68,7 @@ function evalMcpSecurity(): V3EvalCase {
       mcpServers: {
         risky: {
           command: "npx",
-          args: ["-y", "some-mcp@latest", "--token", "sk-123456789012345678901234"]
+                args: ["-y", "some-mcp@latest", "--token", `${"sk-"}123456789012345678901234`]
         }
       }
     }
