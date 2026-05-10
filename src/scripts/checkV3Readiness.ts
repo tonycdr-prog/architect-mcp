@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createMcpReadinessReport } from "../domain/readinessReport.js";
 
 type Step = {
@@ -120,20 +120,14 @@ function run(step: Step): void {
 }
 
 function readPackedManifest(): { scripts?: Record<string, string> } {
-  const packOutput = execFileSync("npm", ["pack", "--json"], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"]
-  });
-  const packedArtifacts = JSON.parse(packOutput) as Array<{ filename?: string }>;
-  const filename = packedArtifacts[0]?.filename;
-  if (!filename) throw new Error("npm pack did not return a package filename.");
-
   try {
-    return JSON.parse(execFileSync("tar", ["-xOf", filename, "package/package.json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "inherit"]
-    })) as { scripts?: Record<string, string> };
+    execFileSync(process.execPath, ["scripts/preparePackageManifest.cjs"], {
+      stdio: "inherit"
+    });
+    return JSON.parse(readFileSync("package.json", "utf8")) as { scripts?: Record<string, string> };
   } finally {
-    rmSync(filename, { force: true });
+    execFileSync(process.execPath, ["scripts/restorePackageManifest.cjs"], {
+      stdio: "inherit"
+    });
   }
 }
