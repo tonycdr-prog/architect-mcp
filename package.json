@@ -1,6 +1,6 @@
 {
   "name": "@tonycdr-prog/architect-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local-first agent work gate for coding agents.",
   "type": "module",
   "main": "./dist/library.js",
@@ -30,7 +30,7 @@
     "stack-sources/react-vite.md",
     "stack-sources/ingested/index.json",
     "examples",
-    "docs",
+    "docs/**/*.md",
     "llms.txt",
     "LICENSE",
     "SECURITY.md",

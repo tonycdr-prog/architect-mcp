@@ -53,6 +53,11 @@ if (packagedRepoOnlyFiles.length > 0) {
   throw new Error(`Package dry-run includes repo-only TypeScript scripts: ${packagedRepoOnlyFiles.join(", ")}`);
 }
 
+const packagedVitePressFiles = [...packedPaths].filter((path) => path.startsWith("docs/.vitepress/"));
+if (packagedVitePressFiles.length > 0) {
+  throw new Error(`Package dry-run includes VitePress build/config files: ${packagedVitePressFiles.join(", ")}`);
+}
+
 const packedManifest = readPackedManifest();
 const repoOnlyPackageScripts = [
   "typecheck",

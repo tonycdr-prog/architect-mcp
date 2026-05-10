@@ -8,6 +8,7 @@ describe("supply-chain and release hygiene", () => {
       main: string;
       types: string;
       exports: Record<string, unknown>;
+      files: string[];
     };
 
     assert.equal(existsSync("LICENSE"), true);
@@ -16,6 +17,8 @@ describe("supply-chain and release hygiene", () => {
     assert.equal(packageJson.main, "./dist/library.js");
     assert.equal(packageJson.types, "./dist/library.d.ts");
     assert.equal(Object.hasOwn(packageJson.exports, "./http"), false);
+    assert.equal(packageJson.files.includes("docs"), false);
+    assert.equal(packageJson.files.includes("docs/**/*.md"), true);
     assert.match(readFileSync(".gitignore", "utf8"), /!\.env\.example/);
     assert.doesNotMatch(readFileSync("README.md", "utf8"), /\/Users\/tonycordner/);
     assert.match(readFileSync("README.md", "utf8"), /npx/);
