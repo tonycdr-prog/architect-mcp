@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { createMcpReadinessReport } from "../domain/readinessReport.js";
 
 type Step = {
@@ -42,6 +42,16 @@ if (missingPackageFiles.length > 0) {
   throw new Error(`Package dry-run is missing required V3 files: ${missingPackageFiles.join(", ")}`);
 }
 
+const repoOnlyPackageFiles = [
+  "scripts/checkV3Readiness.ts",
+  "scripts/checkStagedReadiness.ts",
+  "scripts/ingestLlmsSources.ts"
+];
+const packagedRepoOnlyFiles = repoOnlyPackageFiles.filter((path) => packedPaths.has(path));
+if (packagedRepoOnlyFiles.length > 0) {
+  throw new Error(`Package dry-run includes repo-only TypeScript scripts: ${packagedRepoOnlyFiles.join(", ")}`);
+}
+
 const packedManifest = readPackedManifest();
 const repoOnlyPackageScripts = [
   "typecheck",
@@ -75,6 +85,21 @@ const repoOnlyPackageScripts = [
 const leakedPackageScripts = repoOnlyPackageScripts.filter((script) => Boolean(packedManifest.scripts?.[script]));
 if (leakedPackageScripts.length > 0) {
   throw new Error(`Packed package.json includes repo-only npm scripts: ${leakedPackageScripts.join(", ")}`);
+}
+
+const maintainerLocalPathPattern = new RegExp(["", "Users", "tonycordner", ""].join("\\/"));
+const trackedFiles = execFileSync("git", ["ls-files"], {
+  encoding: "utf8",
+  stdio: ["ignore", "pipe", "inherit"]
+})
+  .split("\n")
+  .filter(Boolean)
+  .filter((path) => !path.startsWith("node_modules/") && !path.startsWith("dist/") && !path.endsWith(".snap"));
+for (const trackedFile of trackedFiles) {
+  const content = readFileSync(trackedFile, "utf8");
+  if (maintainerLocalPathPattern.test(content)) {
+    throw new Error(`${trackedFile} contains a maintainer-local absolute path.`);
+  }
 }
 
 const readiness = await createMcpReadinessReport();
