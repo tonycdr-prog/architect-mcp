@@ -3,7 +3,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import express from "express";
 import type { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 import { fileURLToPath } from "node:url";
-import { createArchitectServer } from "./server/createArchitectServer.js";
+import { createArchitectServer, parseToolSurface } from "./server/createArchitectServer.js";
 
 const port = parsePort(process.env.PORT ?? "3000");
 const host = process.env.HOST ?? "0.0.0.0";
@@ -48,7 +48,8 @@ export function createHttpApp(options: HttpAppOptions = {}) {
 
   app.post("/mcp", async (req: Request, res: Response) => {
     const server = options.serverFactory?.() ?? createArchitectServer({
-      enableLocalWorkspaceTool: false
+      enableLocalWorkspaceTool: false,
+      toolSurface: parseToolSurface(process.env.ARCHITECT_MCP_TOOL_SURFACE)
     });
 
     const transport = options.transportFactory?.() ?? new StreamableHTTPServerTransport({

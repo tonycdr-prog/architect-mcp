@@ -1,8 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerArchitectureTools } from "../tools/registerArchitectureTools.js";
+import type { ToolSurface } from "../tools/toolRegistry.js";
 
 export type ArchitectServerOptions = {
   enableLocalWorkspaceTool?: boolean;
+  toolSurface?: ToolSurface;
 };
 
 export function createArchitectServer(options: ArchitectServerOptions = {}): McpServer {
@@ -12,8 +14,15 @@ export function createArchitectServer(options: ArchitectServerOptions = {}): Mcp
   });
 
   registerArchitectureTools(server, {
-    enableLocalWorkspaceTool: options.enableLocalWorkspaceTool ?? true
+    enableLocalWorkspaceTool: options.enableLocalWorkspaceTool ?? true,
+    toolSurface: options.toolSurface ?? "core"
   });
 
   return server;
+}
+
+export function parseToolSurface(value: string | undefined): ToolSurface {
+  if (!value) return "core";
+  if (value === "core" || value === "advanced") return value;
+  throw new Error(`Invalid ARCHITECT_MCP_TOOL_SURFACE value "${value}". Expected "core" or "advanced".`);
 }

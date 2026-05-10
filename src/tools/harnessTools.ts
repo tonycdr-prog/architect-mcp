@@ -36,21 +36,29 @@ export function registerHarnessTools(server: McpServer): void {
     "create_pre_edit_contract",
     {
       title: "Create Pre-Edit Contract",
-      description: "Create a small implementation-intent contract before risky edits.",
+      description: "Create a small implementation-intent contract before risky edits, either from a prior intent result or raw intent input.",
       inputSchema: {
-        intent: harnessIntentResultSchema,
+        intent: harnessIntentResultSchema.optional(),
+        input: harnessIntentInputSchema.optional(),
         likelyFiles: preEditContractSchema.shape.likelyFiles.optional(),
         verificationChecks: preEditContractSchema.shape.verificationChecks.optional()
       },
       outputSchema: genericObjectOutputSchema
     },
-    async ({ intent, likelyFiles, verificationChecks }) => safeJsonResponse(() => ({
-      contract: createPreEditContract({
-        intent: intent as HarnessIntentResult,
-        likelyFiles,
-        verificationChecks
-      })
-    }))
+    async ({ intent, input, likelyFiles, verificationChecks }) => safeJsonResponse(() => {
+      const resolvedIntent = intent ?? (input ? interpretImplementationIntent(input as HarnessIntentInput) : undefined);
+      if (!resolvedIntent) {
+        throw new Error("create_pre_edit_contract requires either intent or input.");
+      }
+      return {
+        intent: resolvedIntent,
+        contract: createPreEditContract({
+          intent: resolvedIntent as HarnessIntentResult,
+          likelyFiles,
+          verificationChecks
+        })
+      };
+    })
   );
 
   server.registerTool(

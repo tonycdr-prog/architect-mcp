@@ -1,19 +1,25 @@
 # architect-mcp
 
-> architect-mcp is a local-first MCP standards and verification harness for coding agents.
+> architect-mcp is a local-first agent work gate for coding agents.
 
-Use this file as the short navigation surface for MCP tools, intake, implementation contracts, review rules, stack-pack authoring, verification policy, and V3 harness workflows.
+Use this file as the short navigation surface for the default work gate, advanced MCP tools, implementation contracts, review rules, stack-pack authoring, and verification policy.
 
 ## Core Flow
-1. Run grill_me or continue_grill_me until blockers are gone.
-2. Use buildPlan and review_build_plan before implementation.
-3. Generate AGENTS.md, docs/architecture-contract.md, docs/build-plan.md, .cursor/rules/architecture.mdc, and .architectignore.
+1. Run grill_me until blockers are gone.
+2. Create a pre-edit contract with create_pre_edit_contract.
+3. Review buildPlan with review_build_plan before implementation.
 4. Review proposed file plans with review_proposed_file_plan.
-5. Review implemented files with review_repo_structure, optionally passing contract and buildPlan.
+5. Review implemented files with review_repo_structure and review_implementation_against_contract.
+6. Review final output with review_agent_final_response or review_agent_session.
+
+## Tool Surfaces
+Default core surface: grill_me, create_pre_edit_contract, review_build_plan, review_proposed_file_plan, review_repo_structure, review_implementation_against_contract, review_agent_final_response, review_agent_session.
+
+Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, governance, repo-quality, productization boundary, and eval tools. Historical V-labels remain in tool names, scripts, tests, and docs filenames for compatibility only; public framing treats them as advanced maturity criteria.
 
 ## Documentation
 - [README](README.md): Primary project documentation, tool list, usage examples, and product scope.
-- [V3 Source Material](docs/v3-source-material.md): V3 source-material notes for stack packs, client recipes, evals, skills, memory, MCP security, and verification.
+- [Advanced Source Material](docs/v3-source-material.md): compatibility source-material notes for stack packs, client recipes, evals, skills, memory, MCP security, and verification.
 - [Stack Pack Strategy](docs/stack-pack-strategy.md): Source-backed stack-pack authoring, review, conflict detection, and promotion workflow.
 - [Architecture Contract](docs/architecture-contract.md): Example generated architecture contract used by agents.
 - [Build Plan](docs/build-plan.md): Example ordered build plan for implementation slices.
@@ -71,7 +77,7 @@ Use this file as the short navigation surface for MCP tools, intake, implementat
 - recommend_skills_for_project: recommend skill patterns for a request without executing arbitrary skill logic.
 - review_supplied_skills: validate client-supplied skill metadata before using it as source material.
 - review_mcp_config_security: audit MCP config objects for secrets, shell execution, unpinned packages, and unapproved servers.
-- run_v3_eval_harness: run deterministic V3 behavior evals.
+- run_v3_eval_harness: run deterministic advanced behavior evals.
 - score_agent_artifacts: score AGENTS.md and llms.txt output quality.
 - list_client_integration_recipes: return executable client integration call recipes.
 - review_agent_final_response: check final output for changed, verified, assumptions, remaining work, and evidence honesty.
@@ -86,7 +92,7 @@ Use this file as the short navigation surface for MCP tools, intake, implementat
 - analyze_standards_conflicts: rank duplicate or overlapping standards and suggest resolutions.
 - score_repo_profile_fit: score built-in repo profiles against a brief and file summaries.
 - review_contract_lifecycle: report contract maturity, changelog, deprecations, replacements, and noise risk.
-- run_v5_eval_harness: run deterministic V5 standards-intelligence evals.
+- run_v5_eval_harness: run deterministic standards-intelligence maturity evals.
 - list_policy_bundles: list local versioned policy bundles.
 - validate_policy_bundles: validate local policy-bundle metadata.
 - preview_policy_bundle: preview a policy bundle against supplied brief and findings.
@@ -96,7 +102,7 @@ Use this file as the short navigation surface for MCP tools, intake, implementat
 - analyze_regression_coverage: map known agent failure patterns to fixture coverage gaps.
 - review_pattern_card: validate portable local pattern cards.
 - preview_pattern_card: preview whether a pattern card applies to a brief.
-- run_v6_eval_harness: run deterministic V6 local-governance evals.
+- run_v6_eval_harness: run deterministic local-governance maturity evals.
 - create_architecture_strategy_map: map goals, risks, stack choices, standards, and verification.
 - compare_standards_profiles: compare minimal, balanced, and strict standards profiles.
 - preview_change_what_if: forecast review outcome, blast radius, and verification needs before edits.
@@ -104,7 +110,7 @@ Use this file as the short navigation surface for MCP tools, intake, implementat
 - draft_rule_candidate: draft advisory rule candidates from findings, source text, or examples.
 - compare_review_trends: compare two supplied reports for new and resolved findings.
 - render_governance_pack: render local standards as a human-readable governance pack.
-- run_v7_eval_harness: run deterministic V7 strategic-planning evals.
+- run_v7_eval_harness: run deterministic strategic-planning maturity evals.
 - review_standards_refactor: suggest splits, merges, detector families, and examples for standards.
 - minimize_policy_set: recommend keep, defer, or drop choices for local policy rules.
 - select_review_playbook: select a local playbook for feature, refactor, security, docs, or dependency work.
@@ -113,31 +119,31 @@ Use this file as the short navigation surface for MCP tools, intake, implementat
 - run_failure_mode_drills: run local drills for skipped verification, broad rewrites, leaks, and rule overreach.
 - calibrate_rule_impact: preview severity, confidence, and gate-impact adjustments.
 - review_documentation_intelligence: detect stale docs, missing tool mentions, and weak agent artifacts.
-- run_v8_eval_harness: run deterministic V8 governance-automation evals.
-- select_local_orchestration_recipe: select deterministic local V9 recipes for common agent-work scenarios.
+- run_v8_eval_harness: run deterministic governance-automation maturity evals.
+- select_local_orchestration_recipe: select deterministic local operating-model recipes for common agent-work scenarios.
 - evaluate_scenario_acceptance: check scenario-level acceptance across intent, contract, review, verification, and artifacts.
 - normalize_mcp_result: normalize outputs into status, stoplight, evidence, assumptions, proof, warnings, and handoff.
 - plan_context_budget: plan compact, standard, or full output budgets.
 - route_evidence: assign evidence ids across findings, verification checks, and source provenance.
 - create_local_dry_run_plan: preview recipe, gates, standards, verification, and final-response contract before edits.
 - review_tool_loop_quality: detect skipped interpretation, missing contracts, review gaps, and incomplete final responses.
-- run_v9_eval_harness: run deterministic V9 operating-model evals across V5-V9.
-- get_v10_productization_blueprint: return V10 product API, storage, repository, dashboard, and staged implementation contracts.
-- create_v10_implementation_slice_plan: return V10 implementation slices with MCP pre-edit and post-edit gates.
+- run_v9_eval_harness: run deterministic operating-model evals across the advanced maturity criteria.
+- get_v10_productization_blueprint: return product API, storage, repository, dashboard, and staged implementation contracts.
+- create_v10_implementation_slice_plan: return implementation slices with MCP pre-edit and post-edit gates.
 - plan_primer_dashboard: return Primer React dashboard screen and accessibility plans.
-- validate_v10_productization_boundary: review V10 route, storage, dashboard, policy, and billing boundary regressions.
-- run_v10_eval_harness: run deterministic V10 productization boundary evals.
+- validate_v10_productization_boundary: review route, storage, dashboard, policy, and billing boundary regressions.
+- run_v10_eval_harness: run deterministic productization boundary evals.
 - build_quality_requirements_profile: turn interview answers into a quality requirements profile.
 - evaluate_repo_plan_quality: evaluate proposed stack/repo plans with hard gates, rubrics, and anti reward-hacking warnings.
 - audit_generated_repo_quality: audit generated repos after creation with the same quality gates.
 - suggest_quality_followup_questions: return focused questions when quality confidence is low.
 - run_repo_quality_eval_scenarios: run deterministic repo quality eval scenarios.
 
-## V3 Complete Checklist
+## Advanced Criteria Checklist
 - Source-backed stack packs: hono, zod, vitest, auth0, stripe, expo, ai-sdk.
 - Executable detectors: auth-boundary, payment-boundary, test-policy, validation-boundary, route-thinness, line-threshold, ai-tool-safety.
 - Client examples: examples/client-wrapper.ts and JSON recipe files.
-- Local MCP config scanning and final-response review are part of the V3 tool surface.
+- Local MCP config scanning and final-response review are part of the advanced tool surface.
 
 ## Finding Codes
 - ARCH001_OVERSIZED_FILE
@@ -172,21 +178,21 @@ Stack packs live in packs/*.json. Foundation packs live in foundation-packs/*.js
 
 Candidate stack packs must include source metadata, concrete rules, examples, triggerKind, detectors, module boundaries, tests, and agent instructions.
 
-## V3 Source Material
-- docs/v3-source-material.md: V3 source-material notes for llms.txt stack packs, client harness recipes, eval fixtures, skill/catalog ingestion, MCP config security, agent instruction quality, memory scope compatibility, and verification policy.
-- docs/v3-status.md: Current V3 coverage, remaining future work, and the local-first readiness decision.
-- docs/v1-v3-completion-audit.md: Completion audit for V1-V3 local-first scope and deferred productization work.
-- docs/v4-scope-audit.md: V4 scope audit that removes hosted, database/storage, and GitHub/PR work until backend architecture is concrete.
-- docs/v5-v8-scope-audit.md: V5-V8 roadmap audit and V9 recommendation, preserving local-first boundaries.
-- docs/v4-scope.md: V4 local-first Standards Depth and Agent Workflow definition.
-- docs/v5-scope.md: V5 local-first next steps after V4, excluding hosted, database/storage, GitHub, CLI, and SDK work.
-- docs/v6-scope.md: V6 local governance maturity after V5, excluding hosted, database/storage, GitHub, CLI, and SDK work.
-- docs/v7-scope.md: V7 local strategic intelligence after V6, excluding hosted, database/storage, GitHub, CLI, and SDK work.
-- docs/v8-scope.md: V8 local governance automation after V7, excluding hosted, database/storage, GitHub, CLI, and SDK work.
-- docs/v9-scope.md: V9 local operating-model readiness after V8, excluding hosted, database/storage, GitHub, CLI, and SDK work.
-- docs/v10-productization-concepts.md: V10 concept map for accounts, teams, billing, dashboards, and remote policy management.
-- docs/v10-productization-implementation.md: V10 hosted productization contract, MCP-gated workflow, storage boundaries, and Primer dashboard constraints.
-- docs/v10-architecture-contract.md: V10 architecture contract and stop conditions.
+## Advanced Source Material
+- docs/v3-source-material.md: compatibility source-material notes for llms.txt stack packs, client harness recipes, eval fixtures, skill/catalog ingestion, MCP config security, agent instruction quality, memory scope compatibility, and verification policy.
+- docs/v3-status.md: current advanced coverage, remaining future work, and the local-first readiness decision.
+- docs/v1-v3-completion-audit.md: compatibility completion audit for local-first scope and deferred productization work.
+- docs/v4-scope-audit.md: compatibility scope audit that removes hosted, database/storage, and GitHub/PR work until backend architecture is concrete.
+- docs/v5-v8-scope-audit.md: compatibility maturity audit and operating-model recommendation, preserving local-first boundaries.
+- docs/v4-scope.md: compatibility local-first standards-depth and agent-workflow definition.
+- docs/v5-scope.md: compatibility local-first standards-intelligence criteria, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v6-scope.md: compatibility local-governance criteria, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v7-scope.md: compatibility strategic-intelligence criteria, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v8-scope.md: compatibility governance-automation criteria, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v9-scope.md: compatibility operating-model criteria, excluding hosted, database/storage, GitHub, CLI, and SDK work.
+- docs/v10-productization-concepts.md: compatibility productization concept map for accounts, teams, billing, dashboards, and remote policy management.
+- docs/v10-productization-implementation.md: compatibility hosted productization contract, MCP-gated workflow, storage boundaries, and Primer dashboard constraints.
+- docs/v10-architecture-contract.md: compatibility productization architecture contract and stop conditions.
 - docs/repo-quality-eval.md: Repo quality eval layer, hard gates, rubrics, and reward-hacking guardrails.
 - docs/use-on-a-repo.md: Local and hosted-safe workflows for using architect-mcp on a repository.
 - docs/hosted-api-shape.md: Future hosted request/response boundaries without adding hosted state.

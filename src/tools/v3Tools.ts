@@ -12,9 +12,9 @@ import type { StackPackCandidate } from "../domain/types.js";
 import { runV3EvalHarness } from "../domain/v3EvalHarness.js";
 import { safeJsonResponse } from "./responses.js";
 import { agentSessionReviewInputSchema, artifactQualityInputSchema, clientRecipeInputSchema, finalResponseReviewInputSchema, genericObjectOutputSchema, hostedPolicyAuditInputSchema, mcpConfigFileScanInputSchema, mcpSecurityReviewInputSchema, stackPackPromotionFilesSchema, v3EvalHarnessInputSchema } from "./schemas.js";
-import { registeredArchitectureToolNames } from "./toolRegistry.js";
+import { registeredArchitectureToolNames, type ToolSurface } from "./toolRegistry.js";
 
-export function registerV3Tools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
+export function registerV3Tools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean; toolSurface?: ToolSurface } = {}): void {
   server.registerTool(
     "review_mcp_config_security",
     {
@@ -133,7 +133,7 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       outputSchema: genericObjectOutputSchema
     },
     async ({ request }) => {
-      const knownToolNames = registeredArchitectureToolNames(options.enableLocalWorkspaceTool !== false);
+      const knownToolNames = registeredArchitectureToolNames(options.enableLocalWorkspaceTool !== false, options.toolSurface ?? "core");
       return safeJsonResponse(() => classifyToolPolicy(request?.toolNames ?? knownToolNames, { knownToolNames }));
     }
   );
