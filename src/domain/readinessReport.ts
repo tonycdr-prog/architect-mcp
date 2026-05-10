@@ -111,7 +111,7 @@ export async function createMcpReadinessReport(): Promise<McpReadinessReport> {
   checks.push({
     name: "package script hygiene",
     status: scriptCheck.missing.length === 0 ? "pass" : "fail",
-    summary: scriptCheck.missing.length === 0 ? "Required verification scripts are present: typecheck, test, build, audit, pack:dry-run, check:v3, check:v5, check:v6, check:v7, check:v8, check:v9, check:v10, release:check." : `Missing package scripts: ${scriptCheck.missing.join(", ")}.`
+    summary: scriptCheck.missing.length === 0 ? "Required verification scripts and clean-checkout readiness bootstraps are present." : `Missing package scripts: ${scriptCheck.missing.join(", ")}.`
   });
 
   return {
@@ -135,5 +135,5 @@ function checkPackageScripts(): { missing: string[] } {
 }
 
 function requiredScripts(): string[] {
-  return ["typecheck", "test", "build", "audit", "pack:dry-run", "check:v3", "check:v5", "check:v6", "check:v7", "check:v8", "check:v9", "check:v10", "release:check"];
+  return ["typecheck", "test", "build", "audit", "pack:dry-run", "precheck:v3", "check:v3", "precheck:v5", "check:v5", "precheck:v6", "check:v6", "precheck:v7", "check:v7", "precheck:v8", "check:v8", "precheck:v9", "check:v9", "precheck:v10", "check:v10", "release:check"];
 }

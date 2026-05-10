@@ -2,10 +2,16 @@ export const GENERATED_FILE_PATTERNS = [
   /^package-lock\.json$/,
   /^pnpm-lock\.yaml$/,
   /^yarn\.lock$/,
+  /^Cargo\.lock$/,
+  /^poetry\.lock$/,
+  /^.*\.lock$/,
   /^dist\//,
   /^build\//,
   /^coverage\//,
   /^node_modules\//,
+  /(^|\/)(public|static|assets|fonts|flags)\//,
+  /(^|\/)(archive|archives)\//,
+  /(^|\/)migrations\/meta\//,
   /^stack-sources\/ingested\//,
   /^ios\/Pods\//,
   /^android\/build\//,
@@ -14,7 +20,7 @@ export const GENERATED_FILE_PATTERNS = [
   /^.*\.snap$/
 ];
 
-const BINARY_OR_MEDIA_EXTENSIONS = /\.(png|jpe?g|gif|webp|avif|ico|mov|mp4|webm|mp3|wav|pdf|zip|gz|tgz|sqlite|db)$/i;
+const BINARY_OR_MEDIA_EXTENSIONS = /\.(png|jpe?g|gif|webp|avif|ico|svg|ttf|woff2?|mov|mp4|webm|mp3|wav|pdf|zip|gz|tgz|sqlite|db|map)$/i;
 
 export function normalizePath(path: string): string {
   return path.replaceAll("\\", "/").replace(/^\.?\//, "");
@@ -26,7 +32,7 @@ export function isGeneratedFile(path: string): boolean {
 }
 
 export function isSourceCodeFile(path: string): boolean {
-  return /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs)$/.test(normalizePath(path));
+  return /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs|py|go|rs|java|kt|kts|cs)$/.test(normalizePath(path));
 }
 
 export function matchesPathPattern(path: string, pattern: string): boolean {

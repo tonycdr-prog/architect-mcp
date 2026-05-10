@@ -23,6 +23,7 @@ import {
   messyReactFixture,
   nextjsGeneratedBadFixture,
   nextjsGeneratedGoodFixture,
+  publicRepoSmokeFixture,
   reactViteGeneratedBadFixture,
   reactViteGeneratedGoodFixture
 } from "./fixtures/repos.js";
@@ -205,6 +206,62 @@ describe("reviewFileSummaries", () => {
     ]);
 
     assert.equal(violations.length, 0);
+  });
+
+  it("does not treat common public-repo assets and generated metadata as oversized source", () => {
+    const violations = reviewFileSummaries([
+      { path: "apps/web/public/flags/bo.svg", lines: 674 },
+      { path: "apps/web/public/fonts/font-atlas.json", lines: 11349 },
+      { path: "apps/web/migrations/meta/0000_snapshot.json", lines: 345 },
+      { path: "openspec/changes/archive/2026-02-17-project-config/proposal.md", lines: 775 },
+      { path: "Cargo.lock", lines: 1159 },
+      { path: "src/main/resources/static/resources/css/petclinic.css", lines: 9532 },
+      { path: "src/main/resources/static/resources/fonts/varela_round-webfont.svg", lines: 7875 }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH001_OVERSIZED_FILE"), false);
+  });
+
+  it("uses docs, config, and language-specific test thresholds before line warnings", () => {
+    const violations = reviewFileSummaries([
+      { path: "docs/api.rst", lines: 709 },
+      { path: "src/test/jmeter/petclinic_test_plan.jmx", lines: 541 },
+      { path: "pom.xml", lines: 421 },
+      { path: "active_help_test.go", lines: 401 },
+      { path: "src/flask/app.py", lines: 1626 }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.path === "docs/api.rst"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/test/jmeter/petclinic_test_plan.jmx"), false);
+    assert.equal(violations.some((violation) => violation.path === "pom.xml"), false);
+    assert.equal(violations.some((violation) => violation.path === "active_help_test.go" && violation.code === "ARCH001_OVERSIZED_FILE"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/flask/app.py"), true);
+  });
+
+  it("reduces audit noise for declaration files, changelogs, and generated text data", () => {
+    const violations = reviewFileSummaries([
+      { path: "packages/kit/src/exports/public.d.ts", lines: 2321 },
+      { path: "test/types/type-provider.test-d.ts", lines: 1214 },
+      { path: "packages/kit/types/index.d.ts", lines: 3849 },
+      { path: "CHANGELOG.md", lines: 4265 },
+      { path: "packages/kit/CHANGELOG-pre-1.md", lines: 4265 },
+      { path: "docs/en/docs/release-notes.md", lines: 6864 },
+      { path: "godoc-current.txt", lines: 1504 },
+      { path: "tests/data/sherlock-nul.txt", lines: 2134 },
+      { path: "benchsuite/runs/2016-09-20/raw.csv", lines: 1612 },
+      { path: "src/runtime/client.js", lines: 3367 }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.path === "packages/kit/src/exports/public.d.ts"), false);
+    assert.equal(violations.some((violation) => violation.path === "test/types/type-provider.test-d.ts"), false);
+    assert.equal(violations.some((violation) => violation.path === "packages/kit/types/index.d.ts" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(violations.some((violation) => violation.path === "CHANGELOG.md"), false);
+    assert.equal(violations.some((violation) => violation.path === "packages/kit/CHANGELOG-pre-1.md"), false);
+    assert.equal(violations.some((violation) => violation.path === "docs/en/docs/release-notes.md"), false);
+    assert.equal(violations.some((violation) => violation.path === "godoc-current.txt"), false);
+    assert.equal(violations.some((violation) => violation.path === "tests/data/sherlock-nul.txt"), false);
+    assert.equal(violations.some((violation) => violation.path === "benchsuite/runs/2016-09-20/raw.csv"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/runtime/client.js"), true);
   });
 
   it("does not scan pack examples for env access warnings", () => {
@@ -426,6 +483,50 @@ describe("reviewBuildPlan", () => {
     ]);
 
     assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), true);
+  });
+
+  it("uses existing-repo audit profile without requiring generated agent harness artifacts", () => {
+    const violations = reviewFileSummaries([
+      { path: "src/cli/index.ts", lines: 513, imports: ["./commands"] },
+      { path: "src/commands/workspace/operations.ts", lines: 680 }
+    ], undefined, 300, ["src/cli", "src/commands"], undefined, { profile: "existing-repo" });
+    const report = createReviewReport(violations, { mode: "audit" });
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), false);
+    assert.equal(report.mode, "audit");
+    assert.equal(report.gate.status, "pass");
+    assert.equal(report.summary.warnings > 0, true);
+  });
+
+  it("keeps entry-file drift focused on root monoliths, not nested barrels", () => {
+    const violations = reviewFileSummaries([
+      { path: "src/helper/css/index.ts", lines: 260, imports: ["../utils"] },
+      { path: "src/index.ts", lines: 260, imports: ["@/db/client", "@/features/customers"] }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN" && violation.path === "src/helper/css/index.ts"), false);
+    assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN" && violation.path === "src/index.ts"), true);
+  });
+
+  it("covers public-repo smoke fixtures for source-focused existing-repo audit", () => {
+    const violations = reviewFileSummaries(
+      publicRepoSmokeFixture.files,
+      undefined,
+      300,
+      publicRepoSmokeFixture.directories,
+      undefined,
+      { profile: "existing-repo" }
+    );
+    const report = createReviewReport(violations, { mode: "audit" });
+
+    assert.equal(violations.some((violation) => violation.path === "apps/web/public/flags/bo.svg"), false);
+    assert.equal(violations.some((violation) => violation.path === "apps/web/migrations/meta/0000_snapshot.json"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/helper/css/index.ts" && violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/flask/app.py" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(violations.some((violation) => violation.path === "src/cli.rs" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(violations.some((violation) => violation.path === "src/main/java/jadx/cli/JadxCLIArgs.java" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(report.mode, "audit");
+    assert.notEqual(report.gate.status, "fail");
   });
 
   it("compares generated app output against the build plan", () => {

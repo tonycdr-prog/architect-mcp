@@ -64,6 +64,7 @@ export function createReviewReport(violations: ReviewViolation[], options: Revie
 
 function defaultFindingLimit(mode: ReviewMode): number {
   if (mode === "ci") return 20;
+  if (mode === "audit") return 60;
   if (mode === "migration") return 30;
   if (mode === "summary") return 40;
   return Number.MAX_SAFE_INTEGER;
@@ -200,6 +201,7 @@ function defaultMaxWarnings(mode: ReviewMode): number {
   if (mode === "ci") return 0;
   if (mode === "strict") return 20;
   if (mode === "migration") return 200;
+  if (mode === "audit") return 250;
   return 50;
 }
 
@@ -207,6 +209,7 @@ function defaultMinScore(mode: ReviewMode): number {
   if (mode === "ci") return 90;
   if (mode === "strict") return 80;
   if (mode === "migration") return 60;
+  if (mode === "audit") return 50;
   return 70;
 }
 

@@ -419,9 +419,10 @@ Review modes:
 - `strict`: return every finding.
 - `summary`: return grouped findings plus priority findings.
 - `ci`: return only blocker/error findings.
+- `audit`: review an established repo without requiring generated agent harness artifacts.
 - `migration`: suppress lower-value line-count noise for mature repos.
 
-Use `.architectignore` or `ignorePatterns` to suppress generated datasets, fixtures, mocks, and snapshots.
+Use `.architectignore` or `ignorePatterns` to suppress project-specific generated datasets, fixtures, mocks, and snapshots. The built-in review noise filter already excludes common lockfiles, public/static assets, archive folders, migration metadata, media/font files, and generated outputs.
 
 Findings include:
 
@@ -429,7 +430,7 @@ Findings include:
 - `confidence`: `high`, `medium`, or `low`, based on how directly observable the rule violation is.
 - `severity`: `error` or `warning`.
 
-Line-count warnings are category-aware. UI, route, service, schema, test, script, config, and docs/data files each use their own threshold so generated or naturally broad files do not drown out real architecture issues.
+Line-count warnings are category-aware. UI, route, service, schema, declaration, test, script, config, changelog, and docs/data files each use their own threshold so generated or naturally broad files do not drown out real architecture issues.
 
 Baselines suppress known findings by `code` plus optional `path` and `message`. A repo can create a baseline once, pass it back into `review_repo_structure` or `review_local_workspace`, and use CI mode to catch new blocker findings without forcing immediate cleanup of every historical warning.
 
@@ -494,7 +495,7 @@ Hosted safety:
 - Hosted mode must not expose `review_local_workspace`, `scan_mcp_config_files`, or `promote_stack_pack_to_files`.
 - Attempts to call local workspace scanning when it is not registered return an MCP tool error.
 
-MCP readiness should pass before release: `npm run release:check` runs the full advanced readiness gate. `npm run check:v3` runs typecheck, tests, build, audit, package dry-run inclusion, and `mcp_readiness_report`. The historical compatibility scripts `npm run check:v5`, `npm run check:v6`, `npm run check:v7`, `npm run check:v8`, `npm run check:v9`, and `npm run check:v10` still chain the base release check and then run standards-intelligence, governance, operating-model, and productization boundary evals. The underlying readiness tool checks pack validation, policy bundle validation, contract/artifact validation, self-review, hosted safety, advanced staged evals, tool schema policy, and release scripts.
+MCP readiness should pass before release: `npm run release:check` runs the full advanced readiness gate and bootstraps the compiled readiness entrypoints from a clean checkout. `npm run check:v3` runs typecheck, tests, build, audit, package dry-run inclusion, and `mcp_readiness_report`. The historical compatibility scripts `npm run check:v5`, `npm run check:v6`, `npm run check:v7`, `npm run check:v8`, `npm run check:v9`, and `npm run check:v10` still chain the base release check and then run standards-intelligence, governance, operating-model, and productization boundary evals. The underlying readiness tool checks pack validation, policy bundle validation, contract/artifact validation, self-review, hosted safety, advanced staged evals, tool schema policy, and release scripts.
 
 For richer hosted reviews, clients should include optional file-summary signals:
 

@@ -26,12 +26,17 @@ const MIXED_CONCERN_PATTERNS = [
   { pattern: /(page|route|component)\.(tsx|jsx)$.*(service|repository)/i, concern: "service/repository naming mixed into UI files" }
 ];
 
+export type ReviewFileSummaryOptions = {
+  profile?: "agent-work-gate" | "existing-repo";
+};
+
 export function reviewFileSummaries(
   files: FileSummary[],
   contract?: ArchitectureContract,
   maxLines = DEFAULT_MAX_LINES,
   directories: string[] = [],
-  buildPlan?: BuildPlan
+  buildPlan?: BuildPlan,
+  options: ReviewFileSummaryOptions = {}
 ): ReviewViolation[] {
   const violations: ReviewViolation[] = [];
   const filePaths = [
@@ -130,7 +135,9 @@ export function reviewFileSummaries(
   violations.push(...reviewRootHygiene(normalizedFiles));
   violations.push(...reviewTypeAndSchemaAggregation(normalizedFiles));
   violations.push(...reviewExecutableFileRules(normalizedFiles, contract));
-  violations.push(...reviewImplementationPlanDrift(normalizedFiles, filePaths, buildPlan));
+  violations.push(...reviewImplementationPlanDrift(normalizedFiles, filePaths, buildPlan, {
+    profile: options.profile ?? "agent-work-gate"
+  }));
 
   return dedupeViolations(violations);
 }
@@ -138,7 +145,7 @@ export function reviewFileSummaries(
 function reviewRootHygiene(files: Array<FileSummary & { path: string }>): ReviewViolation[] {
   const violations: ReviewViolation[] = [];
   for (const file of files) {
-    if (isGeneratedFile(file.path) || !isSourceCodeFile(file.path) || file.path.includes("/")) continue;
+    if (isGeneratedFile(file.path) || !isJavaScriptTypeScriptSourceFile(file.path) || file.path.includes("/")) continue;
     if (ALLOWED_ROOT_SOURCE_FILES.some((pattern) => pattern.test(file.path))) continue;
 
     violations.push(createFinding({
@@ -150,6 +157,10 @@ function reviewRootHygiene(files: Array<FileSummary & { path: string }>): Review
     }));
   }
   return violations;
+}
+
+function isJavaScriptTypeScriptSourceFile(path: string): boolean {
+  return /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs)$/.test(path);
 }
 
 function reviewTypeAndSchemaAggregation(files: Array<FileSummary & { path: string }>): ReviewViolation[] {

@@ -35,7 +35,7 @@ export type FindingCode =
   | "ARCH025_TYPE_SCHEMA_AGGREGATION"
   | "ARCH026_REPO_HYGIENE";
 
-export type ReviewMode = "strict" | "summary" | "ci" | "migration";
+export type ReviewMode = "strict" | "summary" | "ci" | "migration" | "audit";
 
 export type ReviewOptions = {
   mode?: ReviewMode;

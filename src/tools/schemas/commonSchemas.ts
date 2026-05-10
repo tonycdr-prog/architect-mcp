@@ -201,7 +201,7 @@ export const fileSummarySchema = z.object({
 }).strict();
 
 export const agentInstructionFormatSchema = z.enum(["agents-md", "claude-md", "cursor-rules"]);
-export const reviewModeSchema = z.enum(["strict", "summary", "ci", "migration"]);
+export const reviewModeSchema = z.enum(["strict", "summary", "ci", "migration", "audit"]);
 
 export const baselineSchema = z.object({
   findings: z.array(z.object({
