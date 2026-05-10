@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createMcpReadinessReport } from "../domain/readinessReport.js";
 
 type Step = {
@@ -120,14 +121,57 @@ function run(step: Step): void {
 }
 
 function readPackedManifest(): { scripts?: Record<string, string> } {
+  const prepareScriptPath = fileURLToPath(new URL("../../scripts/preparePackageManifest.cjs", import.meta.url));
+  const restoreScriptPath = fileURLToPath(new URL("../../scripts/restorePackageManifest.cjs", import.meta.url));
+  const manifestPath = fileURLToPath(new URL("../../package.json", import.meta.url));
+  let manifestPrepared = false;
+  let readFailure: Error | null = null;
   try {
-    execFileSync(process.execPath, ["scripts/preparePackageManifest.cjs"], {
-      stdio: "inherit"
-    });
-    return JSON.parse(readFileSync("package.json", "utf8")) as { scripts?: Record<string, string> };
+    try {
+      execFileSync(process.execPath, [prepareScriptPath], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+      manifestPrepared = true;
+    } catch (error) {
+      throw new Error(
+        `Failed to prepare package manifest for V3 readiness check: ${describeExecFailure(error)}`
+      );
+    }
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
+    if (!manifest || typeof manifest !== "object") {
+      throw new Error("Prepared package manifest is not a JSON object.");
+    }
+    return manifest as { scripts?: Record<string, string> };
+  } catch (error) {
+    readFailure = error instanceof Error ? error : new Error(String(error));
+    throw readFailure;
   } finally {
-    execFileSync(process.execPath, ["scripts/restorePackageManifest.cjs"], {
-      stdio: "inherit"
-    });
+    if (manifestPrepared) {
+      try {
+        execFileSync(process.execPath, [restoreScriptPath], {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"]
+        });
+      } catch (error) {
+        const message = `Failed to restore package manifest after V3 readiness check: ${describeExecFailure(error)}`;
+        if (readFailure) {
+          console.error(message);
+        } else {
+          throw new Error(message);
+        }
+      }
+    }
   }
+}
+
+function describeExecFailure(error: unknown): string {
+  if (!error || typeof error !== "object") {
+    return String(error);
+  }
+  const stderr = String(Reflect.get(error, "stderr") ?? "").trim();
+  if (stderr.length > 0) {
+    return stderr;
+  }
+  return error instanceof Error ? error.message : String(error);
 }
