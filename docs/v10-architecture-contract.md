@@ -1,4 +1,4 @@
-# V10 Architecture Contract
+# Productization Boundary Architecture Contract
 
 ## Goal
 
@@ -16,11 +16,11 @@ Add hosted productization around architect-mcp without weakening the local-first
 
 ## Required Artifacts
 
-- V10 productization blueprint.
-- V10 implementation slice plan.
+- Productization boundary blueprint.
+- Productization boundary slice plan.
 - Primer dashboard plan.
 - Productization boundary review.
-- V10 eval harness.
+- Productization boundary eval harness.
 - Staged readiness script.
 
 ## Verification
@@ -32,7 +32,7 @@ Add hosted productization around architect-mcp without weakening the local-first
 
 ## Stop Conditions
 
-- Any V10 boundary finding with status `fail`.
+- Any productization boundary finding with status `fail`.
 - Any implementation slice missing MCP pre-edit or post-edit review.
 - Any route without a repository boundary.
 - Any org-scoped route or table without tenant-scope enforcement.

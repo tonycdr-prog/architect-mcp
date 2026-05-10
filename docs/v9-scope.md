@@ -1,12 +1,14 @@
-# V9 Scope
+# Advanced Operating-Model Criteria
 
-V9 is the next local-first operating-model layer after V8. It still excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
+Compatibility note: this file keeps the historical `docs/v9-scope.md` path and V9-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as an advanced operating-model eval layer, not as a product version.
 
-V9 should make architect-mcp easier for agents and clients to run correctly by composing the V5-V8 capabilities into deterministic local workflows with normalized outputs, token-aware summaries, and scenario-level acceptance criteria.
+This criteria layer remains local-first. It excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
 
-## V9 Direction
+It should make architect-mcp easier for agents and clients to run correctly by composing the advanced standards-intelligence, governance, strategic-planning, and automation capabilities into deterministic local workflows with normalized outputs, token-aware summaries, and scenario-level acceptance criteria.
 
-V9 focuses on local operating-model readiness:
+## Operating-Model Direction
+
+This layer focuses on local operating-model readiness:
 
 - Local orchestration recipes.
 - Scenario acceptance profiles.
@@ -19,7 +21,7 @@ V9 focuses on local operating-model readiness:
 - Local dry-run plans.
 - Tool-loop quality gates.
 
-## V9 Local Orchestration Recipes
+## Local Orchestration Recipes
 
 Goal: define deterministic local tool sequences for common work without adding a CLI, hosted service, or external coordinator.
 
@@ -31,7 +33,7 @@ Deliverables:
 - Warnings when a client skips a required pre-edit, review, or verification step.
 - Tests that recipes stay local-only and avoid productization dependencies.
 
-## V9 Scenario Acceptance Profiles
+## Scenario Acceptance Profiles
 
 Goal: judge whether a complete local run is good enough for the user’s scenario, not only whether individual tools returned valid data.
 
@@ -43,7 +45,7 @@ Deliverables:
 - Machine-readable acceptance status for agents.
 - Fixture runs that combine multiple MCP outputs into one scenario verdict.
 
-## V9 Result Normalization
+## Result Normalization
 
 Goal: reduce agent confusion by giving cross-tool outputs a consistent structure.
 
@@ -55,7 +57,7 @@ Deliverables:
 - Normalized "not done" and "could not verify" fields.
 - Tests for backwards-compatible response shapes.
 
-## V9 Context-Budget Governance
+## Context-Budget Governance
 
 Goal: keep the MCP useful in YOLO-style agent loops without flooding context.
 
@@ -67,7 +69,7 @@ Deliverables:
 - Token-sensitive guidance compression for stack packs, playbooks, and policy bundles.
 - Warnings when a requested output would exceed a supplied context budget.
 
-## V9 Evidence Routing
+## Evidence Routing
 
 Goal: make evidence easier to connect to decisions, findings, verification, and final responses.
 
@@ -79,7 +81,7 @@ Deliverables:
 - Root-cause claim guardrails that require linked evidence.
 - Fixtures for missing, weak, conflicting, and sufficient evidence.
 
-## V9 Source Provenance Continuity
+## Source Provenance Continuity
 
 Goal: keep source-backed standards auditable after they move through orchestration, playbooks, scenario reports, and handoff summaries.
 
@@ -91,7 +93,7 @@ Deliverables:
 - Include source provenance in normalized findings and compact handoff summaries when it affects trust or remediation.
 - Tests that source-backed rules do not become opaque inside recipes, scenario acceptance, or result normalization.
 
-## V9 Advisory Skill-Pattern Routing
+## Advisory Skill-Pattern Routing
 
 Goal: use the built-in skills catalog as source material for better local workflow selection without requiring users to have local Codex skills installed.
 
@@ -103,7 +105,7 @@ Deliverables:
 - Unsafe skill metadata is surfaced as a warning, not executed.
 - Tests for built-in catalog recommendations and client-supplied skill metadata.
 
-## V9 Artifact-Quality Routing
+## Artifact-Quality Routing
 
 Goal: make agent-facing docs part of the local operating model instead of a separate afterthought.
 
@@ -115,7 +117,7 @@ Deliverables:
 - Result normalization includes artifact findings alongside code, harness, stack-pack, and security findings.
 - Tests for stale, missing, weak, and passing artifact guidance.
 
-## V9 Local Dry-Run Plans
+## Local Dry-Run Plans
 
 Goal: let agents preview the full local governance run before editing code.
 
@@ -128,7 +130,7 @@ Deliverables:
 - Source-backed guidance, advisory skill patterns, and artifact checks expected for the scenario.
 - Tests for vague novice prompts and concrete low-risk prompts.
 
-## V9 Tool-Loop Quality Gates
+## Tool-Loop Quality Gates
 
 Goal: detect when an agent is using the MCP poorly even if individual tool calls succeed.
 

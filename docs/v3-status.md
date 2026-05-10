@@ -30,4 +30,4 @@ V3 is concrete enough to stay local-first and continue without hosting or CLI wo
 
 Treat V3 as implemented for the local-first MCP core. The next work should be hardening and expanding stack packs, not starting hosting or CLI unless the product direction changes.
 
-The completion audit lives in `docs/v1-v3-completion-audit.md`. V4 scope lives in `docs/v4-scope.md`; the V4 scope audit lives in `docs/v4-scope-audit.md`. The next local-first product-depth scope lives in `docs/v5-scope.md`, followed by local governance maturity in `docs/v6-scope.md`, local strategic intelligence in `docs/v7-scope.md`, and local governance automation in `docs/v8-scope.md`.
+The completion audit lives in `docs/v1-v3-completion-audit.md`. V4 scope lives in `docs/v4-scope.md`; the V4 scope audit lives in `docs/v4-scope-audit.md`. Advanced compatibility criteria live in `docs/v5-scope.md`, followed by local governance maturity in `docs/v6-scope.md`, local strategic intelligence in `docs/v7-scope.md`, and local governance automation in `docs/v8-scope.md`.

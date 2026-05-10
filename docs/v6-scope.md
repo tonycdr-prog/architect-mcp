@@ -1,12 +1,14 @@
-# V6 Scope
+# Advanced Local-Governance Criteria
 
-V6 is the next local-first maturity layer after V5. It still excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
+Compatibility note: this file keeps the historical `docs/v6-scope.md` path and V6-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as an advanced local-governance maturity layer, not as a product version.
 
-V6 should make architect-mcp more adaptive, auditable, and useful across longer agent workflows while staying inside the existing MCP/domain/test architecture.
+This criteria layer remains local-first. It excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
 
-## V6 Direction
+It should make architect-mcp more adaptive, auditable, and useful across longer agent workflows while staying inside the existing MCP/domain/test architecture.
 
-V6 focuses on local governance maturity:
+## Local-Governance Direction
+
+This layer focuses on local governance maturity:
 
 - Policy composition.
 - Standards lifecycle.
@@ -16,7 +18,7 @@ V6 focuses on local governance maturity:
 - Regression intelligence.
 - Cross-repo pattern portability without external integrations.
 
-## V6 Policy Composition
+## Policy Composition
 
 Goal: let clients assemble reusable policy sets without persistence or hosted policy management.
 
@@ -28,7 +30,7 @@ Deliverables:
 - Recommended bundle selection from project brief and stack signals.
 - Tests for strict, migration, frontend-heavy, backend-heavy, security-focused, and novice-friendly bundles.
 
-## V6 Standards Lifecycle
+## Standards Lifecycle
 
 Goal: make standards evolve safely over time.
 
@@ -40,7 +42,7 @@ Deliverables:
 - Compatibility checks when a contract references older pack versions.
 - Report whether a new ruleset is likely to create noisy findings.
 
-## V6 Multi-Turn Agent Continuity
+## Multi-Turn Agent Continuity
 
 Goal: improve long-running local sessions without durable storage.
 
@@ -52,7 +54,7 @@ Deliverables:
 - Assumption aging within a provided session payload.
 - Handoff quality scoring.
 
-## V6 Review Explainability At Scale
+## Review Explainability At Scale
 
 Goal: keep large review outputs understandable.
 
@@ -64,7 +66,7 @@ Deliverables:
 - Noise-risk scoring.
 - Plain-English report summaries for novice users and concise machine-readable summaries for agents.
 
-## V6 Local Report Artifacts
+## Local Report Artifacts
 
 Goal: generate portable artifacts without needing hosted dashboards or external systems.
 
@@ -78,7 +80,7 @@ Deliverables:
 
 The MCP should return report contents; writing files remains a client decision unless a local-only tool already owns that behavior.
 
-## V6 Regression Intelligence
+## Regression Intelligence
 
 Goal: make known failure modes first-class.
 
@@ -90,7 +92,7 @@ Deliverables:
 - Fixture generator suggestions for new rules.
 - Coverage gaps when a rule has no positive and negative fixture.
 
-## V6 Cross-Repo Pattern Portability
+## Cross-Repo Pattern Portability
 
 Goal: reuse lessons across repos without external memory, hosted storage, or GitHub.
 

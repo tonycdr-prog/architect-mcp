@@ -1,12 +1,12 @@
-# V10 Productization Concepts
+# Productization Boundary Concepts
 
-V10 is a concept exploration for productized architect-mcp capabilities after the local MCP core, operating model, and backend architecture are concrete.
+Compatibility note: this file keeps the historical `docs/v10-productization-concepts.md` path and V10-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as productization boundary criteria, not as a product version.
 
-This is not an implementation plan. It sketches what billing, accounts, teams, dashboards, and remote policy management could look like when the project is ready to move beyond local-first MCP behavior.
+This is not an implementation plan. It maps what billing, accounts, teams, dashboards, and remote policy management could look like when the project is ready to move beyond local-first MCP behavior.
 
-## V10 Direction
+## Productization-Boundary Direction
 
-V10 explores a hosted product layer around the local MCP:
+This boundary layer evaluates a possible hosted product layer around the local MCP:
 
 - Accounts and identity.
 - Organizations and teams.
@@ -157,7 +157,7 @@ Questions to answer before implementation:
 - How are remote policies authenticated and integrity-checked?
 - How does a user know whether a finding came from local rules, remote policy, or source-backed stack guidance?
 
-## V10 Concept Screens
+## Concept Screens
 
 Potential screens for product exploration:
 
@@ -170,7 +170,7 @@ Potential screens for product exploration:
 - Project dashboard: current standards, latest local report uploads, risks, suggested next action.
 - Remote policy preview: what would change before adoption.
 
-## V10 Concept Risks
+## Concept Risks
 
 - Productization could distract from making the MCP core excellent.
 - Dashboards could create management theater instead of better agent outcomes.
@@ -179,7 +179,7 @@ Potential screens for product exploration:
 - Stored reports could create privacy, security, and retention obligations.
 - Team workflows could slow users down if every policy change requires heavy review.
 
-## V10 Concept Evaluation
+## Concept Evaluation
 
 Before implementation, validate:
 

@@ -277,8 +277,8 @@ export function registerV5V9Tools(server: McpServer): void {
     ["v9", "operating-model"]
   ] as const) {
     server.registerTool(`run_${stage[0]}_eval_harness`, {
-      title: `Run ${stage[0].toUpperCase()} Eval Harness`,
-      description: `Run deterministic ${stage[0].toUpperCase()} ${stage[1]} evals.`,
+      title: `Run ${stage[1]} Eval Harness`,
+      description: `Run deterministic advanced ${stage[1]} evals for the compatibility ${stage[0]} stage.`,
       inputSchema: { request: v5V9EvalHarnessRequestSchema.optional() },
       outputSchema: genericObjectOutputSchema
     }, async () => safeJsonResponse(() => runV5V9EvalHarness(stage[0])));
