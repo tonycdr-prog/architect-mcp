@@ -88,16 +88,16 @@ export async function createMcpReadinessReport(): Promise<McpReadinessReport> {
 
   const stagedEval = runV5V9EvalHarness("v9");
   checks.push({
-    name: "v5-v9 staged evals",
+    name: "advanced staged evals",
     status: stagedEval.status === "pass" ? "pass" : "fail",
-    summary: `${stagedEval.summary.passed}/${stagedEval.summary.total} V5-V9 staged evals passed.`
+    summary: `${stagedEval.summary.passed}/${stagedEval.summary.total} advanced maturity evals passed.`
   });
 
   const v10Eval = runV10EvalHarness();
   checks.push({
-    name: "v10 productization evals",
+    name: "productization boundary evals",
     status: v10Eval.status === "pass" ? "pass" : "fail",
-    summary: `${v10Eval.summary.passed}/${v10Eval.summary.total} V10 productization evals passed.`
+    summary: `${v10Eval.summary.passed}/${v10Eval.summary.total} productization boundary evals passed.`
   });
 
   const repoQualityEval = runRepoQualityEvalScenarios();

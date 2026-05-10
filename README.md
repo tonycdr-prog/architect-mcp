@@ -29,10 +29,10 @@ The default MCP surface exposes only the core work-gate tools:
 Use the advanced surface when you need the full standards, pack-authoring, governance, eval, and productization criteria:
 
 ```bash
-ARCHITECT_MCP_TOOL_SURFACE=advanced npx architect-mcp
+ARCHITECT_MCP_TOOL_SURFACE=advanced architect-mcp
 ```
 
-The historical V3-V10 labels remain in tool names, scripts, tests, and document filenames for compatibility. Public documentation frames them as advanced maturity criteria rather than product versions or demo milestones.
+The historical V3-V10 labels remain in tool names, scripts, tests, and document filenames for compatibility. Public documentation frames them as advanced maturity criteria rather than public product versions.
 
 ## Advanced Maturity Criteria
 
@@ -374,10 +374,21 @@ The repo also ships `llms.txt` so agents and tooling can discover architect-mcp 
 
 ## Run Locally
 
+The npm registry name `architect-mcp` is owned by a different package. This project keeps the `architect-mcp` command name, but package distribution uses the scoped package identity `@tonycdr-prog/architect-mcp` and GitHub release tarballs until npm publishing is configured for that scope.
+
+Install the launch package from the GitHub release tarball:
+
+```bash
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz
+architect-mcp
+```
+
+For a source checkout:
+
 ```bash
 npm install
 npm run build
-npx architect-mcp
+node dist/index.js
 ```
 
 For local MCP clients, point the command at this repo:
@@ -387,7 +398,12 @@ For local MCP clients, point the command at this repo:
   "mcpServers": {
     "architect-mcp": {
       "command": "npx",
-      "args": ["-y", "architect-mcp@0.1.0"]
+      "args": [
+        "-y",
+        "--package",
+        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz",
+        "architect-mcp"
+      ]
     }
   }
 }

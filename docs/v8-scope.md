@@ -1,12 +1,14 @@
-# V8 Scope
+# Advanced Governance-Automation Criteria
 
-V8 is the next local-first maturity layer after V7. It still excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
+Compatibility note: this file keeps the historical `docs/v8-scope.md` path and V8-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as an advanced governance-automation maturity layer, not as a product version.
 
-V8 should make architect-mcp better at local governance automation, standards refactoring, and resilient agent collaboration while staying inside the existing MCP/domain/test architecture.
+This criteria layer remains local-first. It excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
 
-## V8 Direction
+It should make architect-mcp better at local governance automation, standards refactoring, and resilient agent collaboration while staying inside the existing MCP/domain/test architecture.
 
-V8 focuses on local governance automation:
+## Governance-Automation Direction
+
+This layer focuses on local governance automation:
 
 - Standards refactoring.
 - Policy minimization.
@@ -16,7 +18,7 @@ V8 focuses on local governance automation:
 - Rule impact calibration.
 - Documentation intelligence.
 
-## V8 Standards Refactoring
+## Standards Refactoring
 
 Goal: help maintainers improve existing packs and policies without changing runtime architecture.
 
@@ -28,7 +30,7 @@ Deliverables:
 - Suggest detector families for manual-only rules.
 - Generate before/after pack diffs with risk notes.
 
-## V8 Policy Minimization
+## Policy Minimization
 
 Goal: help projects avoid overloading agents with too many rules.
 
@@ -40,7 +42,7 @@ Deliverables:
 - "Drop, defer, or keep" recommendations for candidate rules.
 - Compact standards profile output for token-sensitive clients.
 
-## V8 Local Review Playbooks
+## Local Review Playbooks
 
 Goal: turn recurring review situations into repeatable local workflows.
 
@@ -51,7 +53,7 @@ Deliverables:
 - Playbook selection from request text and project brief.
 - Playbook conformance review after implementation.
 
-## V8 Agent Collaboration Protocols
+## Agent Collaboration Protocols
 
 Goal: make multi-agent or multi-step local work safer without subagent orchestration, hosted state, or external systems.
 
@@ -63,7 +65,7 @@ Deliverables:
 - "Do not touch" boundary declarations.
 - Integration checklist for merging independently produced local changes.
 
-## V8 Failure-Mode Drills
+## Failure-Mode Drills
 
 Goal: test whether the harness catches known bad agent behavior before release.
 
@@ -73,7 +75,7 @@ Deliverables:
 - Drill runner output that explains what was caught and what escaped.
 - Suggested new detectors or evals for escaped failures.
 
-## V8 Rule Impact Calibration
+## Rule Impact Calibration
 
 Goal: tune severity, confidence, and gate impact locally.
 
@@ -85,7 +87,7 @@ Deliverables:
 - Preview gate result changes from severity/confidence edits.
 - Keep calibration stateless and based only on supplied reports or fixtures.
 
-## V8 Documentation Intelligence
+## Documentation Intelligence
 
 Goal: keep human and agent docs aligned with actual tool behavior.
 

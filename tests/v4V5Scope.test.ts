@@ -17,11 +17,11 @@ describe("V4 and V5 scope boundaries", () => {
     assert.doesNotMatch(v4, /move to V5/);
   });
 
-  it("defines V5 as local-first product depth without productization layers", () => {
+  it("defines standards-intelligence criteria without productization layers", () => {
     const v5 = readFileSync("docs/v5-scope.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
-    assert.match(v5, /V5 is the next local-first product depth after V4/);
+    assert.match(v5, /advanced standards-intelligence maturity layer/);
     assert.match(v5, /Standards Orchestration/);
     assert.match(v5, /Explainable Findings/);
     assert.match(v5, /Policy Simulation/);
@@ -32,11 +32,11 @@ describe("V4 and V5 scope boundaries", () => {
     assert.match(llms, /docs\/v5-scope\.md/);
   });
 
-  it("defines V6 as local governance maturity without productization layers", () => {
+  it("defines local governance maturity without productization layers", () => {
     const v6 = readFileSync("docs/v6-scope.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
-    assert.match(v6, /V6 is the next local-first maturity layer after V5/);
+    assert.match(v6, /advanced local-governance maturity layer/);
     assert.match(v6, /Policy Composition/);
     assert.match(v6, /Standards Lifecycle/);
     assert.match(v6, /Multi-Turn Agent Continuity/);
@@ -50,11 +50,11 @@ describe("V4 and V5 scope boundaries", () => {
     assert.match(llms, /docs\/v6-scope\.md/);
   });
 
-  it("defines V7 as local strategic intelligence without productization layers", () => {
+  it("defines local strategic intelligence without productization layers", () => {
     const v7 = readFileSync("docs/v7-scope.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
-    assert.match(v7, /V7 is the next local-first maturity layer after V6/);
+    assert.match(v7, /advanced strategic-planning maturity layer/);
     assert.match(v7, /Architecture Strategy Maps/);
     assert.match(v7, /Standards Negotiation/);
     assert.match(v7, /Local What-If Planning/);
@@ -68,11 +68,11 @@ describe("V4 and V5 scope boundaries", () => {
     assert.match(llms, /docs\/v7-scope\.md/);
   });
 
-  it("defines V8 as local governance automation without productization layers", () => {
+  it("defines local governance automation without productization layers", () => {
     const v8 = readFileSync("docs/v8-scope.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
-    assert.match(v8, /V8 is the next local-first maturity layer after V7/);
+    assert.match(v8, /advanced governance-automation maturity layer/);
     assert.match(v8, /Standards Refactoring/);
     assert.match(v8, /Policy Minimization/);
     assert.match(v8, /Local Review Playbooks/);
@@ -86,7 +86,7 @@ describe("V4 and V5 scope boundaries", () => {
     assert.match(llms, /docs\/v8-scope\.md/);
   });
 
-  it("audits V5 through V8 and defines V9 as local operating-model readiness", () => {
+  it("audits advanced maturity criteria and defines local operating-model readiness", () => {
     const audit = readFileSync("docs/v5-v8-scope-audit.md", "utf8");
     const v9 = readFileSync("docs/v9-scope.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
@@ -95,7 +95,7 @@ describe("V4 and V5 scope boundaries", () => {
     assert.match(audit, /local operating model/);
     assert.match(audit, /Older V4 Wording Made V5 Sound Like The Productization Gate/);
     assert.match(audit, /Source Provenance Needs To Flow Through Later Workflow Layers/);
-    assert.match(v9, /V9 is the next local-first operating-model layer after V8/);
+    assert.match(v9, /advanced operating-model eval layer/);
     assert.match(v9, /Local Orchestration Recipes/);
     assert.match(v9, /Scenario Acceptance Profiles/);
     assert.match(v9, /Result Normalization/);
@@ -113,11 +113,11 @@ describe("V4 and V5 scope boundaries", () => {
     assert.match(llms, /docs\/v9-scope\.md/);
   });
 
-  it("keeps the V10 concept doc as the productization starting point", () => {
+  it("keeps the productization boundary concept doc as the future hosted starting point", () => {
     const v10 = readFileSync("docs/v10-productization-concepts.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
-    assert.match(v10, /V10 is a concept exploration/);
+    assert.match(v10, /productization boundary criteria/);
     assert.match(v10, /Accounts and identity/);
     assert.match(v10, /Organizations and teams/);
     assert.match(v10, /Billing and plan boundaries/);

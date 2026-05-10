@@ -1,12 +1,14 @@
-# V7 Scope
+# Advanced Strategic-Planning Criteria
 
-V7 is the next local-first maturity layer after V6. It still excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
+Compatibility note: this file keeps the historical `docs/v7-scope.md` path and V7-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as an advanced strategic-planning maturity layer, not as a product version.
 
-V7 should make architect-mcp better at strategic planning, local simulation, standards negotiation, and self-improvement while staying inside the existing MCP/domain/test architecture.
+This criteria layer remains local-first. It excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
 
-## V7 Direction
+It should make architect-mcp better at strategic planning, local simulation, standards negotiation, and self-improvement while staying inside the existing MCP/domain/test architecture.
 
-V7 focuses on local strategic intelligence:
+## Strategic-Planning Direction
+
+This layer focuses on local strategic intelligence:
 
 - Architecture strategy maps.
 - Standards negotiation.
@@ -16,7 +18,7 @@ V7 focuses on local strategic intelligence:
 - Quality trend snapshots without persistence.
 - Human-readable governance packs.
 
-## V7 Architecture Strategy Maps
+## Architecture Strategy Maps
 
 Goal: help agents understand how project goals, risks, stack choices, standards, and verification connect.
 
@@ -28,7 +30,7 @@ Deliverables:
 - Verification-to-risk mapping.
 - Gaps where important risks have no standard, pack, or verification check.
 
-## V7 Standards Negotiation
+## Standards Negotiation
 
 Goal: make tradeoffs explicit when strict standards would slow or over-constrain the project.
 
@@ -39,7 +41,7 @@ Deliverables:
 - Suggest one focused question when standards conflict with user speed preferences.
 - Mark non-negotiable safety rules separately from adjustable quality rules.
 
-## V7 Local What-If Planning
+## Local What-If Planning
 
 Goal: preview likely review outcomes before an agent writes code.
 
@@ -50,7 +52,7 @@ Deliverables:
 - Blast-radius forecast from proposed files, change type, and standards.
 - Verification forecast: checks likely required before claiming completion.
 
-## V7 Agent Behavior Diagnostics
+## Agent Behavior Diagnostics
 
 Goal: identify recurring agent failure patterns from supplied session summaries and review outputs without storing history.
 
@@ -61,7 +63,7 @@ Deliverables:
 - Produce compact "watch for this" handoff notes.
 - Score whether the agent followed the intended harness loop.
 
-## V7 Rule Authoring Assistance
+## Rule Authoring Assistance
 
 Goal: help maintainers write better local rules without live fetching or external systems.
 
@@ -72,7 +74,7 @@ Deliverables:
 - Suggest detector metadata and fixture pairs.
 - Suggest rule names, finding codes, examples, and remediation text.
 
-## V7 Quality Trend Snapshots
+## Quality Trend Snapshots
 
 Goal: compare two explicitly supplied review reports without persistence.
 
@@ -84,7 +86,7 @@ Deliverables:
 - Verification honesty delta.
 - Suggested next local eval fixture based on recurring findings.
 
-## V7 Human-Readable Governance Packs
+## Human-Readable Governance Packs
 
 Goal: produce standards packs that humans can review before agents enforce them.
 

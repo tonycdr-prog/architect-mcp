@@ -1,12 +1,14 @@
-# V5 Scope
+# Advanced Standards-Intelligence Criteria
 
-V5 is the next local-first product depth after V4. It still excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
+Compatibility note: this file keeps the historical `docs/v5-scope.md` path and V5-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as an advanced standards-intelligence maturity layer, not as a product version.
 
-V5 should make architect-mcp more self-improving, more explainable, and easier for agents to apply correctly inside the current MCP tool surface.
+This criteria layer remains local-first. It excludes hosted service work, database/storage work, GitHub/PR adapters, CLI UX, and typed SDKs.
 
-## V5 Direction
+It should make architect-mcp more self-improving, more explainable, and easier for agents to apply correctly inside the current MCP tool surface.
 
-V5 focuses on local intelligence and usability of the standards harness:
+## Standards-Intelligence Direction
+
+This layer focuses on local intelligence and usability of the standards harness:
 
 - Standards orchestration.
 - Explainable findings.
@@ -17,7 +19,7 @@ V5 focuses on local intelligence and usability of the standards harness:
 - Repo-profile intelligence.
 - Contract lifecycle quality.
 
-## V5 Standards Orchestration
+## Standards Orchestration
 
 Goal: make standards selection smarter without adding storage or network dependencies.
 
@@ -29,7 +31,7 @@ Deliverables:
 - A "strict production standards" mode for high-risk projects.
 - A standards coverage report by project brief, stack, and file summary signals.
 
-## V5 Explainable Findings
+## Explainable Findings
 
 Goal: make review findings easier for novice users and agents to act on.
 
@@ -41,7 +43,7 @@ Deliverables:
 - Fix-shape recommendations: split file, add boundary, add test, ask user, verify, or defer.
 - Evidence snippets showing which file signals triggered each finding.
 
-## V5 Policy Simulation
+## Policy Simulation
 
 Goal: let clients preview how stricter or looser policy settings would affect a repo before enforcing them.
 
@@ -52,7 +54,7 @@ Deliverables:
 - Show which baselines or accepted findings would stop suppressing issues.
 - Preview impact of adding a new policy pack or stack pack.
 
-## V5 Cross-Stack Conflict Handling
+## Cross-Stack Conflict Handling
 
 Goal: improve behavior when multiple stack packs give overlapping or competing advice.
 
@@ -63,18 +65,18 @@ Deliverables:
 - Suggested resolution: prefer framework pack, prefer policy pack, ask user, or split path scopes.
 - Tests for overlapping auth, validation, frontend, backend, and AI/tool rules.
 
-## V5 Eval Expansion
+## Eval Expansion
 
 Goal: make the harness harder to regress without relying on live services.
 
 Deliverables:
 
-- V5 eval suites for novice-intent interpretation, standards selection, explainable findings, policy simulation, conflict resolution, and handoff quality.
+- Standards-intelligence eval suites for novice-intent interpretation, standards selection, explainable findings, policy simulation, conflict resolution, and handoff quality.
 - Golden fixture reports for common project archetypes.
 - Regression fixtures for known agent failure modes.
 - Eval summaries that explain failures in product language, not just assertion messages.
 
-## V5 Agent Teaching
+## Agent Teaching
 
 Goal: help agents and novice users understand what to do next without turning findings into noisy lectures.
 
@@ -86,7 +88,7 @@ Deliverables:
 - "Do this / avoid this / prove it with this" output blocks.
 - Agent handoff summaries that are short enough to reuse in the next turn.
 
-## V5 Repo Profile Intelligence
+## Repo Profile Intelligence
 
 Goal: make existing repo layout handling stronger without adding external integrations.
 
@@ -98,7 +100,7 @@ Deliverables:
 - Suggested `repoLayout.pathMap` updates.
 - Fixtures for monorepos, packages/apps layouts, mobile apps, docs-heavy repos, and mixed frontend/backend repos.
 
-## V5 Contract Lifecycle
+## Contract Lifecycle
 
 Goal: make architecture contracts easier to evolve safely.
 

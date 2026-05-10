@@ -1,6 +1,8 @@
-# V10 Productization Implementation
+# Productization Boundary Implementation Contract
 
-V10 turns the previous productization concepts into a concrete hosted-product contract while preserving the local-first MCP core.
+Compatibility note: this file keeps the historical `docs/v10-productization-implementation.md` path and V10-linked internal identifiers for scripts, tools, and tests. Public product language should describe this as a productization boundary contract, not as a product version.
+
+This contract turns the productization boundary concepts into concrete hosted-product constraints while preserving the local-first MCP core.
 
 The implementation is intentionally boundary-first:
 
@@ -12,13 +14,13 @@ The implementation is intentionally boundary-first:
 - Remote policy rollouts cannot silently override repo-local instructions.
 - Every implementation slice must use architect-mcp before and after edits.
 
-## Implemented V10 MCP Surface
+## Implemented Productization-Boundary MCP Surface
 
 - `get_v10_productization_blueprint`: returns route, storage, repository, dashboard, and staged-slice contracts.
-- `create_v10_implementation_slice_plan`: returns the ten V10 implementation slices and required MCP tools for each slice.
+- `create_v10_implementation_slice_plan`: returns the ten compatibility implementation slices and required MCP tools for each slice.
 - `plan_primer_dashboard`: returns Primer React screen/component/accessibility plans based on Primer MCP guidance.
 - `validate_v10_productization_boundary`: checks route, storage, dashboard, policy, and billing boundary regressions.
-- `run_v10_eval_harness`: runs deterministic V10 boundary evals.
+- `run_v10_eval_harness`: runs deterministic productization boundary evals.
 
 ## Product API Boundary
 
@@ -60,14 +62,14 @@ Primer MCP constraints apply:
 
 ## MCP-Gated Slice Loop
 
-Before every V10 slice:
+Before every productization-boundary slice:
 
 1. `interpret_implementation_intent`
 2. `load_triggered_stack_guidance`
 3. `create_pre_edit_contract`
 4. `review_proposed_file_plan`
 
-After every V10 slice:
+After every productization-boundary slice:
 
 1. `review_implementation_against_contract`
 2. `review_repo_structure`
