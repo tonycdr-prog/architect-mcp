@@ -53,13 +53,22 @@ if (packagedRepoOnlyFiles.length > 0) {
 
 const packedManifest = readPackedManifest();
 const repoOnlyPackageScripts = [
+  "typecheck",
+  "test",
+  "audit",
+  "pack:dry-run",
   "precheck:v3",
   "check:v3",
   "precheck:v5",
+  "check:v5",
   "precheck:v6",
+  "check:v6",
   "precheck:v7",
+  "check:v7",
   "precheck:v8",
+  "check:v8",
   "precheck:v9",
+  "check:v9",
   "precheck:v10",
   "check:v10",
   "release:check",

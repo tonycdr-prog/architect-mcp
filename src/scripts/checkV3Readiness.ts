@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { rmSync } from "node:fs";
 import { createMcpReadinessReport } from "../domain/readinessReport.js";
 
 type Step = {
@@ -41,6 +42,41 @@ if (missingPackageFiles.length > 0) {
   throw new Error(`Package dry-run is missing required V3 files: ${missingPackageFiles.join(", ")}`);
 }
 
+const packedManifest = readPackedManifest();
+const repoOnlyPackageScripts = [
+  "typecheck",
+  "test",
+  "audit",
+  "pack:dry-run",
+  "precheck:v3",
+  "check:v3",
+  "precheck:v5",
+  "check:v5",
+  "precheck:v6",
+  "check:v6",
+  "precheck:v7",
+  "check:v7",
+  "precheck:v8",
+  "check:v8",
+  "precheck:v9",
+  "check:v9",
+  "precheck:v10",
+  "check:v10",
+  "release:check",
+  "docs:get",
+  "docs:build",
+  "docs:preview",
+  "ingest:llms",
+  "dev",
+  "dev:http",
+  "prepack",
+  "postpack"
+];
+const leakedPackageScripts = repoOnlyPackageScripts.filter((script) => Boolean(packedManifest.scripts?.[script]));
+if (leakedPackageScripts.length > 0) {
+  throw new Error(`Packed package.json includes repo-only npm scripts: ${leakedPackageScripts.join(", ")}`);
+}
+
 const readiness = await createMcpReadinessReport();
 if (!readiness.ready) {
   const failures = readiness.checks
@@ -56,4 +92,23 @@ function run(step: Step): void {
   execFileSync(step.command, step.args, {
     stdio: "inherit"
   });
+}
+
+function readPackedManifest(): { scripts?: Record<string, string> } {
+  const packOutput = execFileSync("npm", ["pack", "--json"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"]
+  });
+  const packedArtifacts = JSON.parse(packOutput) as Array<{ filename?: string }>;
+  const filename = packedArtifacts[0]?.filename;
+  if (!filename) throw new Error("npm pack did not return a package filename.");
+
+  try {
+    return JSON.parse(execFileSync("tar", ["-xOf", filename, "package/package.json"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"]
+    })) as { scripts?: Record<string, string> };
+  } finally {
+    rmSync(filename, { force: true });
+  }
 }
