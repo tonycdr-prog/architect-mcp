@@ -32,6 +32,18 @@ describe("supply-chain and release hygiene", () => {
     }
   });
 
+  it("pins the GitHub Pages workflow and builds VitePress docs", () => {
+    const workflow = readFileSync(".github/workflows/pages.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /npm run docs:build/);
+    assert.match(workflow, /pages:\s+write/);
+    assert.match(workflow, /id-token:\s+write/);
+    assert.match(workflow, /docs\/\.vitepress\/dist/);
+  });
+
   it("configures Dependabot for npm and GitHub Actions", () => {
     const config = readFileSync(".github/dependabot.yml", "utf8");
 

@@ -135,5 +135,5 @@ function checkPackageScripts(): { missing: string[] } {
 }
 
 function requiredScripts(): string[] {
-  return ["typecheck", "test", "build", "audit", "pack:dry-run", "precheck:v3", "check:v3", "precheck:v5", "check:v5", "precheck:v6", "check:v6", "precheck:v7", "check:v7", "precheck:v8", "check:v8", "precheck:v9", "check:v9", "precheck:v10", "check:v10", "release:check"];
+  return ["typecheck", "test", "build", "audit", "docs:get", "docs:build", "docs:preview", "pack:dry-run", "precheck:v3", "check:v3", "precheck:v5", "check:v5", "precheck:v6", "check:v6", "precheck:v7", "check:v7", "precheck:v8", "check:v8", "precheck:v9", "check:v9", "precheck:v10", "check:v10", "release:check"];
 }
