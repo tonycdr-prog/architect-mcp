@@ -14,7 +14,7 @@ Use the release tarball when configuring a client that should not depend on a so
       "args": [
         "-y",
         "--package",
-        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz",
+        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz",
         "architect-mcp"
       ]
     }
@@ -49,7 +49,7 @@ Set `ARCHITECT_MCP_TOOL_SURFACE=advanced` in the MCP server environment:
       "args": [
         "-y",
         "--package",
-        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz",
+        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz",
         "architect-mcp"
       ],
       "env": {
@@ -76,3 +76,17 @@ Endpoints:
 - `GET /health`: platform health check.
 
 Use `review_repo_structure` with explicit file summaries in hosted mode. Do not send arbitrary server-local paths.
+
+## Additional MCP Servers
+
+The advanced surface includes guarded MCP integration tools:
+
+- `list_mcp_server_catalog`
+- `recommend_mcp_servers`
+- `create_mcp_install_plan`
+- `review_mcp_install_plan`
+- `apply_mcp_install_plan`
+
+Use them after the core work gate has clarified providers and boundaries. Database needs ask for a provider instead of defaulting to Supabase. Stripe needs an explicit Stripe signal plus a server-side payment boundary. `apply_mcp_install_plan` is local-only, dry-run by default, and writes only project-local JSON config after explicit approval.
+
+See [MCP Integrations](./mcp-integrations.md).

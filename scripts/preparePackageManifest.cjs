@@ -7,6 +7,8 @@ const repoOnlyScripts = new Set([
   "test",
   "audit",
   "docs:get",
+  "docs:tool-reference",
+  "docs:tool-reference:check",
   "docs:build",
   "docs:preview",
   "pack:dry-run",

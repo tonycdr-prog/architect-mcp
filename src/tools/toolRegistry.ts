@@ -15,7 +15,8 @@ export const CORE_ARCHITECTURE_TOOL_NAMES = [
 export const LOCAL_ONLY_ARCHITECTURE_TOOL_NAMES = [
   "promote_stack_pack_to_files",
   "review_local_workspace",
-  "scan_mcp_config_files"
+  "scan_mcp_config_files",
+  "apply_mcp_install_plan"
 ] as const;
 
 export const FUTURE_ADAPTER_ARCHITECTURE_TOOL_NAMES = [
@@ -24,7 +25,7 @@ export const FUTURE_ADAPTER_ARCHITECTURE_TOOL_NAMES = [
   "review_memory_relevance"
 ] as const;
 
-const ADVANCED_ARCHITECTURE_TOOL_NAMES = [
+export const ADVANCED_ARCHITECTURE_TOOL_NAMES = [
   "list_stack_packs", "validate_stack_packs", "list_foundation_packs", "validate_foundation_packs",
   "stack_pack_expansion_strategy", "discover_llms_sources", "fetch_llms_source", "ingest_llms_txt",
   "list_ingested_llms_sources", "derive_stack_pack_from_llms_source", "propose_stack_pack_rules",
@@ -37,7 +38,9 @@ const ADVANCED_ARCHITECTURE_TOOL_NAMES = [
   "self_review_architect_mcp", "diff_architecture_contracts", "mcp_readiness_report",
   "interpret_implementation_intent", "classify_ambiguity_risk", "create_pre_edit_contract",
   "review_implementation_against_contract", "record_assumption", "load_triggered_stack_guidance",
-  "extract_harness_memory", "apply_harness_memory", "review_memory_relevance", "list_skill_catalog",
+  "extract_harness_memory", "apply_harness_memory", "review_memory_relevance",
+  "list_mcp_server_catalog", "recommend_mcp_servers", "create_mcp_install_plan",
+  "review_mcp_install_plan", "apply_mcp_install_plan", "list_skill_catalog",
   "recommend_skills_for_project", "review_supplied_skills", "review_mcp_config_security",
   "run_v3_eval_harness", "score_agent_artifacts", "list_client_integration_recipes",
   "review_agent_final_response", "review_agent_session", "audit_hosted_tool_policy", "score_stack_packs",

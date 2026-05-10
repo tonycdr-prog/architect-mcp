@@ -1,0 +1,314 @@
+{
+  "version": "2026-05-11",
+  "sources": [
+    {
+      "label": "Official MCP Registry overview",
+      "url": "https://modelcontextprotocol.io/registry/about",
+      "notes": "Preview registry metadata and trust model for public MCP server discovery."
+    },
+    {
+      "label": "Official MCP reference servers",
+      "url": "https://github.com/modelcontextprotocol/servers",
+      "notes": "Reference server examples and configuration patterns; not a production curation signal by itself."
+    },
+    {
+      "label": "Supabase MCP docs",
+      "url": "https://supabase.com/docs/guides/getting-started/mcp",
+      "notes": "Vendor-hosted MCP endpoint, OAuth flow, read-only option, and security guidance."
+    },
+    {
+      "label": "Stripe MCP docs",
+      "url": "https://docs.stripe.com/mcp",
+      "notes": "Vendor-hosted and local MCP setup, restricted-key guidance, and OAuth session management."
+    },
+    {
+      "label": "Notion MCP docs",
+      "url": "https://developers.notion.com/guides/mcp/get-started-with-mcp",
+      "notes": "Vendor-hosted MCP endpoint and Codex configuration shape."
+    },
+    {
+      "label": "Railway MCP docs",
+      "url": "https://docs.railway.com/cli/mcp",
+      "notes": "Vendor CLI-backed local server and remote MCP endpoint configuration."
+    },
+    {
+      "label": "CLI Printing Press",
+      "url": "https://github.com/mvanhorn/cli-printing-press",
+      "notes": "MIT CLI-plus-MCP generator pattern useful as research input, not auto-installed by default."
+    },
+    {
+      "label": "Printing Press Library",
+      "url": "https://github.com/mvanhorn/printing-press-library",
+      "notes": "MIT catalog of generated CLIs and MCP binaries; treated as an ecosystem source pending per-tool vetting."
+    }
+  ],
+  "servers": [
+    {
+      "id": "supabase",
+      "name": "Supabase MCP",
+      "provider": "Supabase",
+      "category": "database",
+      "trustTier": "vendor-official",
+      "transport": "http",
+      "aliases": ["supabase", "postgres", "postgresql", "database", "auth", "storage", "realtime"],
+      "capabilitySignals": ["database", "postgres", "backend-as-a-service", "auth", "storage", "realtime"],
+      "requiresExplicitProvider": true,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The user explicitly chooses Supabase or the project already depends on Supabase.",
+        "The project needs development database/auth/storage access and the client can complete OAuth."
+      ],
+      "decisionWarnings": [
+        "Do not infer Supabase from a generic database need; ask which provider first.",
+        "Prefer development or test projects and enable read-only mode where available."
+      ],
+      "install": {
+        "serverName": "supabase",
+        "config": {
+          "type": "http",
+          "url": "https://mcp.supabase.com/mcp"
+        },
+        "env": [],
+        "postInstall": ["Authenticate through the MCP client OAuth flow.", "Scope to a development project and enable read-only mode when possible."]
+      },
+      "package": {
+        "registry": "remote",
+        "name": "https://mcp.supabase.com/mcp",
+        "version": "hosted",
+        "license": "vendor-terms"
+      }
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe MCP",
+      "provider": "Stripe",
+      "category": "payments",
+      "trustTier": "vendor-official",
+      "transport": "http-or-stdio",
+      "aliases": ["stripe", "payments", "billing", "checkout", "subscriptions", "webhooks"],
+      "capabilitySignals": ["payments", "billing", "checkout", "subscriptions", "webhooks"],
+      "requiresExplicitProvider": true,
+      "requiresServerBoundary": true,
+      "recommendedWhen": [
+        "The user explicitly chooses Stripe and the project has a server-side payment boundary.",
+        "The integration plan includes webhook handling and no secret keys in client code."
+      ],
+      "decisionWarnings": [
+        "Do not recommend Stripe MCP for a vague payment mention until the server-side boundary is confirmed.",
+        "Use OAuth or restricted keys; never write secret keys into repo config."
+      ],
+      "install": {
+        "serverName": "stripe",
+        "config": {
+          "url": "https://mcp.stripe.com"
+        },
+        "env": [],
+        "postInstall": ["Authenticate through OAuth when the client supports it.", "If using a bearer token, store a restricted key in a secrets vault or environment variable."]
+      },
+      "package": {
+        "registry": "remote",
+        "name": "https://mcp.stripe.com",
+        "version": "hosted",
+        "license": "vendor-terms"
+      }
+    },
+    {
+      "id": "notion",
+      "name": "Notion MCP",
+      "provider": "Notion",
+      "category": "workspace",
+      "trustTier": "vendor-official",
+      "transport": "http",
+      "aliases": ["notion", "docs", "wiki", "knowledge base", "workspace"],
+      "capabilitySignals": ["workspace-docs", "knowledge-base", "project-notes"],
+      "requiresExplicitProvider": true,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The user explicitly wants Notion as the project knowledge base or content workspace."
+      ],
+      "decisionWarnings": [
+        "Do not install by default for memory; filesystem Markdown remains the default project-memory surface."
+      ],
+      "install": {
+        "serverName": "notion",
+        "config": {
+          "url": "https://mcp.notion.com/mcp"
+        },
+        "env": [],
+        "postInstall": ["Authenticate with Notion through the client OAuth flow."]
+      },
+      "package": {
+        "registry": "remote",
+        "name": "https://mcp.notion.com/mcp",
+        "version": "hosted",
+        "license": "vendor-terms"
+      }
+    },
+    {
+      "id": "railway",
+      "name": "Railway MCP",
+      "provider": "Railway",
+      "category": "deployment",
+      "trustTier": "vendor-official",
+      "transport": "http-or-stdio",
+      "aliases": ["railway", "deployment", "hosting", "postgres hosting", "infra"],
+      "capabilitySignals": ["deployment", "environment-management", "service-logs"],
+      "requiresExplicitProvider": true,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The user explicitly chooses Railway for deployment or the repo already contains Railway configuration."
+      ],
+      "decisionWarnings": [
+        "Recommend only after deployment provider selection; do not infer Railway from generic hosting needs."
+      ],
+      "install": {
+        "serverName": "railway",
+        "config": {
+          "url": "https://mcp.railway.com"
+        },
+        "env": [],
+        "postInstall": ["Authenticate with Railway according to the selected client flow."]
+      },
+      "package": {
+        "registry": "remote",
+        "name": "https://mcp.railway.com",
+        "version": "hosted",
+        "license": "vendor-terms"
+      }
+    },
+    {
+      "id": "playwright",
+      "name": "Playwright MCP",
+      "provider": "Microsoft Playwright",
+      "category": "testing",
+      "trustTier": "vendor-official",
+      "transport": "stdio",
+      "aliases": ["playwright", "browser", "e2e", "end-to-end", "ui tests", "browser tests"],
+      "capabilitySignals": ["browser-testing", "e2e", "visual-smoke"],
+      "requiresExplicitProvider": false,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The project needs browser or end-to-end verification and the client can run local stdio MCP servers."
+      ],
+      "decisionWarnings": [
+        "Local browser automation may access local files, browser state, or network resources; keep it local-only unless a hosted adapter is designed."
+      ],
+      "install": {
+        "serverName": "playwright",
+        "config": {
+          "command": "npx",
+          "args": ["-y", "@playwright/mcp@0.0.75"]
+        },
+        "env": [],
+        "postInstall": ["Install browsers in the local environment if the package prompts for them."]
+      },
+      "package": {
+        "registry": "npm",
+        "name": "@playwright/mcp",
+        "version": "0.0.75",
+        "license": "Apache-2.0"
+      }
+    },
+    {
+      "id": "memory",
+      "name": "MCP Memory Server",
+      "provider": "Model Context Protocol",
+      "category": "memory",
+      "trustTier": "reference",
+      "transport": "stdio",
+      "aliases": ["memory", "knowledge graph", "persistent memory", "context"],
+      "capabilitySignals": ["project-memory", "knowledge-graph", "session-continuity"],
+      "requiresExplicitProvider": false,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The user explicitly asks for local MCP memory and accepts local persistence behavior."
+      ],
+      "decisionWarnings": [
+        "Do not use as the default project memory system until the repo has a written memory taxonomy and privacy boundary.",
+        "Never store secrets, private user data, or unresolved customer data in memory."
+      ],
+      "install": {
+        "serverName": "memory",
+        "config": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-memory@2026.1.26"]
+        },
+        "env": [],
+        "postInstall": ["Review the project memory taxonomy before writing persistent observations."]
+      },
+      "package": {
+        "registry": "npm",
+        "name": "@modelcontextprotocol/server-memory",
+        "version": "2026.1.26",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "github",
+      "name": "GitHub MCP Server",
+      "provider": "Model Context Protocol",
+      "category": "developer-tools",
+      "trustTier": "reference",
+      "transport": "stdio",
+      "aliases": ["github", "issues", "pull requests", "repository", "actions", "ci"],
+      "capabilitySignals": ["repo-management", "issues", "pull-requests", "ci"],
+      "requiresExplicitProvider": false,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The user asks for GitHub operations and the client does not already provide a GitHub connector."
+      ],
+      "decisionWarnings": [
+        "Prefer an installed first-party client connector when available.",
+        "Any token must use least privilege and must not be written into repo files."
+      ],
+      "install": {
+        "serverName": "github",
+        "config": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-github@2025.4.8"],
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+          }
+        },
+        "env": ["GITHUB_PERSONAL_ACCESS_TOKEN"],
+        "postInstall": ["Use a least-privilege token and prefer a dedicated development account or fine-grained token."]
+      },
+      "package": {
+        "registry": "npm",
+        "name": "@modelcontextprotocol/server-github",
+        "version": "2025.4.8",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "cli-printing-press",
+      "name": "CLI Printing Press",
+      "provider": "mvanhorn",
+      "category": "developer-tools",
+      "trustTier": "community-vetted",
+      "transport": "research-only",
+      "aliases": ["printing press", "cli printing press", "cli generator", "mcp generator"],
+      "capabilitySignals": ["cli-generation", "mcp-generation", "api-tooling"],
+      "requiresExplicitProvider": true,
+      "requiresServerBoundary": false,
+      "recommendedWhen": [
+        "The user is researching generated CLI/MCP companion tooling and accepts a separate per-tool vetting step."
+      ],
+      "decisionWarnings": [
+        "Do not auto-install generated tools from the library without per-tool provenance, license, and credential review."
+      ],
+      "install": {
+        "serverName": "cli-printing-press",
+        "config": {},
+        "env": [],
+        "postInstall": ["Treat as research input; create a separate install plan only after selecting a specific generated tool."]
+      },
+      "package": {
+        "registry": "github",
+        "name": "mvanhorn/cli-printing-press",
+        "version": "source-reviewed-2026-05-11",
+        "license": "MIT"
+      }
+    }
+  ]
+}

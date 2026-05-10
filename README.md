@@ -34,7 +34,7 @@ Full docs: [tonycdr-prog.github.io/architect-mcp](https://tonycdr-prog.github.io
 The npm registry name `architect-mcp` is owned by a different package. This project keeps the `architect-mcp` command name, but package distribution uses the scoped package identity `@tonycdr-prog/architect-mcp` and GitHub release tarballs until npm publishing is configured for that scope.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz
 architect-mcp
 ```
 
@@ -56,7 +56,7 @@ For local MCP clients:
       "args": [
         "-y",
         "--package",
-        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz",
+        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz",
         "architect-mcp"
       ]
     }
@@ -99,8 +99,10 @@ Historical V3-V10 labels remain in tool names, scripts, tests, and document file
 - [Core Work Gate](https://tonycdr-prog.github.io/architect-mcp/core-work-gate)
 - [Tool Reference](https://tonycdr-prog.github.io/architect-mcp/tool-reference)
 - [Hosted Mode](https://tonycdr-prog.github.io/architect-mcp/hosted-mode)
+- [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)
 - [Stack Packs](https://tonycdr-prog.github.io/architect-mcp/stack-packs)
 - [Release Readiness](https://tonycdr-prog.github.io/architect-mcp/release-readiness)
+- [Read-Only Smoke Matrix](https://tonycdr-prog.github.io/architect-mcp/read-only-smoke-matrix)
 - [Compatibility And Advanced Maturity Criteria](https://tonycdr-prog.github.io/architect-mcp/compatibility)
 
 ## Release Readiness

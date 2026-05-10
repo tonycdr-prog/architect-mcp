@@ -18,6 +18,8 @@ export type FileThreshold = {
   maxLines: number;
 };
 
+export type ThresholdProfile = "agent-work-gate" | "existing-repo";
+
 const THRESHOLDS: FileThreshold[] = [
   { category: "changelog", maxLines: 10_000 },
   { category: "declaration", maxLines: 3_000 },
@@ -42,7 +44,7 @@ export function createFinding(input: Omit<ReviewViolation, "confidence"> & { con
 export function categorizePath(path: string): FileCategory {
   if (/(^|\/)(CHANGELOG[^/]*|CHANGES[^/]*|HISTORY[^/]*|RELEASES?[^/]*|release-notes|official)\.(md|mdx|rst|txt)$/i.test(path)) return "changelog";
   if (/(?:\.d|-d)\.ts$/.test(path)) return "declaration";
-  if (/\.(md|mdx|rst|adoc|1|txt|csv)$/.test(path) || /^(README|CONTRIBUTING|AGENTS|CLAUDE)\.md$/.test(path) || /^docs\/.*\.(json|js|md)$/.test(path)) return "docs-data";
+  if (/\.(md|mdx|rst|adoc|1|txt|csv)$/.test(path) || /^(README|CONTRIBUTING|AGENTS|CLAUDE)\.md$/.test(path) || /^(docs|mcp-catalog|packs|foundation-packs|policy-bundles)\/.*\.(json|js|md)$/.test(path)) return "docs-data";
   if (/\/__tests__\/|(^|\/)(tests?|spec)\/|\.test\.(ts|tsx|js|jsx|py)$|_test\.go$|(^|\/)test_.*\.py$|(^|\/).*_test\.py$|(^|\/).*Tests?\.java$/.test(path)) return "test";
   if (/^(scripts|tools)\//.test(path)) return "script";
   if (/^(config\/|.*config\.(ts|js|json)$|.*\.config\.(ts|js)$)/.test(path) || /\.(ya?ml|toml|xml|jmx|properties)$/.test(path) || /(^|\/)pom\.xml$/.test(path)) return "config";
@@ -53,9 +55,11 @@ export function categorizePath(path: string): FileCategory {
   return "source";
 }
 
-export function lineThresholdForPath(path: string, fallback: number): FileThreshold {
+export function lineThresholdForPath(path: string, fallback: number, profile: ThresholdProfile = "agent-work-gate"): FileThreshold {
   const category = categorizePath(path);
-  return THRESHOLDS.find((threshold) => threshold.category === category) ?? { category, maxLines: fallback };
+  const threshold = THRESHOLDS.find((candidate) => candidate.category === category) ?? { category, maxLines: fallback };
+  if (profile !== "existing-repo") return threshold;
+  return existingRepoThresholdForPath(path, threshold);
 }
 
 export function findingIdentity(finding: Pick<ReviewViolation, "code" | "path" | "message">): string {
@@ -72,4 +76,28 @@ function defaultConfidence(code: FindingCode): ReviewViolation["confidence"] {
   }
 
   return "low";
+}
+
+function existingRepoThresholdForPath(path: string, threshold: FileThreshold): FileThreshold {
+  const sourceMax = languageSourceThreshold(path) ?? existingRepoCategoryThreshold(threshold.category);
+  return {
+    category: threshold.category,
+    maxLines: Math.max(threshold.maxLines, sourceMax)
+  };
+}
+
+function existingRepoCategoryThreshold(category: FileCategory): number {
+  if (category === "ui") return 700;
+  if (category === "route") return 650;
+  if (category === "source") return 900;
+  if (category === "service") return 1200;
+  if (category === "schema") return 1800;
+  if (category === "test") return 1500;
+  if (category === "script") return 1400;
+  return THRESHOLDS.find((threshold) => threshold.category === category)?.maxLines ?? 900;
+}
+
+function languageSourceThreshold(path: string): number | undefined {
+  if (/\.(py|go|rs|java)$/.test(path)) return 2000;
+  return undefined;
 }

@@ -39,6 +39,18 @@ The package includes runtime output and docs:
 
 Repo-only TypeScript readiness scripts and docs development scripts are stripped from the packed `package.json` during `prepack`.
 
+## npm Publishing
+
+Publishing is handled by `.github/workflows/npm-publish.yml` when a GitHub release is published from a `v*` tag. The workflow:
+
+- Uses pinned GitHub Actions.
+- Installs with Node 22 and `npm ci`.
+- Runs `npm run release:check`.
+- Packs the package and installs the tarball in a temporary project.
+- Publishes with `npm publish --access public --provenance`.
+
+The repository must define `NPM_TOKEN` with permission to publish `@tonycdr-prog/architect-mcp`. Do not bypass `npm run release:check`; it remains the clean-checkout release gate.
+
 ## GitHub Pages
 
 The docs site builds with VitePress from the existing `docs/` directory and uses `base: "/architect-mcp/"`. The Pages workflow runs on pushes to `main` and manual dispatch, installs with Node 22, builds with `npm run docs:build`, uploads `docs/.vitepress/dist`, and deploys via GitHub Pages Actions.
