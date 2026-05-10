@@ -14,7 +14,9 @@ describe("V10 readiness release gates", () => {
 
     assert.equal(readiness.ready, true);
     assert.equal(scriptCheck?.status, "pass");
+    assert.equal(packageJson.scripts["precheck:v3"], "npm run build");
     assert.equal(packageJson.scripts["check:v3"], "node dist/scripts/checkV3Readiness.js");
+    assert.equal(packageJson.scripts["precheck:v10"], "npm run build");
     assert.equal(packageJson.scripts["check:v10"], "node dist/scripts/checkStagedReadiness.js v10");
     assert.equal(packageJson.scripts["release:check"], "npm run check:v10");
     assert.equal(packageJson.scripts["secret:scan"], "node scripts/secretScan.mjs");
