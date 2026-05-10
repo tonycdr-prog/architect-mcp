@@ -11,6 +11,7 @@ const steps: Step[] = [
   { name: "typecheck", command: "npm", args: ["run", "typecheck"] },
   { name: "test", command: "npm", args: ["test"] },
   { name: "build", command: "npm", args: ["run", "build"] },
+  { name: "docs build", command: "npm", args: ["run", "docs:build"] },
   { name: "audit", command: "npm", args: ["audit"] }
 ];
 
@@ -62,6 +63,9 @@ const repoOnlyPackageScripts = [
   "precheck:v10",
   "check:v10",
   "release:check",
+  "docs:get",
+  "docs:build",
+  "docs:preview",
   "ingest:llms",
   "dev",
   "dev:http",

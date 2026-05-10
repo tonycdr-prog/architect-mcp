@@ -1,0 +1,58 @@
+---
+layout: home
+
+hero:
+  name: architect-mcp
+  text: Agent work gate for coding agents
+  tagline: Clarify before edits, constrain the plan, review implementation drift, and require verification evidence before completion.
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /getting-started
+    - theme: alt
+      text: Core Flow
+      link: /core-work-gate
+    - theme: alt
+      text: Tool Reference
+      link: /tool-reference
+
+features:
+  - title: Default work gate
+    details: The default MCP surface exposes eight tools focused on intake, pre-edit contracts, plan review, drift review, and final response honesty.
+  - title: Local-first by default
+    details: Local workspace scanning and file-writing helpers stay local-only. Hosted mode is stateless and accepts explicit file summaries.
+  - title: Advanced maturity criteria
+    details: Stack packs, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
+  - title: Release-gated
+    details: The clean-checkout release gate is npm run release:check, which chains typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
+---
+
+## Product Story
+
+architect-mcp is a TypeScript MCP server that keeps coding agents inside a deliberate work loop:
+
+1. Pressure-test the request with `grill_me`.
+2. Capture a pre-edit contract before risky changes.
+3. Review the build plan and proposed file plan before writing files.
+4. Review implementation drift and repo structure after the change.
+5. Require honest final-response evidence.
+
+The first-run product surface is intentionally small. The advanced surface is for teams that want the full standards, pack-authoring, governance, repo-quality, and eval layers.
+
+## Distribution
+
+The command remains `architect-mcp`. The published package identity is scoped as `@tonycdr-prog/architect-mcp`, and the current install path uses GitHub release tarballs until npm publishing is configured for that scope.
+
+```bash
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz
+architect-mcp
+```
+
+## Key References
+
+- [Getting Started](/getting-started)
+- [MCP Client Setup](/mcp-client-setup)
+- [Core Work Gate](/core-work-gate)
+- [Hosted Mode](/hosted-mode)
+- [Release Readiness](/release-readiness)
+- [Compatibility And Advanced Maturity Criteria](/compatibility)

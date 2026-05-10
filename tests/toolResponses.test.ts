@@ -728,10 +728,12 @@ describe("MCP tool responses", () => {
     try {
       const tools = await client.listTools();
       const readme = readFileSync("README.md", "utf8");
+      const toolReference = readFileSync("docs/tool-reference.md", "utf8");
       const llms = readFileSync("llms.txt", "utf8");
       const toolNames = tools.tools.map((tool) => tool.name).sort();
 
-      assert.deepEqual(toolNames.filter((name) => !readme.includes(`\`${name}\``)), []);
+      assert.match(readme, /https:\/\/tonycdr-prog\.github\.io\/architect-mcp\//);
+      assert.deepEqual(toolNames.filter((name) => !toolReference.includes(`\`${name}\``)), []);
       assert.deepEqual(toolNames.filter((name) => !llms.includes(name)), []);
     } finally {
       await close();

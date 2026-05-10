@@ -11,6 +11,7 @@ const steps: Step[] = [
   { name: "typecheck", command: "npm", args: ["run", "typecheck"] },
   { name: "test", command: "npm", args: ["test"] },
   { name: "build", command: "npm", args: ["run", "build"] },
+  { name: "docs build", command: "npm", args: ["run", "docs:build"] },
   { name: "audit", command: "npm", args: ["audit"] }
 ];
 

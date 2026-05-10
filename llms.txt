@@ -18,7 +18,16 @@ Default core surface: grill_me, create_pre_edit_contract, review_build_plan, rev
 Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, governance, repo-quality, productization boundary, and eval tools. Historical V-labels remain in tool names, scripts, tests, and docs filenames for compatibility only; public framing treats them as advanced maturity criteria.
 
 ## Documentation
-- [README](README.md): Primary project documentation, tool list, usage examples, and product scope.
+- [README](README.md): Slim public landing page with badges, install, core flow, release gate, and docs links.
+- [Docs Home](docs/index.md): VitePress landing page for the full manual.
+- [Getting Started](docs/getting-started.md): install, source checkout, default surface, advanced surface, and verification.
+- [MCP Client Setup](docs/mcp-client-setup.md): stdio client configs, release tarball setup, source checkout setup, and hosted HTTP startup.
+- [Core Work Gate](docs/core-work-gate.md): default agent work-gate flow from `grill_me` through final/session review.
+- [Tool Reference](docs/tool-reference.md): full tool-name reference for the default and advanced surfaces.
+- [Hosted Mode](docs/hosted-mode.md): stateless HTTP mode, local-only exclusions, file summaries, and review modes.
+- [Stack Packs](docs/stack-packs.md): pack authoring, source guidance, promotion flow, and coverage checks.
+- [Release Readiness](docs/release-readiness.md): release gate, package boundary, GitHub Pages build, and compatibility checks.
+- [Compatibility](docs/compatibility.md): advanced maturity criteria and preserved historical V-label filenames.
 - [Advanced Source Material](docs/v3-source-material.md): compatibility source-material notes for stack packs, client recipes, evals, skills, memory, MCP security, and verification.
 - [Stack Pack Strategy](docs/stack-pack-strategy.md): Source-backed stack-pack authoring, review, conflict detection, and promotion workflow.
 - [Architecture Contract](docs/architecture-contract.md): Example generated architecture contract used by agents.
