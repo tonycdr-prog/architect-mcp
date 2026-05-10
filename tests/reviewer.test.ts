@@ -238,6 +238,32 @@ describe("reviewFileSummaries", () => {
     assert.equal(violations.some((violation) => violation.path === "src/flask/app.py"), true);
   });
 
+  it("reduces audit noise for declaration files, changelogs, and generated text data", () => {
+    const violations = reviewFileSummaries([
+      { path: "packages/kit/src/exports/public.d.ts", lines: 2321 },
+      { path: "test/types/type-provider.test-d.ts", lines: 1214 },
+      { path: "packages/kit/types/index.d.ts", lines: 3849 },
+      { path: "CHANGELOG.md", lines: 4265 },
+      { path: "packages/kit/CHANGELOG-pre-1.md", lines: 4265 },
+      { path: "docs/en/docs/release-notes.md", lines: 6864 },
+      { path: "godoc-current.txt", lines: 1504 },
+      { path: "tests/data/sherlock-nul.txt", lines: 2134 },
+      { path: "benchsuite/runs/2016-09-20/raw.csv", lines: 1612 },
+      { path: "src/runtime/client.js", lines: 3367 }
+    ]);
+
+    assert.equal(violations.some((violation) => violation.path === "packages/kit/src/exports/public.d.ts"), false);
+    assert.equal(violations.some((violation) => violation.path === "test/types/type-provider.test-d.ts"), false);
+    assert.equal(violations.some((violation) => violation.path === "packages/kit/types/index.d.ts" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(violations.some((violation) => violation.path === "CHANGELOG.md"), false);
+    assert.equal(violations.some((violation) => violation.path === "packages/kit/CHANGELOG-pre-1.md"), false);
+    assert.equal(violations.some((violation) => violation.path === "docs/en/docs/release-notes.md"), false);
+    assert.equal(violations.some((violation) => violation.path === "godoc-current.txt"), false);
+    assert.equal(violations.some((violation) => violation.path === "tests/data/sherlock-nul.txt"), false);
+    assert.equal(violations.some((violation) => violation.path === "benchsuite/runs/2016-09-20/raw.csv"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/runtime/client.js"), true);
+  });
+
   it("does not scan pack examples for env access warnings", () => {
     const violations = reviewFileSummaries([
       {

@@ -430,7 +430,7 @@ Findings include:
 - `confidence`: `high`, `medium`, or `low`, based on how directly observable the rule violation is.
 - `severity`: `error` or `warning`.
 
-Line-count warnings are category-aware. UI, route, service, schema, test, script, config, and docs/data files each use their own threshold so generated or naturally broad files do not drown out real architecture issues.
+Line-count warnings are category-aware. UI, route, service, schema, declaration, test, script, config, changelog, and docs/data files each use their own threshold so generated or naturally broad files do not drown out real architecture issues.
 
 Baselines suppress known findings by `code` plus optional `path` and `message`. A repo can create a baseline once, pass it back into `review_repo_structure` or `review_local_workspace`, and use CI mode to catch new blocker findings without forcing immediate cleanup of every historical warning.
 

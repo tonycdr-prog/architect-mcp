@@ -1,6 +1,8 @@
 import type { FindingCode, ReviewViolation } from "./types.js";
 
 export type FileCategory =
+  | "changelog"
+  | "declaration"
   | "ui"
   | "route"
   | "service"
@@ -17,6 +19,8 @@ export type FileThreshold = {
 };
 
 const THRESHOLDS: FileThreshold[] = [
+  { category: "changelog", maxLines: 10_000 },
+  { category: "declaration", maxLines: 3_000 },
   { category: "ui", maxLines: 450 },
   { category: "route", maxLines: 350 },
   { category: "service", maxLines: 700 },
@@ -36,8 +40,10 @@ export function createFinding(input: Omit<ReviewViolation, "confidence"> & { con
 }
 
 export function categorizePath(path: string): FileCategory {
+  if (/(^|\/)(CHANGELOG[^/]*|CHANGES[^/]*|HISTORY[^/]*|RELEASES?[^/]*|release-notes|official)\.(md|mdx|rst|txt)$/i.test(path)) return "changelog";
+  if (/(?:\.d|-d)\.ts$/.test(path)) return "declaration";
+  if (/\.(md|mdx|rst|adoc|1|txt|csv)$/.test(path) || /^(README|CONTRIBUTING|AGENTS|CLAUDE)\.md$/.test(path) || /^docs\/.*\.(json|js|md)$/.test(path)) return "docs-data";
   if (/\/__tests__\/|(^|\/)(tests?|spec)\/|\.test\.(ts|tsx|js|jsx|py)$|_test\.go$|(^|\/)test_.*\.py$|(^|\/).*_test\.py$|(^|\/).*Tests?\.java$/.test(path)) return "test";
-  if (/\.(md|mdx|rst|adoc|1)$/.test(path) || /^(README|CHANGELOG|CONTRIBUTING|AGENTS|CLAUDE)\.md$/.test(path) || /^docs\/.*\.(json|js|md)$/.test(path)) return "docs-data";
   if (/^(scripts|tools)\//.test(path)) return "script";
   if (/^(config\/|.*config\.(ts|js|json)$|.*\.config\.(ts|js)$)/.test(path) || /\.(ya?ml|toml|xml|jmx|properties)$/.test(path) || /(^|\/)pom\.xml$/.test(path)) return "config";
   if (/schema|types\.ts$/.test(path)) return "schema";
