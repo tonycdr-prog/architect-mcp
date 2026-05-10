@@ -217,7 +217,7 @@ describe("repo quality eval layer", () => {
 });
 
 async function connectTestClient() {
-  const server = createArchitectServer();
+  const server = createArchitectServer({ toolSurface: "advanced" });
   const client = new Client({ name: "architect-mcp-quality-test-client", version: "0.1.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([

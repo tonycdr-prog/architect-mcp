@@ -10,8 +10,159 @@ import { createBaselineFromFindings } from "../src/domain/baseline.js";
 import { generateContract } from "../src/domain/contract.js";
 import { reviewFileSummaries } from "../src/domain/reviewer.js";
 import { messyReactFixture, cleanMcpServerFixture } from "./fixtures/repos.js";
+import { CORE_ARCHITECTURE_TOOL_NAMES } from "../src/tools/toolRegistry.js";
 
 describe("MCP tool responses", () => {
+  it("exposes only the core agent work-gate tools by default", async () => {
+    const server = createArchitectServer();
+    const client = new Client({ name: "architect-mcp-core-test-client", version: "0.1.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([
+      client.connect(clientTransport),
+      server.connect(serverTransport)
+    ]);
+    try {
+      const tools = await client.listTools();
+      assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), [...CORE_ARCHITECTURE_TOOL_NAMES].sort());
+      assert.equal(tools.tools.some((tool) => tool.name === "promote_stack_pack_to_files"), false);
+      assert.equal(tools.tools.some((tool) => tool.name === "review_local_workspace"), false);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
+  it("runs the default core agent work-gate golden path", async () => {
+    const server = createArchitectServer();
+    const client = new Client({ name: "architect-mcp-core-golden-path-client", version: "0.1.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([
+      client.connect(clientTransport),
+      server.connect(serverTransport)
+    ]);
+    try {
+      const preEdit = await callJson(client, "create_pre_edit_contract", {
+        input: {
+          request: "make auth better with best practices",
+          stack: {
+            backend: "TypeScript MCP server"
+          },
+          verification: ["npm test"]
+        },
+        likelyFiles: ["src/server/auth.ts", "tests/auth.test.ts"],
+        verificationChecks: ["npm test"]
+      });
+      assert.equal(preEdit.contract.verificationChecks[0], "npm test");
+      assert.equal(preEdit.intent.decision, "confirm_before_edit");
+
+      const buildPlanReview = await callJson(client, "review_build_plan", {
+        allowedChecks: ["npm test"],
+        plan: {
+          archetype: "ai-workflow-tool",
+          slices: [
+            {
+              id: "agent-harness",
+              title: "Confirm agent harness",
+              order: 1,
+              goal: "Confirm the pre-edit contract and verification evidence before implementation.",
+              inputs: ["Issue #102 pre-edit contract"],
+              outputs: ["Scoped implementation handoff"],
+              allowedDirectories: ["docs"],
+              forbiddenFiles: ["src/App.tsx", "src/index.ts", "src/server.ts"],
+              files: ["docs/build-plan.md"],
+              checks: ["architecture contract validates"],
+              stopAfter: "Stop if the contract is not accepted."
+            },
+            {
+              id: "backend-boundary",
+              title: "Implement auth boundary",
+              order: 2,
+              goal: "Keep auth behavior inside server-owned modules.",
+              inputs: ["Pre-edit contract"],
+              outputs: ["Auth boundary implementation and tests"],
+              allowedDirectories: ["src/server", "tests"],
+              forbiddenFiles: ["src/App.tsx", "src/index.ts", "src/server.ts"],
+              files: ["src/server/auth.ts", "tests/auth.test.ts"],
+              checks: ["npm test"],
+              stopAfter: "Stop after npm test passes."
+            }
+          ]
+        }
+      });
+      assert.equal(buildPlanReview.summary.errors, 0);
+
+      const proposedPlanReview = await callJson(client, "review_proposed_file_plan", {
+        plan: {
+          files: [
+            {
+              path: "AGENTS.md",
+              purpose: "Capture local agent work-gate rules.",
+              responsibilities: ["agent instructions"]
+            },
+            {
+              path: "docs/architecture-contract.md",
+              purpose: "Document the pre-edit architecture contract.",
+              responsibilities: ["contract documentation"]
+            },
+            {
+              path: "src/server/auth.ts",
+              purpose: "Own server-side auth validation.",
+              responsibilities: ["session validation"]
+            },
+            {
+              path: "tests/auth.test.ts",
+              purpose: "Verify auth boundary behavior.",
+              responsibilities: ["auth regression tests"]
+            }
+          ]
+        }
+      });
+      assert.equal(proposedPlanReview.summary.errors, 0);
+
+      const implementationReview = await callJson(client, "review_implementation_against_contract", {
+        input: {
+          contract: preEdit.contract,
+          changedFiles: [
+            { path: "src/server/auth.ts", lines: 80 },
+            { path: "tests/auth.test.ts", lines: 60 }
+          ],
+          verification: [
+            { check: "npm test", status: "passed" }
+          ]
+        }
+      });
+      assert.equal(implementationReview.valid, true);
+
+      const finalResponse = "Changed src/server/auth.ts and tests/auth.test.ts. Verified npm test passed. Assumptions: auth remains server-owned. Not done: no schema or public API changes.";
+      const finalReview = await callJson(client, "review_agent_final_response", {
+        request: {
+          response: finalResponse,
+          requiredChecks: ["npm test"]
+        }
+      });
+      assert.equal(finalReview.valid, true);
+
+      const sessionReview = await callJson(client, "review_agent_session", {
+        request: {
+          intent: preEdit.intent,
+          contract: preEdit.contract,
+          changedFiles: [
+            { path: "src/server/auth.ts", lines: 80 },
+            { path: "tests/auth.test.ts", lines: 60 }
+          ],
+          verification: [
+            { check: "npm test", status: "passed" }
+          ],
+          finalResponse
+        }
+      });
+      assert.notEqual(sessionReview.status, "fail");
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   it("returns stable JSON shapes for core tools", async () => {
     const { client, close } = await connectTestClient();
     try {
@@ -490,6 +641,7 @@ describe("MCP tool responses", () => {
       const tools = await client.listTools();
       assert.equal(tools.tools.some((tool) => tool.name === "review_local_workspace"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "scan_mcp_config_files"), false);
+      assert.equal(tools.tools.some((tool) => tool.name === "promote_stack_pack_to_files"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "review_repo_structure"), true);
       const scanAttempt = await callToolRaw(client, "review_local_workspace", {
         rootPath: process.cwd()
@@ -576,7 +728,7 @@ describe("MCP tool responses", () => {
 });
 
 async function connectTestClient(enableLocalWorkspaceTool = true) {
-  const server = createArchitectServer({ enableLocalWorkspaceTool });
+  const server = createArchitectServer({ enableLocalWorkspaceTool, toolSurface: "advanced" });
   const client = new Client({ name: "architect-mcp-test-client", version: "0.1.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([

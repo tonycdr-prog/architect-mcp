@@ -113,7 +113,7 @@ describe("V10 productization implementation contract", () => {
 });
 
 async function connectTestClient() {
-  const server = createArchitectServer();
+  const server = createArchitectServer({ toolSurface: "advanced" });
   const client = new Client({ name: "architect-mcp-v10-test-client", version: "0.1.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([

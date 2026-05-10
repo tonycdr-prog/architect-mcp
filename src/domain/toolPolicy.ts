@@ -1,23 +1,18 @@
-const LOCAL_ONLY_TOOLS = new Set(["review_local_workspace", "scan_mcp_config_files"]);
-const FUTURE_ADAPTER_TOOLS = new Set(["extract_harness_memory", "apply_harness_memory", "review_memory_relevance"]);
-const KNOWN_HOSTED_SAFE_TOOLS = new Set([
-  "review_repo_structure",
-  "interpret_implementation_intent",
-  "audit_hosted_tool_policy",
-  "score_stack_packs",
-  "stack_pack_coverage_matrix",
-  "review_agent_session",
-  "list_client_integration_recipes",
-  "review_mcp_config_security",
-  "score_agent_artifacts"
-]);
+import {
+  FUTURE_ADAPTER_ARCHITECTURE_TOOL_NAMES,
+  LOCAL_ONLY_ARCHITECTURE_TOOL_NAMES,
+  isArchitectureToolRegistered,
+  registeredArchitectureToolNames,
+  type ToolPolicy
+} from "../tools/toolRegistry.js";
 
-type ToolPolicy = "hosted-safe" | "local-only" | "future-adapter" | "unknown";
+const LOCAL_ONLY_TOOLS = new Set<string>(LOCAL_ONLY_ARCHITECTURE_TOOL_NAMES);
+const FUTURE_ADAPTER_TOOLS = new Set<string>(FUTURE_ADAPTER_ARCHITECTURE_TOOL_NAMES);
 
 export function classifyToolPolicy(toolNames: string[], options: { knownToolNames?: string[] } = {}) {
-  const knownToolNames = new Set([...(options.knownToolNames ?? []), ...KNOWN_HOSTED_SAFE_TOOLS, ...LOCAL_ONLY_TOOLS, ...FUTURE_ADAPTER_TOOLS]);
+  const knownToolNames = new Set(options.knownToolNames ?? registeredArchitectureToolNames(true, "advanced"));
   const tools = [...toolNames].sort().map((name) => {
-    const policy: ToolPolicy = !knownToolNames.has(name)
+    const policy: ToolPolicy = !knownToolNames.has(name) || !isArchitectureToolRegistered(name)
       ? "unknown"
       : LOCAL_ONLY_TOOLS.has(name)
         ? "local-only"
@@ -42,6 +37,7 @@ export function classifyToolPolicy(toolNames: string[], options: { knownToolName
 }
 
 function reasonFor(name: string, policy: ToolPolicy): string {
+  if (name === "promote_stack_pack_to_files") return "Can write stack-pack files and manifest updates when writeFiles=true.";
   if (policy === "local-only") return "Reads local filesystem or user config paths.";
   if (policy === "future-adapter") return "Returns stateless proposals now; durable storage waits for an adapter.";
   if (policy === "unknown") return "Tool is not in the registered tool catalog and cannot be assumed safe for hosted use.";

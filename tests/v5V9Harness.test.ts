@@ -146,7 +146,7 @@ describe("V5-V9 MCP-driven implementation surface", () => {
 });
 
 async function connectTestClient(enableLocalWorkspaceTool = true) {
-  const server = createArchitectServer({ enableLocalWorkspaceTool });
+  const server = createArchitectServer({ enableLocalWorkspaceTool, toolSurface: "advanced" });
   const client = new Client({ name: "architect-mcp-v5-v9-test-client", version: "0.1.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([
