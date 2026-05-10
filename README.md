@@ -1,7 +1,7 @@
 # architect-mcp
 
 <p align="center">
-  <a href="https://github.com/tonycdr-prog/architect-mcp/releases/tag/v0.1.0"><img alt="release v0.1.0" src="https://img.shields.io/github/v/release/tonycdr-prog/architect-mcp?style=for-the-badge&label=release"></a>
+  <a href="https://github.com/tonycdr-prog/architect-mcp/releases/latest"><img alt="latest release" src="https://img.shields.io/github/v/release/tonycdr-prog/architect-mcp?style=for-the-badge&label=release"></a>
   <a href="https://github.com/tonycdr-prog/architect-mcp/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/tonycdr-prog/architect-mcp/ci.yml?branch=main&style=for-the-badge&label=ci"></a>
   <a href="https://github.com/tonycdr-prog/architect-mcp/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/tonycdr-prog/architect-mcp?style=for-the-badge"></a>
   <img alt="Node 20+" src="https://img.shields.io/badge/node-%3E%3D20-339933?style=for-the-badge">
@@ -24,7 +24,7 @@ architect-mcp keeps coding agents honest. It is a local-first agent work gate th
 | Core work gate | `grill_me`, pre-edit contracts, plan review, drift review, final/session honesty checks |
 | Advanced maturity | Stack packs, standards intelligence, governance evals, operating-model evals |
 | Hosted mode | Stateless `/mcp`, explicit file summaries, no local workspace scanning |
-| Release gate | `rm -rf dist && npm run release:check` |
+| Release gate | `npm run release:check` |
 
 ## Capabilities
 
