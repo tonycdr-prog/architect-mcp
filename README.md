@@ -1,6 +1,30 @@
 # architect-mcp
 
+<p align="center">
+  <a href="https://github.com/tonycdr-prog/architect-mcp/releases/tag/v0.1.0"><img alt="release v0.1.0" src="https://img.shields.io/github/v/release/tonycdr-prog/architect-mcp?style=for-the-badge&label=release"></a>
+  <a href="https://github.com/tonycdr-prog/architect-mcp/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/tonycdr-prog/architect-mcp/ci.yml?branch=main&style=for-the-badge&label=ci"></a>
+  <a href="https://github.com/tonycdr-prog/architect-mcp/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/tonycdr-prog/architect-mcp?style=for-the-badge"></a>
+  <img alt="Node 20+" src="https://img.shields.io/badge/node-%3E%3D20-339933?style=for-the-badge">
+</p>
+
+<p align="center">
+  <img alt="MCP server" src="https://img.shields.io/badge/MCP-server-111827?style=flat-square">
+  <img alt="local first" src="https://img.shields.io/badge/local--first-default-2563eb?style=flat-square">
+  <img alt="agent work gate" src="https://img.shields.io/badge/agent%20work%20gate-core-7c3aed?style=flat-square">
+  <img alt="hosted safe" src="https://img.shields.io/badge/hosted--safe-stateless-059669?style=flat-square">
+  <img alt="verification required" src="https://img.shields.io/badge/verification-required-d97706?style=flat-square">
+</p>
+
 architect-mcp keeps coding agents honest. It is a local-first agent work gate that clarifies intent before edits, constrains the plan, reviews implementation drift, and requires verification evidence before completion.
+
+## Launch Snapshot
+
+| Surface | What It Gates |
+| --- | --- |
+| Core work gate | `grill_me`, pre-edit contracts, plan review, drift review, final/session honesty checks |
+| Advanced maturity | Stack packs, standards intelligence, governance evals, operating-model evals |
+| Hosted mode | Stateless `/mcp`, explicit file summaries, no local workspace scanning |
+| Release gate | `rm -rf dist && npm run release:check` |
 
 ## Capabilities
 
@@ -371,6 +395,16 @@ Packs support structured detector metadata:
 The current priority stack order is documented in `docs/stack-pack-strategy.md`: Next.js, React/Vite, Node API, Postgres, Supabase, then Expo React Native.
 
 The repo also ships `llms.txt` so agents and tooling can discover architect-mcp flows, tools, finding codes, and pack-authoring rules.
+
+## Star History
+
+<a href="https://www.star-history.com/#tonycdr-prog/architect-mcp&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=tonycdr-prog/architect-mcp&type=Date&theme=dark">
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=tonycdr-prog/architect-mcp&type=Date">
+    <img alt="Star History Chart for tonycdr-prog/architect-mcp" src="https://api.star-history.com/svg?repos=tonycdr-prog/architect-mcp&type=Date">
+  </picture>
+</a>
 
 ## Run Locally
 
