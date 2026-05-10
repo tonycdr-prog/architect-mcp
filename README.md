@@ -419,9 +419,10 @@ Review modes:
 - `strict`: return every finding.
 - `summary`: return grouped findings plus priority findings.
 - `ci`: return only blocker/error findings.
+- `audit`: review an established repo without requiring generated agent harness artifacts.
 - `migration`: suppress lower-value line-count noise for mature repos.
 
-Use `.architectignore` or `ignorePatterns` to suppress generated datasets, fixtures, mocks, and snapshots.
+Use `.architectignore` or `ignorePatterns` to suppress project-specific generated datasets, fixtures, mocks, and snapshots. The built-in review noise filter already excludes common lockfiles, public/static assets, archive folders, migration metadata, media/font files, and generated outputs.
 
 Findings include:
 

@@ -36,10 +36,10 @@ export function createFinding(input: Omit<ReviewViolation, "confidence"> & { con
 }
 
 export function categorizePath(path: string): FileCategory {
-  if (/\/__tests__\/|\.test\.(ts|tsx|js|jsx)$/.test(path)) return "test";
-  if (/^(README|CHANGELOG|CONTRIBUTING|AGENTS|CLAUDE)\.md$/.test(path) || /^docs\/.*\.(json|js|md)$/.test(path)) return "docs-data";
+  if (/\/__tests__\/|(^|\/)(tests?|spec)\/|\.test\.(ts|tsx|js|jsx|py)$|_test\.go$|(^|\/)test_.*\.py$|(^|\/).*_test\.py$|(^|\/).*Tests?\.java$/.test(path)) return "test";
+  if (/\.(md|mdx|rst|adoc|1)$/.test(path) || /^(README|CHANGELOG|CONTRIBUTING|AGENTS|CLAUDE)\.md$/.test(path) || /^docs\/.*\.(json|js|md)$/.test(path)) return "docs-data";
   if (/^(scripts|tools)\//.test(path)) return "script";
-  if (/^(config\/|.*config\.(ts|js|json)$|.*\.config\.(ts|js)$)/.test(path)) return "config";
+  if (/^(config\/|.*config\.(ts|js|json)$|.*\.config\.(ts|js)$)/.test(path) || /\.(ya?ml|toml|xml|jmx|properties)$/.test(path) || /(^|\/)pom\.xml$/.test(path)) return "config";
   if (/schema|types\.ts$/.test(path)) return "schema";
   if (/\/routes?\//.test(path)) return "route";
   if (/\/(services|lib)\//.test(path)) return "service";

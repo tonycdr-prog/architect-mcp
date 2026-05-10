@@ -44,6 +44,48 @@ export const cleanMcpServerFixture: RepoFixture = {
   ]
 };
 
+export const publicRepoSmokeFixture: RepoFixture = {
+  name: "public-repo-smoke",
+  brief: {
+    idea: "Representative public repository shapes used to tune existing-repo review noise.",
+    users: "Maintainers auditing mature repositories without adopting architect-mcp generated-app scaffolding.",
+    coreFlows: ["review existing repo", "separate source findings from generated assets", "baseline mature code"],
+    stack: {
+      frontend: "TypeScript app/tooling",
+      backend: "Python, Go, Rust, Java"
+    },
+    enforcement: "Advise during audit; do not require generated agent harness artifacts.",
+    risk: "Treating static assets, generated metadata, docs, or nested barrel files as product-source architecture failures.",
+    verification: ["review_repo_structure mode=audit"]
+  },
+  directories: [
+    "apps/web/src",
+    "apps/web/public",
+    "openspec/changes/archive",
+    "src/flask",
+    "cmd",
+    "src",
+    "src/main/java",
+    "src/main/resources/static"
+  ],
+  files: [
+    { path: "apps/web/public/flags/bo.svg", lines: 674 },
+    { path: "apps/web/public/fonts/font-atlas.json", lines: 11349 },
+    { path: "apps/web/migrations/meta/0000_snapshot.json", lines: 345 },
+    { path: "openspec/changes/archive/2026-02-17-project-config/proposal.md", lines: 775 },
+    { path: "Cargo.lock", lines: 1159 },
+    { path: "src/main/resources/static/resources/css/petclinic.css", lines: 9532 },
+    { path: "src/main/resources/static/resources/fonts/varela_round-webfont.svg", lines: 7875 },
+    { path: "src/test/jmeter/petclinic_test_plan.jmx", lines: 541 },
+    { path: "pom.xml", lines: 421 },
+    { path: "src/helper/css/index.ts", lines: 260, imports: ["../utils"] },
+    { path: "src/flask/app.py", lines: 1626 },
+    { path: "active_help_test.go", lines: 401 },
+    { path: "src/cli.rs", lines: 954 },
+    { path: "src/main/java/jadx/cli/JadxCLIArgs.java", lines: 1056 }
+  ]
+};
+
 export const messyReactFixture: RepoFixture = {
   name: "messy-react-app",
   brief: {

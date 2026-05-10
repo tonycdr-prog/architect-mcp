@@ -88,7 +88,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - scan_mcp_config_files: local-only scan for repo, Cursor, Claude Desktop, and Codex MCP config files.
 - resolve_standards_profile: explain selected minimal, balanced, or strict local standards.
 - explain_review_findings: turn findings into plain-English meaning, fix shape, next tool, and proof guidance.
-- simulate_policy_gate: preview findings under summary, migration, CI, strict, and custom gates.
+- simulate_policy_gate: preview findings under summary, audit, migration, CI, strict, and custom gates.
 - analyze_standards_conflicts: rank duplicate or overlapping standards and suggest resolutions.
 - score_repo_profile_fit: score built-in repo profiles against a brief and file summaries.
 - review_contract_lifecycle: report contract maturity, changelog, deprecations, replacements, and noise risk.

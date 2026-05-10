@@ -9,7 +9,7 @@ import { createArchitectServer } from "../src/server/createArchitectServer.js";
 import { createBaselineFromFindings } from "../src/domain/baseline.js";
 import { generateContract } from "../src/domain/contract.js";
 import { reviewFileSummaries } from "../src/domain/reviewer.js";
-import { messyReactFixture, cleanMcpServerFixture } from "./fixtures/repos.js";
+import { messyReactFixture, cleanMcpServerFixture, publicRepoSmokeFixture } from "./fixtures/repos.js";
 import { CORE_ARCHITECTURE_TOOL_NAMES } from "../src/tools/toolRegistry.js";
 
 describe("MCP tool responses", () => {
@@ -289,6 +289,18 @@ describe("MCP tool responses", () => {
       });
       assert.equal(reviewResult.report.summary.baselineSuppressed, findings.length);
       assert.equal(Array.isArray(reviewResult.lifecycle.baselineFindings), true);
+
+      const auditResult = await callJson(client, "review_repo_structure", {
+        files: publicRepoSmokeFixture.files,
+        directories: publicRepoSmokeFixture.directories,
+        mode: "audit"
+      });
+      assert.equal(auditResult.report.mode, "audit");
+      assert.equal(auditResult.violations.some((violation: { code: string; message: string }) =>
+        violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN" &&
+        violation.message.includes("required agent harness artifacts")
+      ), false);
+      assert.equal(auditResult.report.gate.status === "pass" || auditResult.report.gate.status === "warn", true);
 
       const validationResult = await callJson(client, "validate_architecture_contract", {
         contract: generateContract(cleanMcpServerFixture.brief, ["mcp-server"])

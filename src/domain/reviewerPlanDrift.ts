@@ -2,9 +2,19 @@ import { createFinding } from "./findingMetadata.js";
 import { isGeneratedFile, isSourceCodeFile, matchesPathPattern } from "./pathRules.js";
 import type { BuildPlan, FileSummary, ReviewViolation } from "./types.js";
 
-export function reviewImplementationPlanDrift(files: Array<FileSummary & { path: string }>, filePaths: string[], buildPlan?: BuildPlan): ReviewViolation[] {
+export type ImplementationPlanDriftOptions = {
+  profile?: "agent-work-gate" | "existing-repo";
+};
+
+export function reviewImplementationPlanDrift(
+  files: Array<FileSummary & { path: string }>,
+  filePaths: string[],
+  buildPlan?: BuildPlan,
+  options: ImplementationPlanDriftOptions = {}
+): ReviewViolation[] {
   const violations: ReviewViolation[] = [];
-  const hasMonolithProneImplementation = files.some((file) => /(^|\/)(App|app|page|index|server|main)\.(tsx|ts|jsx|js)$/.test(file.path));
+  const profile = options.profile ?? "agent-work-gate";
+  const hasMonolithProneImplementation = files.some((file) => isMonolithProneEntryFile(file.path));
   const hasFeatureImplementation = files.some((file) => /^src\/features\//.test(file.path));
   const hasTests = filePaths.some((path) => /(^|\/)(tests|__tests__)\/|\.test\.(ts|tsx|js|jsx)$/.test(path));
   const hasHarness = filePaths.includes("AGENTS.md") && filePaths.includes("docs/architecture-contract.md");
@@ -12,7 +22,7 @@ export function reviewImplementationPlanDrift(files: Array<FileSummary & { path:
   const forbiddenFiles = buildPlan?.slices.flatMap((slice) => slice.forbiddenFiles) ?? [];
   const plannedOutputs = buildPlan?.slices.flatMap((slice) => slice.outputs) ?? [];
 
-  if (hasMonolithProneImplementation && !hasHarness) {
+  if (profile === "agent-work-gate" && hasMonolithProneImplementation && !hasHarness) {
     violations.push(createFinding({
       code: "ARCH020_IMPLEMENTATION_IGNORED_PLAN",
       severity: "error",
@@ -30,8 +40,7 @@ export function reviewImplementationPlanDrift(files: Array<FileSummary & { path:
   }
 
   for (const file of files) {
-    if (!/(^|\/)(App|app|index|server|main)\.(tsx|ts|jsx|js)$/.test(file.path)) continue;
-    if (/^src\/app\/App\.(tsx|ts|jsx|js)$/.test(file.path)) continue;
+    if (!isMonolithProneEntryFile(file.path)) continue;
     if ((file.lines ?? 0) > 220 || (file.imports ?? []).some((specifier) => /db|database|repository|service|auth|features/.test(specifier))) {
       violations.push(createFinding({
         code: "ARCH020_IMPLEMENTATION_IGNORED_PLAN",
@@ -77,6 +86,11 @@ export function reviewImplementationPlanDrift(files: Array<FileSummary & { path:
     }
   }
   return violations;
+}
+
+function isMonolithProneEntryFile(path: string): boolean {
+  return /^(src\/)?(App|app|index|server|main)\.(tsx|ts|jsx|js)$/.test(path) ||
+    /^(src\/)?app\/(page|layout)\.(tsx|ts|jsx|js)$/.test(path);
 }
 
 function stripGlob(value: string): string {

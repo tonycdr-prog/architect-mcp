@@ -97,7 +97,9 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
       outputSchema: reviewOutputSchema
     },
     async ({ files, directories, contract, buildPlan, maxLines, mode, ignorePatterns, baseline, maxDetailedFindings, summarizeLineWarningsBelow, gate }) => safeJsonResponse(() => {
-      const violations = reviewFileSummaries(files, contract as ArchitectureContract | undefined, maxLines, directories ?? [], buildPlan);
+      const violations = reviewFileSummaries(files, contract as ArchitectureContract | undefined, maxLines, directories ?? [], buildPlan, {
+        profile: reviewProfileForMode(mode)
+      });
       const report = createReviewReport(violations, {
         mode,
         ignorePatterns,
@@ -146,7 +148,9 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
           ignorePatterns: combinedIgnorePatterns
         });
         const files = scan.files;
-        const violations = reviewFileSummaries(files, contract as ArchitectureContract | undefined, maxLines, directories ?? [], buildPlan);
+        const violations = reviewFileSummaries(files, contract as ArchitectureContract | undefined, maxLines, directories ?? [], buildPlan, {
+          profile: reviewProfileForMode(mode)
+        });
         const report = createReviewReport(violations, {
           mode,
           ignorePatterns: combinedIgnorePatterns,
@@ -220,4 +224,8 @@ async function readArchitectIgnore(rootPath: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+function reviewProfileForMode(mode: "strict" | "summary" | "ci" | "migration" | "audit"): "agent-work-gate" | "existing-repo" {
+  return mode === "audit" || mode === "migration" ? "existing-repo" : "agent-work-gate";
 }
