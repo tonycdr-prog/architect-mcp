@@ -13,6 +13,7 @@
   <img alt="local first" src="https://img.shields.io/badge/local--first-default-2563eb?style=flat-square">
   <img alt="agent work gate" src="https://img.shields.io/badge/agent%20work%20gate-core-7c3aed?style=flat-square">
   <img alt="hosted safe" src="https://img.shields.io/badge/hosted--safe-stateless-059669?style=flat-square">
+  <img alt="rust tui" src="https://img.shields.io/badge/Rust%20TUI-Ratatui-0f766e?style=flat-square">
   <img alt="verification required" src="https://img.shields.io/badge/verification-required-d97706?style=flat-square">
 </p>
 
@@ -26,6 +27,7 @@ Full docs: [tonycdr-prog.github.io/architect-mcp](https://tonycdr-prog.github.io
 | --- | --- |
 | Core work gate | `grill_me`, pre-edit contracts, plan review, drift review, final/session honesty checks |
 | Advanced maturity | Stack packs, standards intelligence, governance evals, operating-model evals |
+| Rust TUI | Ratatui client for work-gate approvals, adapter orchestration, headless JSONL, and ACP |
 | Hosted mode | Stateless `/mcp`, explicit file summaries, no local workspace scanning |
 | Release gate | `npm run release:check` |
 
@@ -92,6 +94,18 @@ ARCHITECT_MCP_TOOL_SURFACE=advanced architect-mcp
 
 Historical V3-V10 labels remain in tool names, scripts, tests, and document filenames for compatibility. Public documentation frames them as advanced maturity criteria rather than public product versions.
 
+## Rust TUI
+
+The package also exposes `architect-mcp-tui`, a Ratatui client for local work-gate sessions, agent adapters, headless automation, and ACP:
+
+```bash
+architect-mcp-tui
+architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
+architect-mcp-tui acp --stdio
+```
+
+See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config, adapters, release binaries, and workflow details.
+
 ## Docs
 
 - [Getting Started](https://tonycdr-prog.github.io/architect-mcp/getting-started)
@@ -100,6 +114,7 @@ Historical V3-V10 labels remain in tool names, scripts, tests, and document file
 - [Tool Reference](https://tonycdr-prog.github.io/architect-mcp/tool-reference)
 - [Hosted Mode](https://tonycdr-prog.github.io/architect-mcp/hosted-mode)
 - [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)
+- [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui)
 - [Stack Packs](https://tonycdr-prog.github.io/architect-mcp/stack-packs)
 - [Release Readiness](https://tonycdr-prog.github.io/architect-mcp/release-readiness)
 - [Read-Only Smoke Matrix](https://tonycdr-prog.github.io/architect-mcp/read-only-smoke-matrix)
@@ -112,6 +127,8 @@ Use the clean-checkout release gate before release-sensitive changes:
 ```bash
 npm run release:check
 ```
+
+This gate runs the Rust TUI checks and then the existing advanced maturity release check.
 
 Local docs build:
 

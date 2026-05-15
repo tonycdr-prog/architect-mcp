@@ -11,7 +11,8 @@ const DEFAULT_IGNORES = new Set([
   ".next",
   "coverage",
   ".turbo",
-  ".cache"
+  ".cache",
+  "target"
 ]);
 
 export type WorkspaceScanResult = {

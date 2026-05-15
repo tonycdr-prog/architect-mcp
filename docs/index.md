@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: Tool Reference
       link: /tool-reference
+    - theme: alt
+      text: Rust TUI
+      link: /rust-tui
 
 features:
   - title: Default work gate
@@ -23,8 +26,10 @@ features:
     details: Local workspace scanning and file-writing helpers stay local-only. Hosted mode is stateless and accepts explicit file summaries.
   - title: Advanced maturity criteria
     details: Stack packs, governed MCP install plans, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
+  - title: Rust TUI platform
+    details: Ratatui brings the work gate into a mouse-aware terminal client with adapter orchestration, headless JSONL, isolated worktrees, and ACP stdio mode.
   - title: Release-gated
-    details: The clean-checkout release gate is npm run release:check, which chains typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
+    details: The clean-checkout release gate is npm run release:check, which includes Rust checks, typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
 ---
 
 ## Product Story
@@ -38,6 +43,8 @@ architect-mcp is a TypeScript MCP server that keeps coding agents inside a delib
 5. Require honest final-response evidence.
 
 The first-run product surface is intentionally small. The advanced surface is for teams that want the full standards, pack-authoring, governance, repo-quality, and eval layers.
+
+`architect-mcp-tui` adds a local terminal client for the same loop without rewriting the TypeScript MCP server.
 
 ## Distribution
 
@@ -55,6 +62,7 @@ architect-mcp
 - [Core Work Gate](/core-work-gate)
 - [Hosted Mode](/hosted-mode)
 - [MCP Integrations](/mcp-integrations)
+- [Rust TUI](/rust-tui)
 - [Release Readiness](/release-readiness)
 - [Read-Only Smoke Matrix](/read-only-smoke-matrix)
 - [Compatibility And Advanced Maturity Criteria](/compatibility)
