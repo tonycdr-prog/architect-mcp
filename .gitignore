@@ -3,6 +3,7 @@ dist/
 target/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+.architect-mcp/
 coverage/
 .env
 .env.*

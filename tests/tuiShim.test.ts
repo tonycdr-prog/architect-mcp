@@ -1,13 +1,18 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { chmodSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
+import { EventEmitter } from "node:events";
+import https from "node:https";
 
 const require = createRequire(import.meta.url);
 const shim = require("../bin/architect-mcp-tui.cjs") as {
   archTag: () => string;
+  downloadFile: (url: string, destination: string) => Promise<void>;
+  downloadText: (url: string) => Promise<string>;
   ensureCachedReleaseBinary: (options: Record<string, unknown>) => Promise<string>;
   findLocalBinary: (candidates: string[]) => string | undefined;
   platformTag: () => string;
@@ -82,5 +87,66 @@ describe("architect-mcp-tui npm shim", () => {
         }),
       /checksum mismatch/
     );
+  });
+
+  it("follows https redirects for text and file downloads", async () => {
+    const originalGet = https.get;
+    let callCount = 0;
+    (https as unknown as { get: typeof https.get }).get = ((_url: string, callback: (response: EventEmitter & { statusCode?: number; headers: Record<string, string>; resume: () => void; setEncoding: (value: BufferEncoding) => void; pipe: (destination: NodeJS.WritableStream) => NodeJS.WritableStream }) => void) => {
+      callCount += 1;
+      const response = new EventEmitter() as EventEmitter & {
+        statusCode?: number;
+        headers: Record<string, string>;
+        resume: () => void;
+        setEncoding: (value: BufferEncoding) => void;
+        pipe: (destination: NodeJS.WritableStream) => NodeJS.WritableStream;
+      };
+      response.headers = {};
+      response.resume = () => {
+        response.emit("end");
+      };
+      response.setEncoding = () => {};
+      let body = "";
+      response.pipe = (destination: NodeJS.WritableStream) => {
+        if (body) {
+          destination.write(body);
+        }
+        destination.end();
+        return destination;
+      };
+      if (callCount === 1) {
+        response.statusCode = 302;
+        response.headers.location = "https://example.test/final.sha256";
+      } else if (callCount === 2) {
+        response.statusCode = 200;
+        body = "abc123  file.tgz\n";
+      } else if (callCount === 3) {
+        response.statusCode = 302;
+        response.headers.location = "https://example.test/final.tgz";
+      } else {
+        response.statusCode = 200;
+        body = "archive-content";
+      }
+      process.nextTick(() => {
+        callback(response);
+        if (body) {
+          response.emit("data", body);
+          response.emit("end");
+        }
+      });
+      return new EventEmitter() as unknown as ReturnType<typeof https.get>;
+    }) as typeof https.get;
+
+    try {
+      const sha = await shim.downloadText("https://example.test/start.sha256");
+      assert.equal(sha, "abc123  file.tgz\n");
+      const temp = mkdtempSync(join(tmpdir(), "architect-tui-redirect-"));
+      const destination = join(temp, "archive.tgz");
+      await shim.downloadFile("https://example.test/start.tgz", destination);
+      assert.equal(await readFile(destination, "utf8"), "archive-content");
+      assert.equal(callCount, 4);
+    } finally {
+      (https as unknown as { get: typeof https.get }).get = originalGet;
+    }
   });
 });

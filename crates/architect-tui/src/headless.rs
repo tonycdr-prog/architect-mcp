@@ -102,6 +102,28 @@ impl Orchestrator {
         }
         Ok(())
     }
+
+    pub(crate) async fn run_adapter_against_gate_state<W: AsyncWriteExt + Unpin>(
+        &self,
+        options: HeadlessRunOptions,
+        output: &mut W,
+        session_id: &str,
+        prompt: &str,
+        gate_state: &GateReviewState,
+    ) -> Result<bool> {
+        let mut client = StdioMcpClient::connect(&self.bridge)?;
+        let _tools = client.list_tools()?;
+        run_ready_adapter(
+            self,
+            &options,
+            output,
+            session_id,
+            prompt,
+            &mut client,
+            gate_state,
+        )
+        .await
+    }
 }
 
 async fn grill<W: AsyncWriteExt + Unpin>(
