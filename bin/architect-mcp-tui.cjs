@@ -9,6 +9,7 @@ const path = require("node:path");
 const { spawn, spawnSync } = require("node:child_process");
 
 const packageJson = require("../package.json");
+const MAX_REDIRECTS = 5;
 
 const root = path.resolve(__dirname, "..");
 const binaryName = process.platform === "win32" ? "architect-mcp-tui.exe" : "architect-mcp-tui";
@@ -23,6 +24,8 @@ if (require.main === module) {
 
 module.exports = {
   archTag,
+  downloadFile,
+  downloadText,
   ensureCachedReleaseBinary,
   findLocalBinary,
   isExecutable,
@@ -148,10 +151,9 @@ function sha256File(filePath) {
 
 function downloadText(url) {
   return new Promise((resolve, reject) => {
-    https
-      .get(url, (response) => {
+    getWithRedirects(url, MAX_REDIRECTS, (response, finalUrl) => {
         if (response.statusCode !== 200) {
-          reject(new Error(`download failed ${url}: HTTP ${response.statusCode}`));
+          reject(new Error(`download failed ${finalUrl}: HTTP ${response.statusCode}`));
           response.resume();
           return;
         }
@@ -161,28 +163,60 @@ function downloadText(url) {
           body += chunk;
         });
         response.on("end", () => resolve(body));
-      })
-      .on("error", reject);
+      }, reject);
   });
 }
 
 function downloadFile(url, destination) {
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destination, { mode: 0o755 });
-    https
-      .get(url, (response) => {
+    getWithRedirects(url, MAX_REDIRECTS, (response, finalUrl) => {
         if (response.statusCode !== 200) {
-          reject(new Error(`download failed ${url}: HTTP ${response.statusCode}`));
+          reject(new Error(`download failed ${finalUrl}: HTTP ${response.statusCode}`));
           response.resume();
           return;
         }
+        const file = fs.createWriteStream(destination, { mode: 0o755 });
+        file.on("error", (error) => {
+          fs.rmSync(destination, { force: true });
+          reject(error);
+        });
         response.pipe(file);
         file.on("finish", () => {
           file.close(resolve);
         });
-      })
-      .on("error", reject);
+      }, reject);
   });
+}
+
+function getWithRedirects(url, redirectsRemaining, onResponse, reject) {
+  https
+    .get(url, (response) => {
+      if (isRedirectStatus(response.statusCode)) {
+        const location = response.headers.location;
+        response.resume();
+        if (!location) {
+          reject(new Error(`download failed ${url}: HTTP ${response.statusCode}`));
+          return;
+        }
+        if (redirectsRemaining <= 0) {
+          reject(new Error(`download failed ${url}: too many redirects`));
+          return;
+        }
+        const nextUrl = new URL(location, url);
+        if (nextUrl.protocol !== "https:") {
+          reject(new Error(`download failed ${url}: redirected to unsupported protocol`));
+          return;
+        }
+        getWithRedirects(nextUrl.toString(), redirectsRemaining - 1, onResponse, reject);
+        return;
+      }
+      onResponse(response, url);
+    })
+    .on("error", reject);
+}
+
+function isRedirectStatus(statusCode) {
+  return statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308;
 }
 
 function extractArchive(archivePath, destination) {

@@ -27,7 +27,7 @@ features:
   - title: Advanced maturity criteria
     details: Stack packs, governed MCP install plans, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
   - title: Rust TUI platform
-    details: Ratatui brings the live work gate into a mouse-aware terminal client with adapter readiness, guarded headless JSONL, and provisional ACP stdio mode.
+    details: Ratatui brings the live work gate into a mouse-aware terminal client with adapter readiness, guarded headless JSONL, approval/promotion commands, arena ranking, and provisional ACP stdio mode.
   - title: Release-gated
     details: The clean-checkout release gate is npm run release:check, which includes Rust checks, typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
 ---
@@ -51,7 +51,7 @@ The first-run product surface is intentionally small. The advanced surface is fo
 The command remains `architect-mcp`. The published package identity is scoped as `@tonycdr-prog/architect-mcp`, and the current install path uses GitHub release tarballs until npm publishing is configured for that scope.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.1/tonycdr-prog-architect-mcp-0.2.1.tgz
 architect-mcp
 ```
 
@@ -63,6 +63,7 @@ architect-mcp
 - [Hosted Mode](/hosted-mode)
 - [MCP Integrations](/mcp-integrations)
 - [Rust TUI](/rust-tui)
+- [TUI Live QA](/tui-live-qa)
 - [Release Readiness](/release-readiness)
 - [Read-Only Smoke Matrix](/read-only-smoke-matrix)
 - [Compatibility And Advanced Maturity Criteria](/compatibility)

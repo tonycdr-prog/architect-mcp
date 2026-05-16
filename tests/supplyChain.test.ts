@@ -59,6 +59,9 @@ describe("supply-chain and release hygiene", () => {
     assert.equal(usesLines.length > 0, true);
     assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
     assert.match(workflow, /types:\s*\n\s+- published/);
+    assert.match(workflow, /id-token:\s+write/);
+    assert.match(workflow, /node-version: "24"/);
+    assert.match(workflow, /npm install -g npm@\^11\.5\.1/);
     assert.match(workflow, /npm run release:check/);
     assert.match(workflow, /npm pack --json/);
     assert.match(workflow, /npm install --prefix "\$smoke_dir"/);
@@ -79,6 +82,33 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /platform:\s+linux/);
     assert.match(workflow, /platform:\s+macos/);
     assert.match(workflow, /platform:\s+windows/);
+  });
+
+  it("smokes TUI install behavior across hosted OSes with pinned actions", () => {
+    const workflow = readFileSync(".github/workflows/tui-install-smoke.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /ubuntu-latest/);
+    assert.match(workflow, /macos-14/);
+    assert.match(workflow, /windows-latest/);
+    assert.match(workflow, /rustup toolchain install 1\.94\.0 --profile minimal/);
+    assert.match(workflow, /npm run tui:build/);
+    assert.match(workflow, /node bin\/architect-mcp-tui\.cjs --help/);
+    assert.match(workflow, /node --import tsx --test tests\/tuiShim\.test\.ts/);
+  });
+
+  it("runs cross-platform TUI live QA smoke with pinned actions", () => {
+    const workflow = readFileSync(".github/workflows/tui-live-qa.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /ubuntu-latest/);
+    assert.match(workflow, /macos-14/);
+    assert.match(workflow, /windows-latest/);
+    assert.match(workflow, /npm run tui:live-qa/);
   });
 
   it("configures Dependabot for npm, Cargo, and GitHub Actions", () => {
