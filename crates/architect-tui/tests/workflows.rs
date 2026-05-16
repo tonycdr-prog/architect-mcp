@@ -132,11 +132,15 @@ async fn interactive_approval_commands_cover_reject_cancel_and_failed_review() {
     );
 
     let failed = engine.apply_input("promote").await.expect_err("blocked");
-    assert!(
-        failed
-            .to_string()
-            .contains("approval is required before promotion")
-    );
+    assert!(failed.to_string().contains("promotion approval missing"));
+    let status = engine
+        .apply_input("promotion status")
+        .await
+        .expect("promotion status");
+    let status = status.transcript.join("\n");
+    assert!(status.contains("promotion: blocked"));
+    assert!(status.contains("blocker: promotion approval missing"));
+    assert!(status.contains("next: run adapter after execution approval"));
 
     let update = engine
         .apply_input("reject not acceptable")
@@ -245,8 +249,16 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
     assert!(
         promote_blocked
             .to_string()
-            .contains("approval is required before promotion")
+            .contains("promotion approval missing")
     );
+    let status = engine
+        .apply_input("promotion status")
+        .await
+        .expect("promotion status");
+    let status = status.transcript.join("\n");
+    assert!(status.contains("promotion: blocked"));
+    assert!(status.contains("blocker: promotion approval missing"));
+    assert!(status.contains("record passed verification"));
 
     let approval_blocked = engine
         .apply_input("approve promote reviewed diff")
@@ -364,6 +376,16 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
     assert_eq!(
         update.session.expect("session").approval_status,
         ApprovalStatus::Approved
+    );
+    let status = engine
+        .apply_input("promotion status")
+        .await
+        .expect("promotion ready");
+    assert!(status.transcript.join("\n").contains("promotion: ready"));
+    let update = engine.apply_input("promote").await.expect("promote");
+    assert_eq!(
+        update.session.expect("session").approval_status,
+        ApprovalStatus::Promoted
     );
 }
 

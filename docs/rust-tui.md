@@ -48,6 +48,7 @@ verification status
 record verification npm test=passed
 final review <response>
 session review
+promotion status
 approve promote reviewed diff
 promote
 arena run codex,shell
@@ -58,7 +59,7 @@ Sessions are persisted under `.architect-mcp/tui/sessions/<id>.json` without sec
 
 Use `answer key=value` to fill grill blockers before rerunning `grill`. List-like fields accept semicolon-separated values, for example `coreFlows=grill; review; promote` and `verification=cargo test; npm run release:check`. Stack and repo layout answers accept key pairs, for example `stack=frontend=Rust Ratatui; backend=TypeScript MCP` and `repoLayout=tui=crates/architect-tui/src; docs=docs`.
 
-`approve` is phase-aware. After `review files`, it approves adapter execution only. After adapter evidence, implementation review, and session review are recorded, it approves promotion. Execution approval is cleared after the adapter run, so promotion still needs a separate approval.
+`approve` is phase-aware. After `review files`, it approves adapter execution only. After adapter evidence, implementation review, and session review are recorded, it approves promotion. Execution approval is cleared after the adapter run, so promotion still needs a separate approval. Use `promotion status` before approving or promoting to see every blocker and next action: missing approval, missing isolated-worktree evidence, missing changed-file evidence, failed verification, missing review gates, or blocking review output.
 
 Verification evidence is strict. The TUI captures the required checks from the live `grill_me` and build-plan gates. Use `verification status` to list the required checks, then use `record verification <check>=passed` with an exact required check name before final review, session review, or promotion approval can proceed. Failed, skipped, not-run, missing, unknown-check, and unknown-status records block the normal path; `override [reason]` remains the explicit maintainer escape hatch.
 
@@ -124,7 +125,7 @@ The main layout has four surfaces:
 - Right: inspector for gates, adapters, and approval state.
 - Bottom: command palette and prompt input.
 
-Mouse capture supports layout-aware click, drag, scroll, tab switching, and agent pinning. Approval and promotion are command-palette actions: use `diff summary` and `diff file <path>` to inspect recorded isolated-worktree changes, use `approve [reason]` after review gates pass, then `promote` to copy approved isolated-worktree files back into the workspace. Promotion requires implementation, repo-structure, final-response, and session review gates unless `override [reason]` is used. The TUI never promotes adapter output automatically.
+Mouse capture supports layout-aware click, drag, scroll, tab switching, and agent pinning. Approval and promotion are command-palette actions: use `diff summary` and `diff file <path>` to inspect recorded isolated-worktree changes, use `promotion status` to inspect blockers, use `approve [reason]` after review gates pass, then `promote` to copy approved isolated-worktree files back into the workspace. Promotion requires changed-file evidence plus implementation, repo-structure, final-response, and session review gates unless `override [reason]` is used. The TUI never promotes adapter output automatically.
 
 The render scheduler coalesces redraw requests and relies on Ratatui backend diffing instead of clearing the screen after startup. It does not perform true widget-level partial painting.
 
