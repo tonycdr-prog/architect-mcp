@@ -51,7 +51,7 @@ The first-run product surface is intentionally small. The advanced surface is fo
 The command remains `architect-mcp`. The published package identity is scoped as `@tonycdr-prog/architect-mcp`, and the current install path uses GitHub release tarballs until npm publishing is configured for that scope.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.0/tonycdr-prog-architect-mcp-0.2.0.tgz
 architect-mcp
 ```
 

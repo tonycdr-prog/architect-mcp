@@ -10,6 +10,9 @@ use crate::adapter::AdapterConfig;
 use crate::adapter_probe_command::output_with_timeout;
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
+const CMD_PROBE_ARGS: &[&str] = &["/C", "ver"];
+const POSIX_PROBE_ARGS: &[&str] = &["-c", "true"];
+const POWERSHELL_PROBE_ARGS: &[&str] = &["-NoProfile", "-Command", "exit 0"];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -44,7 +47,7 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
             detail: "disabled by configuration".to_string(),
         };
     }
-    if name == "shell" {
+    if is_shell_adapter(name, &config.command) {
         return probe_shell_health(name, config);
     }
 
@@ -93,11 +96,7 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
 
 fn probe_shell_health(name: &str, config: &AdapterConfig) -> AdapterHealth {
     let mut command = Command::new(&config.command);
-    if cfg!(windows) {
-        command.args(["/C", "ver"]);
-    } else {
-        command.args(["-c", "true"]);
-    }
+    command.args(shell_probe_args(&config.command));
     match output_with_timeout(&mut command, PROBE_TIMEOUT) {
         Ok(Some(output)) if output.status.success() => AdapterHealth {
             name: name.to_string(),
@@ -129,6 +128,20 @@ fn probe_shell_health(name: &str, config: &AdapterConfig) -> AdapterHealth {
     }
 }
 
+fn shell_probe_args(command: &str) -> &'static [&'static str] {
+    if cfg!(windows) {
+        let shell = command_file_name(command).unwrap_or_default();
+        if matches!(
+            shell.as_str(),
+            "pwsh" | "pwsh.exe" | "powershell" | "powershell.exe"
+        ) {
+            return POWERSHELL_PROBE_ARGS;
+        }
+        return CMD_PROBE_ARGS;
+    }
+    POSIX_PROBE_ARGS
+}
+
 pub fn adapter_healths(adapters: &BTreeMap<String, AdapterConfig>) -> Vec<AdapterHealth> {
     adapters
         .iter()
@@ -158,7 +171,7 @@ pub fn print_adapter_table(adapters: &BTreeMap<String, AdapterConfig>, json: boo
 }
 
 fn probe_adapter_auth(name: &str, config: &AdapterConfig) -> (AuthStatus, Option<String>) {
-    if name == "shell" {
+    if is_shell_adapter(name, &config.command) {
         return (AuthStatus::NotApplicable, Some("shell adapter".to_string()));
     }
     if is_codex_adapter(name, &config.command) {
@@ -170,17 +183,27 @@ fn probe_adapter_auth(name: &str, config: &AdapterConfig) -> (AuthStatus, Option
     )
 }
 
+fn is_shell_adapter(name: &str, command: &str) -> bool {
+    name.eq_ignore_ascii_case("shell")
+        || command_file_name(command).is_some_and(|file_name| {
+            matches!(
+                file_name.as_str(),
+                "sh" | "bash" | "zsh" | "fish" | "pwsh" | "powershell" | "cmd" | "cmd.exe"
+            )
+        })
+}
+
 fn is_codex_adapter(name: &str, command: &str) -> bool {
-    if name.eq_ignore_ascii_case("codex") {
-        return true;
-    }
+    name.eq_ignore_ascii_case("codex")
+        || command_file_name(command)
+            .is_some_and(|file_name| file_name == "codex" || file_name == "codex.exe")
+}
+
+fn command_file_name(command: &str) -> Option<String> {
     Path::new(command)
         .file_name()
         .and_then(|file_name| file_name.to_str())
-        .map(|file_name| {
-            file_name.eq_ignore_ascii_case("codex") || file_name.eq_ignore_ascii_case("codex.exe")
-        })
-        .unwrap_or(false)
+        .map(|file_name| file_name.to_ascii_lowercase())
 }
 
 fn probe_codex_auth(command: &str) -> (AuthStatus, Option<String>) {
@@ -232,53 +255,4 @@ fn joined_output(stdout: &[u8], stderr: &[u8]) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn codex_auth_probe_requires_logged_in_success() {
-        assert_eq!(
-            codex_auth_status_from_output(true, "Logged in as user@example.com"),
-            AuthStatus::Authenticated
-        );
-        assert_eq!(
-            codex_auth_status_from_output(true, "Not logged in"),
-            AuthStatus::NeedsLogin
-        );
-        assert_eq!(
-            codex_auth_status_from_output(false, "Logged in"),
-            AuthStatus::NeedsLogin
-        );
-    }
-
-    #[test]
-    fn adapter_health_json_uses_public_field_names() {
-        let health = AdapterHealth {
-            name: "codex".to_string(),
-            command: "codex".to_string(),
-            installed: true,
-            version: Some("codex 1.0.0".to_string()),
-            auth_status: AuthStatus::Authenticated,
-            ready: true,
-            detail: "Logged in".to_string(),
-        };
-        let json = serde_json::to_value(&health).expect("json");
-        assert_eq!(json["authStatus"], "authenticated");
-        assert_eq!(json["ready"], true);
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn shell_probe_uses_noop_instead_of_version() {
-        let health = probe_adapter_health(
-            "shell",
-            &AdapterConfig {
-                command: "sh".to_string(),
-                ..AdapterConfig::default()
-            },
-        );
-        assert!(health.installed);
-        assert!(health.ready);
-        assert_eq!(health.auth_status, AuthStatus::NotApplicable);
-    }
-}
+mod tests;

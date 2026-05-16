@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
+use crate::arena::ArenaCandidateRecord;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionPhase {
@@ -48,6 +50,8 @@ pub struct TuiSession {
     pub changed_files: Vec<Value>,
     #[serde(default)]
     pub adapter_crashed: bool,
+    #[serde(default)]
+    pub arena_candidates: Vec<ArenaCandidateRecord>,
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
     pub created_at: u64,
@@ -70,6 +74,7 @@ impl TuiSession {
             diff_stat: None,
             changed_files: Vec::new(),
             adapter_crashed: false,
+            arena_candidates: Vec::new(),
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
             created_at: now,

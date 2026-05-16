@@ -1,5 +1,8 @@
+use architect_tui::adapter::AdapterConfig;
 use architect_tui::config::TuiConfig;
+use architect_tui::interactive::InteractiveWorkflowEngine;
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
+use architect_tui::session::{ApprovalStatus, SessionPhase};
 use serde_json::Value;
 use std::process::Command;
 
@@ -20,6 +23,7 @@ fn new_app_workflow_has_golden_gate_order() {
     assert_eq!(gates.last(), Some(&"review_agent_session"));
 }
 
+#[cfg(not(windows))]
 #[tokio::test]
 async fn headless_execute_uses_isolated_worktree_and_review_gates() {
     let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {
@@ -32,10 +36,9 @@ async fn headless_execute_uses_isolated_worktree_and_review_gates() {
         .get("shell")
         .expect("shell adapter")
         .clone();
-    shell.args = vec![
-        "-c".to_string(),
-        "mkdir -p docs && printf 'agent work\\n' > docs/live-qa.md".to_string(),
-    ];
+    let writer = shell_writer_portable("docs/live-qa.md", "agent work");
+    shell.command = writer.command;
+    shell.args = writer.args;
     let config = orchestrator.config_mut();
     config.agents.default_adapter = "shell".to_string();
     config.adapters.insert("shell".to_string(), shell);
@@ -89,6 +92,98 @@ fn arena_candidates_use_isolated_worktrees() {
     let candidates = orchestrator.arena_candidates("session-1", &["codex".into(), "claude".into()]);
     assert!(candidates[0].worktree.ends_with("session-1/codex"));
     assert!(candidates[1].worktree.ends_with("session-1/claude"));
+}
+
+#[tokio::test]
+async fn interactive_approval_commands_cover_reject_cancel_and_failed_review() {
+    let orchestrator = Orchestrator::new(".", TuiConfig::default());
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    let update = engine
+        .apply_input("new app offline planner")
+        .await
+        .expect("new app");
+    assert_eq!(
+        update.session.expect("session").approval_status,
+        ApprovalStatus::Pending
+    );
+
+    let update = engine
+        .apply_input("approve review gates passed")
+        .await
+        .expect("approve");
+    assert_eq!(
+        update.session.expect("session").approval_status,
+        ApprovalStatus::Approved
+    );
+
+    let failed = engine.apply_input("promote").await.expect_err("blocked");
+    assert!(
+        failed
+            .to_string()
+            .contains("promotion requires review_implementation_against_contract")
+    );
+
+    let update = engine
+        .apply_input("reject not acceptable")
+        .await
+        .expect("reject");
+    assert_eq!(
+        update.session.expect("session").approval_status,
+        ApprovalStatus::Rejected
+    );
+
+    let update = engine.apply_input("cancel").await.expect("cancel");
+    assert_eq!(
+        update.session.expect("session").phase,
+        SessionPhase::Cancelled
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn interactive_arena_run_records_and_ranks_multiple_candidates() {
+    let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    init_git_repo(_temp.path());
+    let mut shell_a = shell_writer("docs/arena-a.md", "candidate a\\n");
+    let mut shell_b = shell_writer("docs/arena-b.md", "candidate b\\n");
+    shell_a.available = Some(true);
+    shell_b.available = Some(true);
+    let config = orchestrator.config_mut();
+    config.adapters.insert("shell-a".to_string(), shell_a);
+    config.adapters.insert("shell-b".to_string(), shell_b);
+    config.agents.default_adapter = "shell-a".to_string();
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app ready app with users flows stack risks verification")
+        .await
+        .expect("new app");
+    engine.apply_input("grill").await.expect("grill");
+    engine.apply_input("contract").await.expect("contract");
+    engine.apply_input("review plan").await.expect("plan");
+    engine.apply_input("review files").await.expect("files");
+    let update = engine
+        .apply_input("arena run shell-a,shell-b")
+        .await
+        .expect("arena run");
+    let session = update.session.expect("session");
+    assert_eq!(session.arena_candidates.len(), 2);
+    assert!(session.arena_candidates.iter().all(|candidate| {
+        candidate
+            .worktree
+            .as_deref()
+            .unwrap_or("")
+            .contains(".architect-mcp/worktrees")
+    }));
+
+    let update = engine.apply_input("arena rank").await.expect("arena rank");
+    let transcript = update.transcript.join("\n");
+    assert!(transcript.contains("candidate evidence"));
+    assert!(transcript.contains("shell-a"));
+    assert!(transcript.contains("shell-b"));
 }
 
 #[tokio::test]
@@ -215,6 +310,54 @@ fn init_git_repo(path: &std::path::Path) {
     std::fs::write(path.join("README.md"), "test\n").expect("readme");
     run_git(path, ["add", "README.md"]);
     run_git(path, ["commit", "-m", "init"]);
+}
+
+#[cfg(unix)]
+fn shell_writer(path: &str, content: &str) -> AdapterConfig {
+    AdapterConfig {
+        command: "sh".to_string(),
+        args: vec![
+            "-c".to_string(),
+            format!(
+                "mkdir -p \"$(dirname {path})\" && printf '{}' > {path}",
+                content.replace('\'', "'\\''")
+            ),
+        ],
+        ..AdapterConfig::default()
+    }
+}
+
+fn shell_writer_portable(path: &str, content: &str) -> AdapterConfig {
+    #[cfg(windows)]
+    {
+        let path = path.replace('\'', "''");
+        let content = content.replace('\'', "''");
+        AdapterConfig {
+            command: "pwsh".to_string(),
+            args: vec![
+                "-NoProfile".to_string(),
+                "-Command".to_string(),
+                format!(
+                    "$p='{path}'; New-Item -ItemType Directory -Force -Path (Split-Path $p) | Out-Null; Set-Content -NoNewline -Path $p -Value '{content}'"
+                ),
+            ],
+            ..AdapterConfig::default()
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        AdapterConfig {
+            command: "sh".to_string(),
+            args: vec![
+                "-c".to_string(),
+                format!(
+                    "mkdir -p \"$(dirname {path})\" && printf '{}' > {path}",
+                    content.replace('\'', "'\\''")
+                ),
+            ],
+            ..AdapterConfig::default()
+        }
+    }
 }
 
 fn run_git<const N: usize>(path: &std::path::Path, args: [&str; N]) {

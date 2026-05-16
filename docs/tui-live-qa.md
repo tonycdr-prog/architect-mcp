@@ -4,13 +4,13 @@ Use this page for release-candidate validation that cannot be proven by unit tes
 
 ## Automated Matrix
 
-The `.github/workflows/tui-install-smoke.yml` workflow runs on pull requests and manual dispatch across:
+The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa.yml` workflows run on pull requests and manual dispatch across:
 
 - Ubuntu latest.
 - macOS 14.
 - Windows latest.
 
-Each job installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure.
+The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds a local debug TUI binary before exercising the shim help path and workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
 
 ## Manual Matrix
 
@@ -31,8 +31,8 @@ Use a fresh private repository or local throwaway git repo. Do not run destructi
 3. Run a ready prompt through `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` without `--execute`; confirm no adapter process starts.
 4. Run a safe shell adapter with `--execute` in an isolated worktree; confirm JSONL remains parseable and includes `diff_evidence`.
 5. Confirm implementation review, repo-structure review, final-response review, and session review events appear before `review_required`.
-6. In the interactive TUI, create a session, run `approve <reason>`, run `promote`, and confirm only the changed files from `.architect-mcp/worktrees/<session>/<adapter>` are copied.
-7. Run `arena rank` and confirm candidates are ranked without auto-merging.
+6. In the interactive TUI, create a session, run `diff summary`, run `diff file <path>`, run `approve <reason>`, run `promote`, and confirm only the changed files from `.architect-mcp/worktrees/<session>/<adapter>` are copied.
+7. Run `arena run <adapter[,adapter]>`, then `arena rank`, and confirm candidates are ranked without auto-merging.
 8. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
 
 ## Evidence To Record

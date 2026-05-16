@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 use crate::approval::promote_approved_changes;
 use crate::interactive::InteractiveWorkflowEngine;
@@ -33,7 +33,7 @@ impl InteractiveWorkflowEngine {
     }
 
     pub(crate) fn promote(&mut self) -> Result<WorkflowUpdate> {
-        let mut session = self.active.take().context("start with: new app <idea>")?;
+        let mut session = self.active()?.clone();
         let promoted = promote_approved_changes(&mut session, &self.orchestrator.workspace)?;
         self.store.save(&mut session)?;
         self.active = Some(session);

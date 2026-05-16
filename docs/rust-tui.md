@@ -38,8 +38,11 @@ contract
 review plan
 review files
 run adapter
+diff summary
+diff file docs/live-qa.md
 approve review gates passed
 promote
+arena run codex,shell
 arena rank
 record verification npm test=passed
 final review <response>
@@ -102,7 +105,7 @@ The main layout has four surfaces:
 - Right: inspector for gates, adapters, and approval state.
 - Bottom: command palette and prompt input.
 
-Mouse capture supports layout-aware click, drag, scroll, tab switching, and agent pinning. Approval and promotion are command-palette actions: use `approve [reason]` after review gates pass, then `promote` to copy approved isolated-worktree files back into the workspace. Promotion requires implementation, repo-structure, final-response, and session review gates unless `override [reason]` is used. The TUI never promotes adapter output automatically.
+Mouse capture supports layout-aware click, drag, scroll, tab switching, and agent pinning. Approval and promotion are command-palette actions: use `diff summary` and `diff file <path>` to inspect recorded isolated-worktree changes, use `approve [reason]` after review gates pass, then `promote` to copy approved isolated-worktree files back into the workspace. Promotion requires implementation, repo-structure, final-response, and session review gates unless `override [reason]` is used. The TUI never promotes adapter output automatically.
 
 The render scheduler coalesces redraw requests and relies on Ratatui backend diffing instead of clearing the screen after startup. It does not perform true widget-level partial painting.
 
@@ -112,7 +115,7 @@ Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a gen
 
 Agents run in a PTY by default when execution is explicitly enabled. Headless `--execute` creates an isolated git worktree, streams PTY output, records changed-file evidence, and runs `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` before any promotion. PTY output is capped with an explicit truncation marker.
 
-The `arena rank` command ranks configured adapters with a deterministic score based on implementation review status, verification status, diff size, contract drift, and crash state. Parallel arena execution is still a follow-up; candidate promotion remains manual.
+The `arena run <adapter[,adapter]>` command runs named adapters against the current contract into isolated worktrees and records each candidate's diff evidence. The `arena rank` command ranks recorded candidates with a deterministic score based on implementation review status, verification status, diff size, contract drift, and crash state. Candidate promotion remains manual; the arena never auto-merges a winner.
 
 ## Config
 
@@ -146,4 +149,4 @@ npm run rust:check
 
 That runs `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace`.
 
-Cross-platform install smoke runs in GitHub Actions on Linux, macOS, and Windows. Manual live QA is tracked in [TUI Live QA](./tui-live-qa.md).
+Cross-platform install smoke and live-QA smoke run in GitHub Actions on Linux, macOS, and Windows. Manual live QA is tracked in [TUI Live QA](./tui-live-qa.md).

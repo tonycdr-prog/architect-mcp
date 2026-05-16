@@ -37,6 +37,9 @@ impl InteractiveWorkflowEngine {
             WorkflowCommand::Reject(reason) => self.reject(&reason),
             WorkflowCommand::Override(reason) => self.override_approval(&reason),
             WorkflowCommand::Promote => self.promote(),
+            WorkflowCommand::DiffSummary => self.diff_summary(),
+            WorkflowCommand::DiffFile(path) => self.diff_file(&path),
+            WorkflowCommand::ArenaRun(adapters) => self.arena_run(adapters).await,
             WorkflowCommand::ArenaRank => self.arena_rank(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)
