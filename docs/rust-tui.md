@@ -40,21 +40,24 @@ grill
 contract
 review plan
 review files
+approve run isolated adapter
 run adapter
 diff summary
 diff file docs/live-qa.md
-approve review gates passed
-promote
-arena run codex,shell
-arena rank
 record verification npm test=passed
 final review <response>
 session review
+approve promote reviewed diff
+promote
+arena run codex,shell
+arena rank
 ```
 
 Sessions are persisted under `.architect-mcp/tui/sessions/<id>.json` without secrets.
 
 Use `answer key=value` to fill grill blockers before rerunning `grill`. List-like fields accept semicolon-separated values, for example `coreFlows=grill; review; promote` and `verification=cargo test; npm run release:check`. Stack and repo layout answers accept key pairs, for example `stack=frontend=Rust Ratatui; backend=TypeScript MCP` and `repoLayout=tui=crates/architect-tui/src; docs=docs`.
+
+`approve` is phase-aware. After `review files`, it approves adapter execution only. After adapter evidence, implementation review, and session review are recorded, it approves promotion. Execution approval is cleared after the adapter run, so promotion still needs a separate approval.
 
 Headless JSONL run:
 

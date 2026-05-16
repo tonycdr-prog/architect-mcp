@@ -121,20 +121,21 @@ async fn interactive_approval_commands_cover_reject_cancel_and_failed_review() {
         ApprovalStatus::Pending
     );
 
-    let update = engine
+    let too_early = engine
         .apply_input("approve review gates passed")
         .await
-        .expect("approve");
-    assert_eq!(
-        update.session.expect("session").approval_status,
-        ApprovalStatus::Approved
+        .expect_err("approval too early");
+    assert!(
+        too_early
+            .to_string()
+            .contains("approval is available after file review")
     );
 
     let failed = engine.apply_input("promote").await.expect_err("blocked");
     assert!(
         failed
             .to_string()
-            .contains("promotion requires review_implementation_against_contract")
+            .contains("approval is required before promotion")
     );
 
     let update = engine
@@ -150,6 +151,88 @@ async fn interactive_approval_commands_cover_reject_cancel_and_failed_review() {
     assert_eq!(
         update.session.expect("session").phase,
         SessionPhase::Cancelled
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn interactive_adapter_execution_requires_distinct_approval() {
+    let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    init_git_repo(_temp.path());
+    let mut shell = shell_writer("docs/approved-run.md", "agent work\\n");
+    shell.available = Some(true);
+    orchestrator
+        .config_mut()
+        .adapters
+        .insert("shell".to_string(), shell);
+    orchestrator.config_mut().agents.default_adapter = "shell".to_string();
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app ready app with users flows stack risks verification")
+        .await
+        .expect("new app");
+    engine.apply_input("grill").await.expect("grill");
+    engine.apply_input("contract").await.expect("contract");
+    engine.apply_input("review plan").await.expect("plan");
+    engine.apply_input("review files").await.expect("files");
+
+    let blocked = engine
+        .apply_input("run adapter")
+        .await
+        .expect_err("execution approval required");
+    assert!(
+        blocked
+            .to_string()
+            .contains("approve adapter execution before run adapter")
+    );
+
+    let update = engine
+        .apply_input("approve run isolated adapter")
+        .await
+        .expect("approve execution");
+    let session = update.session.expect("session");
+    assert!(session.execution_approved);
+    assert_eq!(session.approval_status, ApprovalStatus::Pending);
+
+    let update = engine
+        .apply_input("run adapter")
+        .await
+        .expect("run adapter");
+    let session = update.session.expect("session");
+    assert_eq!(session.phase, SessionPhase::ReviewRequired);
+    assert!(!session.execution_approved);
+    assert_eq!(session.approval_status, ApprovalStatus::Pending);
+    assert!(session.worktree.is_some());
+    assert!(
+        session
+            .changed_files
+            .iter()
+            .any(|file| file["path"] == "docs/approved-run.md")
+    );
+    assert!(
+        session
+            .gates
+            .contains_key("review_implementation_against_contract")
+    );
+    assert!(session.gates.contains_key("review_agent_session"));
+
+    let promote_blocked = engine.apply_input("promote").await.expect_err("blocked");
+    assert!(
+        promote_blocked
+            .to_string()
+            .contains("approval is required before promotion")
+    );
+
+    let update = engine
+        .apply_input("approve promote reviewed diff")
+        .await
+        .expect("approve promotion");
+    assert_eq!(
+        update.session.expect("session").approval_status,
+        ApprovalStatus::Approved
     );
 }
 

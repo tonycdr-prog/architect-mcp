@@ -131,6 +131,9 @@ impl InteractiveWorkflowEngine {
             "review files before run adapter",
         )?;
         let session = self.active()?.clone();
+        if !session.execution_approved {
+            anyhow::bail!("approve adapter execution before run adapter");
+        }
         let pre_edit = session
             .gates
             .get("create_pre_edit_contract")
@@ -166,6 +169,9 @@ impl InteractiveWorkflowEngine {
             } else {
                 SessionPhase::FilePlanReviewed
             };
+            if executed {
+                session.clear_execution_approval();
+            }
         })?;
         let summary = if executed {
             "adapter run completed; review evidence recorded"
