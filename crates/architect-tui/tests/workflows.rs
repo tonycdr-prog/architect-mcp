@@ -310,10 +310,21 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
         .apply_input("session review")
         .await
         .expect("session review");
+    let session = update.session.expect("session");
+    assert_eq!(session.phase, SessionPhase::Complete);
+    let review_request = &session.gates["review_agent_session"]["received"];
     assert_eq!(
-        update.session.expect("session").phase,
-        SessionPhase::Complete
+        review_request["finalResponse"].as_str(),
+        Some(
+            "Changed files: docs/approved-run.md. Verification: npm test passed. Assumptions: isolated review. Not done: promotion remains pending."
+        )
     );
+    let verification = review_request["verification"]
+        .as_array()
+        .expect("verification array");
+    assert_eq!(verification.len(), 1);
+    assert_eq!(verification[0]["check"].as_str(), Some("npm test"));
+    assert_eq!(verification[0]["status"].as_str(), Some("passed"));
 
     let update = engine
         .apply_input("approve promote reviewed diff")
@@ -702,6 +713,8 @@ rl.on('line', (line) => {
         nextQuestion: { question: 'Who uses it?', recommendedAnswer: 'Name the primary users.' }
       });
     }
+  } else if (msg.method === 'tools/call' && msg.params.name === 'review_agent_session') {
+    tool(msg.id, { ok: true, name: msg.params.name, received: msg.params.arguments.request });
   } else if (msg.method === 'tools/call') {
     tool(msg.id, { ok: true, name: msg.params.name });
   }

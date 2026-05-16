@@ -37,6 +37,10 @@ pub enum ApprovalStatus {
     Override,
 }
 
+fn default_approval_status() -> ApprovalStatus {
+    ApprovalStatus::Pending
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TuiSession {
@@ -62,7 +66,7 @@ pub struct TuiSession {
     pub adapter_crashed: bool,
     #[serde(default)]
     pub arena_candidates: Vec<ArenaCandidateRecord>,
-    #[serde(default)]
+    #[serde(default = "default_approval_status")]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
     pub created_at: u64,
@@ -274,13 +278,13 @@ mod tests {
     }
 
     #[test]
-    fn legacy_sessions_without_new_approval_fields_deserialize() {
+    fn legacy_session_json_defaults_new_fields() {
         let legacy = json!({
             "id": "session-1",
-            "prompt": "build",
+            "prompt": "build controlled TUI",
             "adapter": "codex",
-            "phase": "file_plan_reviewed",
-            "brief": {},
+            "phase": "review_required",
+            "brief": { "idea": "build controlled TUI" },
             "gates": {},
             "verification": {},
             "worktree": null,
@@ -290,10 +294,13 @@ mod tests {
             "updatedAt": 1
         });
 
-        let loaded: TuiSession = serde_json::from_value(legacy).expect("deserialize");
-        assert!(!loaded.execution_approved);
-        assert!(loaded.execution_approval_reason.is_none());
-        assert_eq!(loaded.approval_status, ApprovalStatus::Pending);
-        assert!(loaded.approval_reason.is_none());
+        let session: TuiSession =
+            serde_json::from_value(legacy).expect("legacy session should deserialize");
+        assert!(!session.execution_approved);
+        assert!(session.execution_approval_reason.is_none());
+        assert!(session.required_verification.is_empty());
+        assert!(session.final_response.is_none());
+        assert_eq!(session.approval_status, ApprovalStatus::Pending);
+        assert!(session.approval_reason.is_none());
     }
 }
