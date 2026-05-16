@@ -23,6 +23,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - [Getting Started](docs/getting-started.md): install, source checkout, default surface, advanced surface, and verification.
 - [MCP Client Setup](docs/mcp-client-setup.md): stdio client configs, release tarball setup, source checkout setup, and hosted HTTP startup.
 - [Core Work Gate](docs/core-work-gate.md): default agent work-gate flow from `grill_me` through final/session review.
+- [New App Work Gate](docs/new-app-work-gate.md): concrete app-building flow through intake, contract, plan, file review, adapter evidence, approval, and promotion.
 - [Tool Reference](docs/tool-reference.md): full tool-name reference for the default and advanced surfaces.
 - [Hosted Mode](docs/hosted-mode.md): stateless HTTP mode, local-only exclusions, file summaries, and review modes.
 - [MCP Integrations](docs/mcp-integrations.md): guarded MCP server recommendations, install plans, and local-only apply policy.

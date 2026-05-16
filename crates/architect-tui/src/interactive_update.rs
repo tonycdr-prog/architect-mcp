@@ -55,7 +55,7 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promote, arena run <adapter[,adapter]>, arena rank, record verification check=status, final review <text>, session review".to_string(),
+            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promote, arena run <adapter[,adapter]>, arena rank, record verification check=status, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,

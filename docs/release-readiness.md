@@ -55,6 +55,32 @@ Publishing is handled by `.github/workflows/npm-publish.yml` when a GitHub relea
 
 The repository must define `NPM_TOKEN` with permission to publish `@tonycdr-prog/architect-mcp`. For 2FA-protected npm accounts, use a granular token that can publish the package and bypass 2FA for automation. The workflow also uses GitHub Actions OIDC and npm 11.5.1+ for provenance-capable publishing. Do not bypass `npm run release:check`; it remains the clean-checkout release gate.
 
+### Trusted Publishing Migration
+
+npm trusted publishing can remove the long-lived publish token once the package is configured on npmjs.com. The repository workflow already has the release-side prerequisites: GitHub-hosted runner, `id-token: write`, Node 24, npm `^11.5.1`, provenance-capable publish, and the clean `npm run release:check` gate.
+
+The remaining setup happens in npm package settings, not in this repository:
+
+1. Open `@tonycdr-prog/architect-mcp` on npmjs.com.
+2. In package settings, add a trusted publisher for GitHub Actions.
+3. Use owner `tonycdr-prog`, repository `architect-mcp`, and workflow filename `npm-publish.yml`.
+4. Run the next release without changing the release gate.
+5. After a successful trusted-publishing release, restrict publishing access to require 2FA and disallow traditional tokens if that policy fits the maintainer account.
+6. Revoke the old automation token.
+
+Until that npm-side configuration is complete, keep `NPM_TOKEN` in GitHub secrets so releases remain publishable. Do not commit tokens, paste token values into issues, or place token material in workflow logs.
+
+### Token Rotation
+
+If token-backed publishing is still enabled, rotate the token after any suspected exposure, maintainer handoff, or release-process change:
+
+1. Create a new granular npm token scoped to `@tonycdr-prog/architect-mcp` with publish rights and the required 2FA automation setting.
+2. Update the GitHub Actions `NPM_TOKEN` secret.
+3. Run `npm run release:check` locally from a clean checkout.
+4. Publish the next tag or rerun the publish workflow for the intended release.
+5. Verify `npm view @tonycdr-prog/architect-mcp version` and a fresh `npx -y --package @tonycdr-prog/architect-mcp architect-mcp --help` install path.
+6. Revoke the previous automation token.
+
 ## TUI Release Binaries
 
 `.github/workflows/tui-release.yml` builds `architect-mcp-tui` for Linux, macOS, and Windows release assets. Each archive is uploaded with a `.sha256` checksum. The npm shim downloads only matching release assets and verifies the checksum before execution.

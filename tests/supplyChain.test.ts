@@ -99,6 +99,28 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /node --import tsx --test tests\/tuiShim\.test\.ts/);
   });
 
+  it("documents app-build gates, post-release TUI evidence, and publishing auth migration", () => {
+    const newAppGuide = readFileSync("docs/new-app-work-gate.md", "utf8");
+    const releaseReadiness = readFileSync("docs/release-readiness.md", "utf8");
+    const tuiLiveQa = readFileSync("docs/tui-live-qa.md", "utf8");
+    const readme = readFileSync("README.md", "utf8");
+    const llms = readFileSync("llms.txt", "utf8");
+
+    assert.match(newAppGuide, /grill_me/);
+    assert.match(newAppGuide, /create_pre_edit_contract/);
+    assert.match(newAppGuide, /review_proposed_file_plan/);
+    assert.match(newAppGuide, /diff_evidence/);
+    assert.match(newAppGuide, /AGENTS\.md/);
+    assert.match(readme, /new-app-work-gate/);
+    assert.match(llms, /docs\/new-app-work-gate\.md/);
+    assert.match(releaseReadiness, /Trusted Publishing Migration/);
+    assert.match(releaseReadiness, /Token Rotation/);
+    assert.match(releaseReadiness, /npm run release:check/);
+    assert.match(tuiLiveQa, /Post-Release Evidence/);
+    assert.match(tuiLiveQa, /Manual Linux terminal smoke/);
+    assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
+  });
+
   it("runs cross-platform TUI live QA smoke with pinned actions", () => {
     const workflow = readFileSync(".github/workflows/tui-live-qa.yml", "utf8");
     const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
