@@ -12,20 +12,36 @@ const packageJson = require("../package.json");
 
 const root = path.resolve(__dirname, "..");
 const binaryName = process.platform === "win32" ? "architect-mcp-tui.exe" : "architect-mcp-tui";
-const localCandidates = [
-  path.join(root, "target", "release", binaryName),
-  path.join(root, "target", "debug", binaryName),
-  path.join(root, "crates", "architect-tui", "target", "release", binaryName),
-  path.join(root, "crates", "architect-tui", "target", "debug", binaryName),
-];
+const localCandidates = localBinaryCandidates(root);
 
-main().catch((error) => {
-  console.error(`architect-mcp-tui: ${error.message}`);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`architect-mcp-tui: ${error.message}`);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  archTag,
+  ensureCachedReleaseBinary,
+  findLocalBinary,
+  isExecutable,
+  localBinaryCandidates,
+  platformTag,
+  sha256File,
+};
+
+function localBinaryCandidates(baseRoot) {
+  return [
+    path.join(baseRoot, "target", "release", binaryName),
+    path.join(baseRoot, "target", "debug", binaryName),
+    path.join(baseRoot, "crates", "architect-tui", "target", "release", binaryName),
+    path.join(baseRoot, "crates", "architect-tui", "target", "debug", binaryName),
+  ];
+}
 
 async function main() {
-  const local = localCandidates.find(isExecutable);
+  const local = findLocalBinary(localCandidates);
   if (local) {
     return execBinary(local);
   }
@@ -51,17 +67,26 @@ function execBinary(binaryPath) {
   });
 }
 
-async function ensureCachedReleaseBinary() {
+function findLocalBinary(candidates) {
+  return candidates.find(isExecutable);
+}
+
+async function ensureCachedReleaseBinary(options = {}) {
   const cacheRoot =
+    options.cacheRoot ||
     process.env.ARCHITECT_MCP_TUI_CACHE_DIR ||
     path.join(os.homedir(), ".cache", "architect-mcp", "tui");
-  const platform = platformTag();
-  const arch = archTag();
-  const version = packageJson.version;
+  const platform = options.platform || platformTag();
+  const arch = options.arch || archTag();
+  const version = options.version || packageJson.version;
+  const downloadTextFn = options.downloadText || downloadText;
+  const downloadFileFn = options.downloadFile || downloadFile;
+  const extractArchiveFn = options.extractArchive || extractArchive;
+  const isExecutableFn = options.isExecutable || isExecutable;
   const assetName = `architect-mcp-tui-${platform}-${arch}${process.platform === "win32" ? ".zip" : ".tar.gz"}`;
   const cacheDir = path.join(cacheRoot, version, `${platform}-${arch}`);
   const cachedBinary = path.join(cacheDir, binaryName);
-  if (isExecutable(cachedBinary)) {
+  if (isExecutableFn(cachedBinary)) {
     return cachedBinary;
   }
 
@@ -74,15 +99,15 @@ async function ensureCachedReleaseBinary() {
   const archivePath = path.join(cacheDir, assetName);
 
   try {
-    const expectedSha = (await downloadText(shaUrl)).trim().split(/\s+/)[0];
-    await downloadFile(assetUrl, archivePath);
+    const expectedSha = (await downloadTextFn(shaUrl)).trim().split(/\s+/)[0];
+    await downloadFileFn(assetUrl, archivePath);
     const actualSha = sha256File(archivePath);
     if (actualSha !== expectedSha) {
       fs.rmSync(archivePath, { force: true });
       throw new Error(`checksum mismatch for ${assetName}`);
     }
-    extractArchive(archivePath, cacheDir);
-    if (!isExecutable(cachedBinary)) {
+    extractArchiveFn(archivePath, cacheDir);
+    if (!isExecutableFn(cachedBinary)) {
       throw new Error(`release archive did not contain ${binaryName}`);
     }
     return cachedBinary;

@@ -1,10 +1,11 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 use std::path::PathBuf;
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
 use crate::adapter::{AuthStatus, probe_adapter_health};
 use crate::config::TuiConfig;
+use crate::interactive::WorkflowUpdate;
 use crate::mcp::ArchitectMcpBridge;
 use crate::orchestrator::{AppBuildWorkflow, Orchestrator, workspace_name};
 
@@ -43,6 +44,7 @@ pub struct AppState {
     pub dirty: BTreeSet<Panel>,
     pub workflow: AppBuildWorkflow,
     pub layout: Option<PanelLayout>,
+    pending_inputs: VecDeque<String>,
 }
 
 impl PanelLayout {
@@ -131,6 +133,7 @@ impl AppState {
             ]),
             workflow,
             layout: None,
+            pending_inputs: VecDeque::new(),
         }
     }
 
@@ -185,10 +188,28 @@ impl AppState {
         if self.input.trim().is_empty() {
             return;
         }
-        self.transcript.push(format!("user: {}", self.input.trim()));
+        let input = self.input.trim().to_string();
+        self.transcript.push(format!("user: {input}"));
+        self.pending_inputs.push_back(input);
         self.input.clear();
         self.mark_dirty(Panel::Transcript);
         self.mark_dirty(Panel::Command);
+    }
+
+    pub fn pop_pending_input(&mut self) -> Option<String> {
+        self.pending_inputs.pop_front()
+    }
+
+    pub fn apply_workflow_update(&mut self, update: WorkflowUpdate) {
+        self.transcript.extend(update.transcript);
+        if !update.inspector.is_empty() {
+            self.inspector = update.inspector;
+        }
+        if let Some(session) = update.session {
+            self.workflow.idea = session.prompt;
+        }
+        self.mark_dirty(Panel::Transcript);
+        self.mark_dirty(Panel::Inspector);
     }
 }
 

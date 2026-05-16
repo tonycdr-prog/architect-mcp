@@ -14,6 +14,8 @@ use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 use ratatui::{Frame, Terminal};
 
 use crate::config::TuiConfig;
+use crate::interactive::InteractiveWorkflowEngine;
+use crate::orchestrator::Orchestrator;
 
 use super::app::{AppState, Panel, PanelLayout};
 use super::events::{RenderScheduler, handle_event};
@@ -21,7 +23,8 @@ use super::events::{RenderScheduler, handle_event};
 type TuiTerminal = Terminal<CrosstermBackend<Stdout>>;
 
 pub async fn run_interactive(workspace: PathBuf, config: TuiConfig) -> Result<()> {
-    let mut app = AppState::new(workspace, config.clone());
+    let mut app = AppState::new(workspace.clone(), config.clone());
+    let mut engine = InteractiveWorkflowEngine::new(Orchestrator::new(workspace, config.clone()));
     let mut terminal = setup_terminal(config.ui.mouse)?;
     let mut scheduler = RenderScheduler::new(Duration::from_millis(config.ui.tick_millis));
 
@@ -34,6 +37,16 @@ pub async fn run_interactive(workspace: PathBuf, config: TuiConfig) -> Result<()
         if event::poll(Duration::from_millis(config.ui.tick_millis))? {
             let quit = handle_event(&mut app, event::read()?);
             scheduler.mark_panels(app.take_dirty());
+            while let Some(input) = app.pop_pending_input() {
+                match engine.apply_input(&input).await {
+                    Ok(update) => app.apply_workflow_update(update),
+                    Err(error) => {
+                        app.transcript.push(format!("error: {error}"));
+                        app.mark_dirty(Panel::Transcript);
+                    }
+                }
+                scheduler.mark_panels(app.take_dirty());
+            }
             if quit {
                 break;
             }

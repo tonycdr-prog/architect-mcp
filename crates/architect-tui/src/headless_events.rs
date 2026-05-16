@@ -40,6 +40,11 @@ pub(crate) enum JsonlEvent<'a> {
     AgentEvent {
         event: &'a AgentEvent,
     },
+    DiffEvidence {
+        worktree: &'a str,
+        changed_files: &'a [Value],
+        diff_stat: &'a str,
+    },
     WorkflowStep {
         name: &'a str,
         gate: &'a str,

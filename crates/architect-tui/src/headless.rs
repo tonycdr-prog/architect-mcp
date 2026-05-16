@@ -3,12 +3,13 @@ use serde_json::{Value, json};
 use tokio::io::{AsyncWriteExt, stdout};
 use uuid::Uuid;
 
+use crate::gate_calls::call_gate;
 use crate::headless_adapter::run_ready_adapter;
 use crate::headless_events::{JsonlEvent, emit, emit_complete, emit_skip, emit_workflow};
 use crate::headless_support::{
     likely_files, pre_edit_args, proposed_file_plan, string_array, verification_checks,
 };
-use crate::mcp::{McpToolOutcome, StdioMcpClient};
+use crate::mcp::StdioMcpClient;
 use crate::orchestrator::Orchestrator;
 
 #[derive(Debug, Clone)]
@@ -18,6 +19,12 @@ pub struct HeadlessRunOptions {
     pub jsonl: bool,
     pub concurrency: usize,
     pub execute: bool,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct GateReviewState {
+    pub pre_edit: Value,
+    pub verification: Vec<String>,
 }
 
 impl Orchestrator {
@@ -58,7 +65,7 @@ impl Orchestrator {
         if intake_blocked(&grill_value, output, options.jsonl, &session_id).await? {
             return Ok(());
         }
-        if gate_reviews(
+        let Some(gate_state) = gate_reviews(
             &mut client,
             output,
             options.jsonl,
@@ -66,11 +73,10 @@ impl Orchestrator {
             &grill_value,
         )
         .await?
-        .is_none()
-        {
+        else {
             emit_complete(output, options.jsonl, &session_id, "mcp_error").await?;
             return Ok(());
-        }
+        };
         if !options.execute {
             emit_skip(
                 output,
@@ -81,7 +87,17 @@ impl Orchestrator {
             emit_complete(output, options.jsonl, &session_id, "approval_required").await?;
             return Ok(());
         }
-        if run_ready_adapter(self, &options, output, &session_id, &workflow.idea).await? {
+        if run_ready_adapter(
+            self,
+            &options,
+            output,
+            &session_id,
+            &workflow.idea,
+            &mut client,
+            &gate_state,
+        )
+        .await?
+        {
             emit_complete(output, options.jsonl, &session_id, "review_required").await?;
         }
         Ok(())
@@ -114,7 +130,7 @@ async fn gate_reviews<W: AsyncWriteExt + Unpin>(
     jsonl: bool,
     idea: &str,
     grill_value: &Value,
-) -> Result<Option<()>> {
+) -> Result<Option<GateReviewState>> {
     let build_plan = grill_value
         .get("buildPlan")
         .cloned()
@@ -130,7 +146,7 @@ async fn gate_reviews<W: AsyncWriteExt + Unpin>(
         args["verificationChecks"] = json!(verification.clone());
     }
 
-    if call_gate(
+    let Some(pre_edit) = call_gate(
         client,
         output,
         jsonl,
@@ -139,10 +155,9 @@ async fn gate_reviews<W: AsyncWriteExt + Unpin>(
         args,
     )
     .await?
-    .is_none()
-    {
+    else {
         return Ok(None);
-    }
+    };
     let mut build_args = json!({ "plan": build_plan, "allowedChecks": verification });
     if let Some(contract) = contract {
         build_args["contract"] = contract;
@@ -173,7 +188,10 @@ async fn gate_reviews<W: AsyncWriteExt + Unpin>(
     {
         return Ok(None);
     }
-    Ok(Some(()))
+    Ok(Some(GateReviewState {
+        pre_edit,
+        verification,
+    }))
 }
 
 async fn intake_blocked<W: AsyncWriteExt + Unpin>(
@@ -211,41 +229,4 @@ async fn intake_blocked<W: AsyncWriteExt + Unpin>(
     .await?;
     emit_complete(output, jsonl, session_id, "approval_required").await?;
     Ok(true)
-}
-
-async fn call_gate<W: AsyncWriteExt + Unpin>(
-    client: &mut StdioMcpClient,
-    output: &mut W,
-    jsonl: bool,
-    name: &str,
-    purpose: &str,
-    args: Value,
-) -> Result<Option<Value>> {
-    emit(output, jsonl, &JsonlEvent::McpCall { name, purpose }).await?;
-    match client.call_tool(name, args)? {
-        McpToolOutcome::Ok { value } => {
-            emit(
-                output,
-                jsonl,
-                &JsonlEvent::McpResult {
-                    name,
-                    result: &value,
-                },
-            )
-            .await?;
-            Ok(Some(value))
-        }
-        McpToolOutcome::Error { error } => {
-            emit(
-                output,
-                jsonl,
-                &JsonlEvent::McpError {
-                    name,
-                    error: &error,
-                },
-            )
-            .await?;
-            Ok(None)
-        }
-    }
 }

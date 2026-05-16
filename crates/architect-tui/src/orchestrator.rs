@@ -90,6 +90,10 @@ impl Orchestrator {
         }
     }
 
+    pub fn config_mut(&mut self) -> &mut TuiConfig {
+        &mut self.config
+    }
+
     pub fn worktree_path_for_agent(&self, session_id: &str, adapter: &str) -> PathBuf {
         self.workspace
             .join(".architect-mcp")

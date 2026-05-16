@@ -28,6 +28,23 @@ Interactive TUI:
 architect-mcp-tui
 ```
 
+The command palette supports the guarded app-building path:
+
+```text
+new app <idea>
+answer users=home cooks
+grill
+contract
+review plan
+review files
+run adapter
+record verification npm test=passed
+final review <response>
+session review
+```
+
+Sessions are persisted under `.architect-mcp/tui/sessions/<id>.json` without secrets.
+
 Headless JSONL run:
 
 ```bash
@@ -90,7 +107,7 @@ The render scheduler coalesces redraw requests and relies on Ratatui backend dif
 
 Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing. Codex also reports auth state from `codex login status`; it is ready only when the command succeeds and reports `Logged in`. Other authenticated CLIs remain `auth unknown` until reliable probes are added.
 
-Agents run in a PTY by default when execution is explicitly enabled. PTY output is capped with an explicit truncation marker. Parallel, arena, and worktree promotion flows are still production-readiness follow-up work.
+Agents run in a PTY by default when execution is explicitly enabled. Headless `--execute` creates an isolated git worktree, streams PTY output, records changed-file evidence, and runs `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` before any promotion. PTY output is capped with an explicit truncation marker. Parallel arena ranking and promotion flows are still production-readiness follow-up work.
 
 ## Config
 

@@ -20,6 +20,69 @@ fn new_app_workflow_has_golden_gate_order() {
     assert_eq!(gates.last(), Some(&"review_agent_session"));
 }
 
+#[tokio::test]
+async fn headless_execute_uses_isolated_worktree_and_review_gates() {
+    let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    init_git_repo(_temp.path());
+    let mut shell = orchestrator
+        .config_mut()
+        .adapters
+        .get("shell")
+        .expect("shell adapter")
+        .clone();
+    shell.args = vec![
+        "-c".to_string(),
+        "mkdir -p docs && printf 'agent work\\n' > docs/live-qa.md".to_string(),
+    ];
+    let config = orchestrator.config_mut();
+    config.agents.default_adapter = "shell".to_string();
+    config.adapters.insert("shell".to_string(), shell);
+    let output_path = _temp.path().join("execute.jsonl");
+    let mut output = tokio::fs::File::create(&output_path)
+        .await
+        .expect("output file");
+
+    orchestrator
+        .run_headless_to_writer(
+            HeadlessRunOptions {
+                prompt: "ready app with users flows stack risks verification".to_string(),
+                adapter: "shell".to_string(),
+                jsonl: true,
+                concurrency: 1,
+                execute: true,
+            },
+            &mut output,
+        )
+        .await
+        .expect("headless execute");
+    drop(output);
+
+    let events = read_jsonl(&output_path);
+    let calls = mcp_calls(&events);
+    assert!(calls.contains(&"review_implementation_against_contract"));
+    assert!(calls.contains(&"review_repo_structure"));
+    assert!(calls.contains(&"review_agent_final_response"));
+    assert!(calls.contains(&"review_agent_session"));
+    let diff = events
+        .iter()
+        .find(|event| event["type"] == "diff_evidence")
+        .expect("diff evidence");
+    assert!(
+        diff["worktree"]
+            .as_str()
+            .unwrap()
+            .contains(".architect-mcp/worktrees")
+    );
+    assert_eq!(diff["changed_files"][0]["path"], "docs/live-qa.md");
+    assert!(
+        events
+            .iter()
+            .any(|event| event["status"] == "review_required")
+    );
+}
+
 #[test]
 fn arena_candidates_use_isolated_worktrees() {
     let orchestrator = Orchestrator::new("/tmp/work", TuiConfig::default());
@@ -143,6 +206,25 @@ fn mcp_calls(events: &[Value]) -> Vec<&str> {
         .filter(|event| event["type"] == "mcp_call")
         .filter_map(|event| event["name"].as_str())
         .collect()
+}
+
+fn init_git_repo(path: &std::path::Path) {
+    run_git(path, ["init"]);
+    run_git(path, ["config", "user.email", "test@example.com"]);
+    run_git(path, ["config", "user.name", "architect mcp test"]);
+    std::fs::write(path.join("README.md"), "test\n").expect("readme");
+    run_git(path, ["add", "README.md"]);
+    run_git(path, ["commit", "-m", "init"]);
+}
+
+fn run_git<const N: usize>(path: &std::path::Path, args: [&str; N]) {
+    let status = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .args(args)
+        .status()
+        .expect("git command");
+    assert!(status.success());
 }
 
 fn fake_mcp_server_script() -> &'static str {
