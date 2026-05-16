@@ -1,8 +1,12 @@
 {
   "name": "@tonycdr-prog/architect-mcp",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "A local-first agent work gate for coding agents.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tonycdr-prog/architect-mcp.git"
+  },
   "main": "./dist/library.js",
   "types": "./dist/library.d.ts",
   "exports": {
@@ -17,14 +21,23 @@
   },
   "bin": {
     "architect-mcp": "./dist/index.js",
-    "architect-mcp-http": "./dist/http.js"
+    "architect-mcp-http": "./dist/http.js",
+    "architect-mcp-tui": "./bin/architect-mcp-tui.cjs"
   },
   "files": [
     "dist",
+    "bin/architect-mcp-tui.cjs",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    "crates/architect-tui",
+    "!crates/architect-tui/.architect-mcp",
+    "!crates/architect-tui/.architect-mcp/**",
     "scripts/secretScan.mjs",
     "packs",
     "policy-bundles",
     "foundation-packs",
+    "mcp-catalog",
     "stack-sources/llms-sources.json",
     "stack-sources/nextjs.md",
     "stack-sources/react-vite.md",
@@ -47,8 +60,14 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "audit": "npm audit",
     "docs:get": "vitepress dev docs --host 0.0.0.0",
+    "docs:tool-reference": "tsx scripts/generateToolReference.ts",
+    "docs:tool-reference:check": "tsx scripts/generateToolReference.ts --check",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs --host 0.0.0.0",
+    "tui:build": "cargo build --workspace --release",
+    "tui:test": "cargo test --workspace",
+    "tui:live-qa": "cargo build --workspace --bin architect-mcp-tui && node bin/architect-mcp-tui.cjs --help && cargo test --workspace --test workflows",
+    "rust:check": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace",
     "pack:dry-run": "npm pack --dry-run --json",
     "precheck:v3": "npm run build",
     "check:v3": "node dist/scripts/checkV3Readiness.js",
@@ -64,7 +83,7 @@
     "check:v9": "node dist/scripts/checkStagedReadiness.js v9",
     "precheck:v10": "npm run build",
     "check:v10": "node dist/scripts/checkStagedReadiness.js v10",
-    "release:check": "npm run check:v10",
+    "release:check": "npm run rust:check && npm run check:v10",
     "secret:scan": "node scripts/secretScan.mjs",
     "ingest:llms": "tsx scripts/ingestLlmsSources.ts",
     "dev": "tsx src/index.ts",
@@ -81,7 +100,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.6.1",
+    "@types/node": "^25.8.0",
     "tsx": "^4.20.6",
     "vitepress": "^1.6.4"
   },

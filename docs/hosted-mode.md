@@ -20,8 +20,11 @@ Hosted mode intentionally excludes local-only tools, even when the advanced surf
 - `promote_stack_pack_to_files`
 - `review_local_workspace`
 - `scan_mcp_config_files`
+- `apply_mcp_install_plan`
 
 Use `review_repo_structure` instead by sending file summaries from the client or agent. Use `review_mcp_config_security` with parsed config objects instead of asking the hosted server to scan local config files.
+
+Hosted advanced mode may return MCP server recommendations and dry-run install plans. It must not write MCP client configuration; `apply_mcp_install_plan` is excluded from hosted HTTP registration.
 
 Unknown tools classify as `unknown` in policy audits and must not be treated as hosted-safe.
 

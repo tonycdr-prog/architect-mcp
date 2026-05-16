@@ -2,6 +2,7 @@ export * from "./schemas/commonSchemas.js";
 export * from "./schemas/harnessSchemas.js";
 export * from "./schemas/memorySchemas.js";
 export * from "./schemas/skillSchemas.js";
+export * from "./schemas/mcpCatalogSchemas.js";
 export * from "./schemas/v3Schemas.js";
 export * from "./schemas/v5V9Schemas.js";
 export * from "./schemas/v10Schemas.js";

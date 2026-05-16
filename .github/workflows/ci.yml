@@ -24,8 +24,14 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.94.0
       - name: Secret scan
         run: npm run secret:scan
+      - name: Rust check
+        run: npm run rust:check
       - name: Typecheck
         run: npm run typecheck
       - name: Test
@@ -36,4 +42,3 @@ jobs:
         run: npm audit
       - name: Package dry run
         run: npm run pack:dry-run
-

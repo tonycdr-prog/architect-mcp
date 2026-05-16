@@ -35,7 +35,13 @@ const requiredPackageFiles = [
   "packs/auth0.json",
   "packs/expo.json",
   "packs/ai-sdk.json",
-  "policy-bundles/balanced.json"
+  "policy-bundles/balanced.json",
+  "mcp-catalog/servers.json",
+  "bin/architect-mcp-tui.cjs",
+  "Cargo.toml",
+  "rust-toolchain.toml",
+  "crates/architect-tui/Cargo.toml",
+  "crates/architect-tui/src/main.rs"
 ];
 const missingPackageFiles = requiredPackageFiles.filter((path) => !packedPaths.has(path));
 if (missingPackageFiles.length > 0) {
@@ -45,7 +51,8 @@ if (missingPackageFiles.length > 0) {
 const repoOnlyPackageFiles = [
   "scripts/checkV3Readiness.ts",
   "scripts/checkStagedReadiness.ts",
-  "scripts/ingestLlmsSources.ts"
+  "scripts/ingestLlmsSources.ts",
+  "scripts/generateToolReference.ts"
 ];
 const packagedRepoOnlyFiles = repoOnlyPackageFiles.filter((path) => packedPaths.has(path));
 if (packagedRepoOnlyFiles.length > 0) {
@@ -79,8 +86,13 @@ const repoOnlyPackageScripts = [
   "check:v10",
   "release:check",
   "docs:get",
+  "docs:tool-reference",
+  "docs:tool-reference:check",
   "docs:build",
   "docs:preview",
+  "tui:build",
+  "tui:test",
+  "rust:check",
   "ingest:llms",
   "dev",
   "dev:http",

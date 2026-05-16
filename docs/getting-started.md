@@ -7,7 +7,7 @@ architect-mcp is a local-first MCP server for coding-agent work gates. It asks b
 The npm registry name `architect-mcp` is owned by a different package. This project keeps the `architect-mcp` command name, but package distribution uses the scoped package identity `@tonycdr-prog/architect-mcp` and GitHub release tarballs until npm publishing is configured for that scope.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.1/tonycdr-prog-architect-mcp-0.2.1.tgz
 architect-mcp
 ```
 
@@ -17,6 +17,21 @@ architect-mcp
 npm install
 npm run build
 node dist/index.js
+```
+
+## Run The TUI
+
+The optional terminal client is `architect-mcp-tui`. From a source checkout:
+
+```bash
+npm run tui:build
+node bin/architect-mcp-tui.cjs
+```
+
+For scriptable automation:
+
+```bash
+architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
 ```
 
 ## Default Surface
@@ -34,7 +49,7 @@ The default MCP surface exposes only the eight core work-gate tools:
 
 ## Advanced Surface
 
-Use the advanced surface when you need stack packs, standards intelligence, governance evals, operating-model evals, productization boundary evals, repo-quality gates, or local workspace utilities.
+Use the advanced surface when you need stack packs, standards intelligence, guarded MCP install plans, governance evals, operating-model evals, productization boundary evals, repo-quality gates, or local workspace utilities.
 
 ```bash
 ARCHITECT_MCP_TOOL_SURFACE=advanced architect-mcp
@@ -49,6 +64,8 @@ Before releasing or making broad tool-surface changes, run:
 ```bash
 npm run release:check
 ```
+
+That includes `npm run rust:check` for the TUI workspace.
 
 For normal development, run the narrower checks that match the change:
 

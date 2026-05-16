@@ -1,0 +1,81 @@
+name: Release TUI binaries
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to upload assets to, for example v0.1.1
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'v')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            binary: architect-mcp-tui
+          - os: macos-15-intel
+            platform: macos
+            arch: x64
+            target: x86_64-apple-darwin
+            archive: tar.gz
+            binary: architect-mcp-tui
+          - os: macos-14
+            platform: macos
+            arch: arm64
+            target: aarch64-apple-darwin
+            archive: tar.gz
+            binary: architect-mcp-tui
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            binary: architect-mcp-tui.exe
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      ASSET_NAME: architect-mcp-tui-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.archive }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.94.0
+          rustup target add ${{ matrix.target }}
+      - name: Build
+        shell: bash
+        run: cargo build --workspace --release --bin architect-mcp-tui --target ${{ matrix.target }}
+      - name: Package Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: tar -czf "$ASSET_NAME" -C "target/${{ matrix.target }}/release" "${{ matrix.binary }}"
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -LiteralPath "target/${{ matrix.target }}/release/${{ matrix.binary }}" -DestinationPath "$env:ASSET_NAME" -Force
+      - name: Checksum
+        shell: bash
+        run: |
+          node -e "const fs=require('node:fs');const crypto=require('node:crypto');const file=process.env.ASSET_NAME;const hash=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');fs.writeFileSync(file+'.sha256', hash+'  '+file+'\n');"
+      - name: Upload release assets
+        shell: bash
+        run: gh release upload "$RELEASE_TAG" "$ASSET_NAME" "$ASSET_NAME.sha256" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

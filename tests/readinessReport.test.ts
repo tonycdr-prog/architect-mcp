@@ -18,10 +18,12 @@ describe("V10 readiness release gates", () => {
     assert.equal(packageJson.scripts["check:v3"], "node dist/scripts/checkV3Readiness.js");
     assert.equal(packageJson.scripts["precheck:v10"], "npm run build");
     assert.equal(packageJson.scripts["check:v10"], "node dist/scripts/checkStagedReadiness.js v10");
-    assert.equal(packageJson.scripts["release:check"], "npm run check:v10");
+    assert.equal(packageJson.scripts["release:check"], "npm run rust:check && npm run check:v10");
     assert.equal(packageJson.scripts["secret:scan"], "node scripts/secretScan.mjs");
     assert.equal(packageJson.files.includes("scripts"), false);
     assert.equal(packageJson.files.includes("scripts/secretScan.mjs"), true);
+    assert.equal(packageJson.files.includes("bin/architect-mcp-tui.cjs"), true);
+    assert.equal(packageJson.files.includes("crates/architect-tui"), true);
     assert.equal(packageJson.files.includes("LICENSE"), true);
     assert.equal(packageJson.files.includes("SECURITY.md"), true);
     assert.match(readFileSync("docs/hosted-api-shape.md", "utf8"), /POST \/v1\/reviews\/session/);
