@@ -80,6 +80,24 @@ describe("architect-mcp-tui npm shim", () => {
     );
   });
 
+  it("requires commands to appear as command entries in help output", () => {
+    const temp = mkdtempSync(join(tmpdir(), "architect-tui-help-match-"));
+    const binary = join(temp, binaryName);
+    writeFileSync(binary, "binary\n");
+    chmodSync(binary, 0o755);
+
+    assert.equal(
+      shim.localBinarySupportsCommands(binary, ["smoke"], {
+        runHelp: () => ({
+          ok: true,
+          output:
+            "Commands:\n  run     Run a secret-safe terminal QA smoke report\n  config  Manage config\n",
+        }),
+      }),
+      false
+    );
+  });
+
   it("returns a cached release binary without network fetches", async () => {
     const cacheRoot = mkdtempSync(join(tmpdir(), "architect-tui-cache-"));
     const version = "9.9.9";

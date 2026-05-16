@@ -91,9 +91,7 @@ function localBinarySupportsCommands(binaryPath, requiredHelpCommands = [], opti
   if (!help.ok) {
     return false;
   }
-  return requiredHelpCommands.every((command) =>
-    new RegExp(`(^|\\s)${escapeRegExp(command)}(\\s|$)`).test(help.output),
-  );
+  return requiredHelpCommands.every((command) => helpListsCommand(help.output, command));
 }
 
 function runBinaryHelp(binaryPath, options = {}) {
@@ -257,6 +255,10 @@ function isRedirectStatus(statusCode) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function helpListsCommand(helpOutput, command) {
+  return new RegExp(`^\\s+${escapeRegExp(command)}(?:\\s{2,}.*)?$`, "m").test(helpOutput);
 }
 
 function extractArchive(archivePath, destination) {
