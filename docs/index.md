@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: Tool Reference
       link: /tool-reference
+    - theme: alt
+      text: Rust TUI
+      link: /rust-tui
 
 features:
   - title: Default work gate
@@ -22,9 +25,11 @@ features:
   - title: Local-first by default
     details: Local workspace scanning and file-writing helpers stay local-only. Hosted mode is stateless and accepts explicit file summaries.
   - title: Advanced maturity criteria
-    details: Stack packs, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
+    details: Stack packs, governed MCP install plans, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
+  - title: Rust TUI platform
+    details: Ratatui brings the live work gate into a mouse-aware terminal client with adapter readiness, guarded headless JSONL, approval/promotion commands, arena ranking, and provisional ACP stdio mode.
   - title: Release-gated
-    details: The clean-checkout release gate is npm run release:check, which chains typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
+    details: The clean-checkout release gate is npm run release:check, which includes Rust checks, typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
 ---
 
 ## Product Story
@@ -39,12 +44,14 @@ architect-mcp is a TypeScript MCP server that keeps coding agents inside a delib
 
 The first-run product surface is intentionally small. The advanced surface is for teams that want the full standards, pack-authoring, governance, repo-quality, and eval layers.
 
+`architect-mcp-tui` adds a local terminal client for the same loop without rewriting the TypeScript MCP server.
+
 ## Distribution
 
 The command remains `architect-mcp`. The published package identity is scoped as `@tonycdr-prog/architect-mcp`, and the current install path uses GitHub release tarballs until npm publishing is configured for that scope.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.0/tonycdr-prog-architect-mcp-0.1.0.tgz
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.1/tonycdr-prog-architect-mcp-0.2.1.tgz
 architect-mcp
 ```
 
@@ -54,5 +61,9 @@ architect-mcp
 - [MCP Client Setup](/mcp-client-setup)
 - [Core Work Gate](/core-work-gate)
 - [Hosted Mode](/hosted-mode)
+- [MCP Integrations](/mcp-integrations)
+- [Rust TUI](/rust-tui)
+- [TUI Live QA](/tui-live-qa)
 - [Release Readiness](/release-readiness)
+- [Read-Only Smoke Matrix](/read-only-smoke-matrix)
 - [Compatibility And Advanced Maturity Criteria](/compatibility)

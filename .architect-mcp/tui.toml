@@ -1,0 +1,15 @@
+# architect-mcp-tui repo config. Keep secrets in environment variables, never here.
+[architect_mcp]
+tool_surface = "advanced"
+
+[ui]
+mouse = true
+dirty_render = true
+tick_millis = 33
+
+[agents]
+default_adapter = "codex"
+worktree_isolation = true
+shared_workspace_requires_confirmation = true
+approval_policy = "manual"
+

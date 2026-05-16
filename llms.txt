@@ -25,8 +25,13 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - [Core Work Gate](docs/core-work-gate.md): default agent work-gate flow from `grill_me` through final/session review.
 - [Tool Reference](docs/tool-reference.md): full tool-name reference for the default and advanced surfaces.
 - [Hosted Mode](docs/hosted-mode.md): stateless HTTP mode, local-only exclusions, file summaries, and review modes.
+- [MCP Integrations](docs/mcp-integrations.md): guarded MCP server recommendations, install plans, and local-only apply policy.
+- [Rust TUI](docs/rust-tui.md): Ratatui client, headless JSONL mode, ACP stdio mode, adapter templates, worktree isolation, focused diff commands, approval/promotion commands, arena run/ranking, and release binary policy.
+- [TUI Live QA](docs/tui-live-qa.md): Linux, macOS, and Windows install-smoke, live-QA smoke, and manual live QA checklist.
 - [Stack Packs](docs/stack-packs.md): pack authoring, source guidance, promotion flow, and coverage checks.
 - [Release Readiness](docs/release-readiness.md): release gate, package boundary, GitHub Pages build, and compatibility checks.
+- [Read-Only Smoke Matrix](docs/read-only-smoke-matrix.md): public-repo smoke-test coverage plan and reporting template.
+- [Obsidian Project Memory](docs/obsidian-project-memory.md): repo-local memory and Obsidian boundary guidance.
 - [Compatibility](docs/compatibility.md): advanced maturity criteria and preserved historical V-label filenames.
 - [Advanced Source Material](docs/v3-source-material.md): compatibility source-material notes for stack packs, client recipes, evals, skills, memory, MCP security, and verification.
 - [Stack Pack Strategy](docs/stack-pack-strategy.md): Source-backed stack-pack authoring, review, conflict detection, and promotion workflow.
@@ -82,6 +87,11 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - extract_harness_memory: propose stateless memory entries for future persistence.
 - apply_harness_memory: select relevant non-red memory within a token budget and disclose usage.
 - review_memory_relevance: flag unsafe, irrelevant, or secret-like memory proposals.
+- list_mcp_server_catalog: list the source-backed MCP server catalog used for guarded recommendations.
+- recommend_mcp_servers: recommend MCP servers only after provider and boundary checks.
+- create_mcp_install_plan: create a dry-run MCP client config plan from a catalog entry.
+- review_mcp_install_plan: review install plans for unknown servers, secrets, unpinned packages, and unsafe writes.
+- apply_mcp_install_plan: local-only dry-run/apply tool for project-local MCP client config.
 - list_skill_catalog: list built-in advisory skill patterns.
 - recommend_skills_for_project: recommend skill patterns for a request without executing arbitrary skill logic.
 - review_supplied_skills: validate client-supplied skill metadata before using it as source material.

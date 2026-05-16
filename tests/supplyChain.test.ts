@@ -9,6 +9,7 @@ describe("supply-chain and release hygiene", () => {
       types: string;
       exports: Record<string, unknown>;
       files: string[];
+      bin: Record<string, string>;
     };
 
     assert.equal(existsSync("LICENSE"), true);
@@ -19,6 +20,10 @@ describe("supply-chain and release hygiene", () => {
     assert.equal(Object.hasOwn(packageJson.exports, "./http"), false);
     assert.equal(packageJson.files.includes("docs"), false);
     assert.equal(packageJson.files.includes("docs/**/*.md"), true);
+    assert.equal(packageJson.files.includes("mcp-catalog"), true);
+    assert.equal(packageJson.files.includes("bin/architect-mcp-tui.cjs"), true);
+    assert.equal(packageJson.files.includes("crates/architect-tui"), true);
+    assert.equal(packageJson.bin["architect-mcp-tui"], "./bin/architect-mcp-tui.cjs");
     assert.match(readFileSync(".gitignore", "utf8"), /!\.env\.example/);
     assert.doesNotMatch(readFileSync("README.md", "utf8"), /\/Users\/tonycordner/);
     assert.match(readFileSync("README.md", "utf8"), /npx/);
@@ -30,7 +35,7 @@ describe("supply-chain and release hygiene", () => {
 
     assert.equal(usesLines.length > 0, true);
     assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
-    for (const command of ["npm run secret:scan", "npm run typecheck", "npm test", "npm run build", "npm audit", "npm run pack:dry-run"]) {
+    for (const command of ["rustup toolchain install 1.94.0", "npm run secret:scan", "npm run rust:check", "npm run typecheck", "npm test", "npm run build", "npm audit", "npm run pack:dry-run"]) {
       assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
   });
@@ -47,10 +52,70 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /docs\/\.vitepress\/dist/);
   });
 
-  it("configures Dependabot for npm and GitHub Actions", () => {
+  it("publishes npm only after the clean release gate and tarball smoke", () => {
+    const workflow = readFileSync(".github/workflows/npm-publish.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /types:\s*\n\s+- published/);
+    assert.match(workflow, /id-token:\s+write/);
+    assert.match(workflow, /node-version: "24"/);
+    assert.match(workflow, /npm install -g npm@\^11\.5\.1/);
+    assert.match(workflow, /npm run release:check/);
+    assert.match(workflow, /npm pack --json/);
+    assert.match(workflow, /npm install --prefix "\$smoke_dir"/);
+    assert.match(workflow, /npm publish --access public --provenance/);
+    assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/);
+  });
+
+  it("builds and uploads checksummed TUI release binaries", () => {
+    const workflow = readFileSync(".github/workflows/tui-release.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /cargo build --workspace --release --bin architect-mcp-tui/);
+    assert.match(workflow, /architect-mcp-tui-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+    assert.match(workflow, /\.sha256/);
+    assert.match(workflow, /gh release upload/);
+    assert.match(workflow, /platform:\s+linux/);
+    assert.match(workflow, /platform:\s+macos/);
+    assert.match(workflow, /platform:\s+windows/);
+  });
+
+  it("smokes TUI install behavior across hosted OSes with pinned actions", () => {
+    const workflow = readFileSync(".github/workflows/tui-install-smoke.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /ubuntu-latest/);
+    assert.match(workflow, /macos-14/);
+    assert.match(workflow, /windows-latest/);
+    assert.match(workflow, /rustup toolchain install 1\.94\.0 --profile minimal/);
+    assert.match(workflow, /npm run tui:build/);
+    assert.match(workflow, /node bin\/architect-mcp-tui\.cjs --help/);
+    assert.match(workflow, /node --import tsx --test tests\/tuiShim\.test\.ts/);
+  });
+
+  it("runs cross-platform TUI live QA smoke with pinned actions", () => {
+    const workflow = readFileSync(".github/workflows/tui-live-qa.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /ubuntu-latest/);
+    assert.match(workflow, /macos-14/);
+    assert.match(workflow, /windows-latest/);
+    assert.match(workflow, /npm run tui:live-qa/);
+  });
+
+  it("configures Dependabot for npm, Cargo, and GitHub Actions", () => {
     const config = readFileSync(".github/dependabot.yml", "utf8");
 
     assert.match(config, /package-ecosystem:\s+npm/);
     assert.match(config, /package-ecosystem:\s+github-actions/);
+    assert.match(config, /package-ecosystem:\s+cargo/);
   });
 });

@@ -38,6 +38,7 @@ export function classifyToolPolicy(toolNames: string[], options: { knownToolName
 
 function reasonFor(name: string, policy: ToolPolicy): string {
   if (name === "promote_stack_pack_to_files") return "Can write stack-pack files and manifest updates when writeFiles=true.";
+  if (name === "apply_mcp_install_plan") return "Can merge reviewed MCP install plans into project-local MCP client config when writeFiles=true.";
   if (policy === "local-only") return "Reads local filesystem or user config paths.";
   if (policy === "future-adapter") return "Returns stateless proposals now; durable storage waits for an adapter.";
   if (policy === "unknown") return "Tool is not in the registered tool catalog and cannot be assumed safe for hosted use.";

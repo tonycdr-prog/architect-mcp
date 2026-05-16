@@ -9,6 +9,7 @@ import { createArchitectServer } from "../src/server/createArchitectServer.js";
 import { createBaselineFromFindings } from "../src/domain/baseline.js";
 import { generateContract } from "../src/domain/contract.js";
 import { reviewFileSummaries } from "../src/domain/reviewer.js";
+import { generateToolReferenceMarkdown } from "../src/domain/toolReferenceDocs.js";
 import { messyReactFixture, cleanMcpServerFixture, publicRepoSmokeFixture } from "./fixtures/repos.js";
 import { CORE_ARCHITECTURE_TOOL_NAMES } from "../src/tools/toolRegistry.js";
 
@@ -186,6 +187,11 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "extract_harness_memory"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "apply_harness_memory"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "review_memory_relevance"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "list_mcp_server_catalog"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "recommend_mcp_servers"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "create_mcp_install_plan"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "review_mcp_install_plan"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "apply_mcp_install_plan"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "list_skill_catalog"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "recommend_skills_for_project"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "review_supplied_skills"), true);
@@ -492,6 +498,41 @@ describe("MCP tool responses", () => {
       assert.equal(securityReview.status, "fail");
       assert.equal(securityReview.findings.some((finding: { code: string }) => finding.code === "MCPSEC001_HARDCODED_SECRET"), true);
 
+      const mcpCatalog = await callJson(client, "list_mcp_server_catalog", {
+        query: { category: "database" }
+      });
+      assert.equal(mcpCatalog.servers.some((server: { id: string }) => server.id === "supabase"), true);
+
+      const mcpRecommendation = await callJson(client, "recommend_mcp_servers", {
+        request: {
+          request: "Build with a database and auth."
+        }
+      });
+      assert.equal(mcpRecommendation.status, "needs-clarification");
+
+      const mcpInstallPlan = await callJson(client, "create_mcp_install_plan", {
+        request: {
+          serverId: "playwright",
+          targetClient: "generic-json"
+        }
+      });
+      assert.equal(mcpInstallPlan.status, "dry-run");
+
+      const mcpInstallReview = await callJson(client, "review_mcp_install_plan", {
+        request: {
+          plan: mcpInstallPlan
+        }
+      });
+      assert.equal(mcpInstallReview.status, "pass");
+
+      const mcpInstallApplyDryRun = await callJson(client, "apply_mcp_install_plan", {
+        request: {
+          plan: mcpInstallPlan,
+          targetPath: ".architect-mcp-test/mcp.json"
+        }
+      });
+      assert.equal(mcpInstallApplyDryRun.status, "dry-run");
+
       const artifactScore = await callJson(client, "score_agent_artifacts", {
         request: {
           agentsMd: readFileSync("AGENTS.md", "utf8"),
@@ -654,6 +695,7 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "review_local_workspace"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "scan_mcp_config_files"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "promote_stack_pack_to_files"), false);
+      assert.equal(tools.tools.some((tool) => tool.name === "apply_mcp_install_plan"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "review_repo_structure"), true);
       const scanAttempt = await callToolRaw(client, "review_local_workspace", {
         rootPath: process.cwd()
@@ -733,6 +775,7 @@ describe("MCP tool responses", () => {
       const toolNames = tools.tools.map((tool) => tool.name).sort();
 
       assert.match(readme, /https:\/\/tonycdr-prog\.github\.io\/architect-mcp\//);
+      assert.equal(toolReference, generateToolReferenceMarkdown());
       assert.deepEqual(toolNames.filter((name) => !toolReference.includes(`\`${name}\``)), []);
       assert.deepEqual(toolNames.filter((name) => !llms.includes(name)), []);
     } finally {
