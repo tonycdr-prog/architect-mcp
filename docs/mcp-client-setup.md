@@ -2,9 +2,9 @@
 
 architect-mcp supports stdio MCP clients and a stateless hosted HTTP entrypoint.
 
-## Release Tarball
+## npm Package
 
-Use the release tarball when configuring a client that should not depend on a source checkout:
+Use the published package when configuring a client that should not depend on a source checkout:
 
 ```json
 {
@@ -14,7 +14,7 @@ Use the release tarball when configuring a client that should not depend on a so
       "args": [
         "-y",
         "--package",
-        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz",
+        "@tonycdr-prog/architect-mcp@latest",
         "architect-mcp"
       ]
     }
@@ -49,7 +49,7 @@ Set `ARCHITECT_MCP_TOOL_SURFACE=advanced` in the MCP server environment:
       "args": [
         "-y",
         "--package",
-        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz",
+        "@tonycdr-prog/architect-mcp@latest",
         "architect-mcp"
       ],
       "env": {
