@@ -14,7 +14,20 @@ const shim = require("../bin/architect-mcp-tui.cjs") as {
   downloadFile: (url: string, destination: string) => Promise<void>;
   downloadText: (url: string) => Promise<string>;
   ensureCachedReleaseBinary: (options: Record<string, unknown>) => Promise<string>;
-  findLocalBinary: (candidates: string[]) => string | undefined;
+  findLocalBinary: (
+    candidates: string[],
+    options?: {
+      requiredHelpCommands?: string[];
+      runHelp?: (binaryPath: string) => { ok: boolean; output: string };
+    }
+  ) => string | undefined;
+  localBinarySupportsCommands: (
+    binaryPath: string,
+    requiredHelpCommands?: string[],
+    options?: {
+      runHelp?: (binaryPath: string) => { ok: boolean; output: string };
+    }
+  ) => boolean;
   platformTag: () => string;
 };
 
@@ -28,6 +41,43 @@ describe("architect-mcp-tui npm shim", () => {
     chmodSync(binary, 0o755);
 
     assert.equal(shim.findLocalBinary([join(temp, "missing"), binary]), binary);
+  });
+
+  it("skips stale local binaries that do not expose required commands", () => {
+    const temp = mkdtempSync(join(tmpdir(), "architect-tui-local-"));
+    const stale = join(temp, `stale-${binaryName}`);
+    const current = join(temp, `current-${binaryName}`);
+    writeFileSync(stale, "stale\n");
+    writeFileSync(current, "current\n");
+    chmodSync(stale, 0o755);
+    chmodSync(current, 0o755);
+
+    const resolved = shim.findLocalBinary([stale, current], {
+      requiredHelpCommands: ["smoke"],
+      runHelp: (binaryPath) => ({
+        ok: true,
+        output:
+          binaryPath === stale
+            ? "Commands:\n  run\n  config\n"
+            : "Commands:\n  run\n  config\n  smoke\n",
+      }),
+    });
+
+    assert.equal(resolved, current);
+  });
+
+  it("treats help failures as an unusable local binary when commands are required", () => {
+    const temp = mkdtempSync(join(tmpdir(), "architect-tui-help-fail-"));
+    const binary = join(temp, binaryName);
+    writeFileSync(binary, "binary\n");
+    chmodSync(binary, 0o755);
+
+    assert.equal(
+      shim.localBinarySupportsCommands(binary, ["smoke"], {
+        runHelp: () => ({ ok: false, output: "" }),
+      }),
+      false
+    );
   });
 
   it("returns a cached release binary without network fetches", async () => {

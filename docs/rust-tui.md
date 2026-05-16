@@ -10,7 +10,7 @@ The npm package exposes the TUI as a separate binary:
 npx -y --package @tonycdr-prog/architect-mcp architect-mcp-tui
 ```
 
-The shim never downloads during `postinstall`. It first runs a local built binary when one is present. If not, it downloads the matching GitHub release binary into a user cache and verifies the `.sha256` file before execution.
+The shim never downloads during `postinstall`. It first runs a local built binary when one is present and exposes the current required CLI commands. Stale local binaries that do not support the current smoke surface are skipped. If no usable local binary is found, the shim downloads the matching GitHub release binary into a user cache and verifies the `.sha256` file before execution.
 
 For a source checkout:
 

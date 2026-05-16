@@ -10,6 +10,7 @@ const { spawn, spawnSync } = require("node:child_process");
 
 const packageJson = require("../package.json");
 const MAX_REDIRECTS = 5;
+const REQUIRED_LOCAL_HELP_COMMANDS = ["smoke"];
 
 const root = path.resolve(__dirname, "..");
 const binaryName = process.platform === "win32" ? "architect-mcp-tui.exe" : "architect-mcp-tui";
@@ -29,6 +30,7 @@ module.exports = {
   ensureCachedReleaseBinary,
   findLocalBinary,
   isExecutable,
+  localBinarySupportsCommands,
   localBinaryCandidates,
   platformTag,
   sha256File,
@@ -44,7 +46,9 @@ function localBinaryCandidates(baseRoot) {
 }
 
 async function main() {
-  const local = findLocalBinary(localCandidates);
+  const local = findLocalBinary(localCandidates, {
+    requiredHelpCommands: REQUIRED_LOCAL_HELP_COMMANDS,
+  });
   if (local) {
     return execBinary(local);
   }
@@ -70,8 +74,40 @@ function execBinary(binaryPath) {
   });
 }
 
-function findLocalBinary(candidates) {
-  return candidates.find(isExecutable);
+function findLocalBinary(candidates, options = {}) {
+  const requiredHelpCommands = options.requiredHelpCommands || [];
+  return candidates.find(
+    (candidate) =>
+      isExecutable(candidate) &&
+      localBinarySupportsCommands(candidate, requiredHelpCommands, options),
+  );
+}
+
+function localBinarySupportsCommands(binaryPath, requiredHelpCommands = [], options = {}) {
+  if (!requiredHelpCommands.length) {
+    return true;
+  }
+  const help = runBinaryHelp(binaryPath, options);
+  if (!help.ok) {
+    return false;
+  }
+  return requiredHelpCommands.every((command) =>
+    new RegExp(`(^|\\s)${escapeRegExp(command)}(\\s|$)`).test(help.output),
+  );
+}
+
+function runBinaryHelp(binaryPath, options = {}) {
+  if (options.runHelp) {
+    return options.runHelp(binaryPath);
+  }
+  const result = spawnSync(binaryPath, ["--help"], {
+    encoding: "utf8",
+    timeout: 5000,
+  });
+  return {
+    ok: !result.error && result.status === 0,
+    output: `${result.stdout || ""}\n${result.stderr || ""}`,
+  };
 }
 
 async function ensureCachedReleaseBinary(options = {}) {
@@ -217,6 +253,10 @@ function getWithRedirects(url, redirectsRemaining, onResponse, reject) {
 
 function isRedirectStatus(statusCode) {
   return statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function extractArchive(archivePath, destination) {

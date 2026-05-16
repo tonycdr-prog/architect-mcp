@@ -39,6 +39,8 @@ Before marking a TUI release ready, run at least one live workflow on each targe
 | Linux | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs smoke --json`, and one optional interactive launch |
 | Windows | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs smoke --json`, shim tests, and one optional interactive launch |
 
+The npm shim checks that a local source-built binary exposes the current required command surface before using it. If a stale `target/release` binary is present but does not support `smoke`, the shim should skip it and use a newer usable local binary or the verified release-cache path.
+
 ## Live Workflow Checklist
 
 Use a fresh private repository or local throwaway git repo. Do not run destructive commands in public repositories.
