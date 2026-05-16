@@ -52,7 +52,7 @@ export function reviewFileSummaries(
     const path = file.path;
     if (isGeneratedFile(path)) continue;
 
-    const threshold = lineThresholdForPath(path, maxLines);
+    const threshold = lineThresholdForPath(path, maxLines, options.profile ?? "agent-work-gate");
     if (file.lines !== undefined && file.lines > threshold.maxLines) {
       violations.push(createFinding({
         code: "ARCH001_OVERSIZED_FILE",

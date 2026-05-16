@@ -5,6 +5,7 @@ import { registerHarnessTools } from "./harnessTools.js";
 import { registerIntakeTools } from "./intakeTools.js";
 import { registerLayoutTools } from "./layoutTools.js";
 import { registerMemoryTools } from "./memoryTools.js";
+import { registerMcpCatalogTools } from "./mcpCatalogTools.js";
 import { registerPackTools } from "./packTools.js";
 import { registerProfileTools } from "./profileTools.js";
 import { registerReviewTools } from "./reviewTools.js";
@@ -33,6 +34,7 @@ export function registerArchitectureTools(server: McpServer, options: RegisterAr
   registerIntakeTools(filteredServer);
   registerHarnessTools(filteredServer);
   registerMemoryTools(filteredServer);
+  registerMcpCatalogTools(filteredServer);
   registerSkillCatalogTools(filteredServer);
   registerContractTools(filteredServer);
   registerArtifactTools(filteredServer);
