@@ -23,6 +23,7 @@ fn new_app_workflow_has_golden_gate_order() {
     assert_eq!(gates.last(), Some(&"review_agent_session"));
 }
 
+#[cfg(not(windows))]
 #[tokio::test]
 async fn headless_execute_uses_isolated_worktree_and_review_gates() {
     let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {

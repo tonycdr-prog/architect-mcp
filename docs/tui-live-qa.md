@@ -10,7 +10,7 @@ The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa
 - macOS 14.
 - Windows latest.
 
-The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds a local debug TUI binary before exercising the shim help path and workflow tests covering headless JSONL, approval failure handling, focused diff commands, and multi-candidate arena evidence.
+The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds a local debug TUI binary before exercising the shim help path and workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
 
 ## Manual Matrix
 
