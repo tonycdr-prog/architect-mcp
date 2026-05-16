@@ -80,6 +80,14 @@ architect-mcp-tui config adapters
 architect-mcp-tui config adapters --json
 ```
 
+Terminal QA smoke:
+
+```bash
+architect-mcp-tui smoke --json
+```
+
+The smoke command checks help output, adapter readiness, binary SHA-256 and cache metadata, a secret-safe environment summary, and a live gate-only JSONL run. See [Terminal QA](./terminal-qa.md) for platform-specific commands.
+
 ## Work Gate
 
 Every coding and app-building loop starts with the architect-mcp work gate:
@@ -149,4 +157,4 @@ npm run rust:check
 
 That runs `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace`.
 
-Cross-platform install smoke and live-QA smoke run in GitHub Actions on Linux, macOS, and Windows. Manual live QA is tracked in [TUI Live QA](./tui-live-qa.md).
+Cross-platform install smoke and live-QA smoke run in GitHub Actions on Linux, macOS, and Windows. Manual terminal checks are described in [Terminal QA](./terminal-qa.md), and release-candidate evidence is tracked in [TUI Live QA](./tui-live-qa.md).

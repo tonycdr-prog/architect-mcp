@@ -26,6 +26,9 @@ pub mod mcp;
 mod mcp_client;
 pub mod orchestrator;
 pub mod session;
+pub mod smoke;
+mod smoke_report;
+mod smoke_types;
 pub mod ui;
 
 pub const APP_NAME: &str = "architect-mcp-tui";

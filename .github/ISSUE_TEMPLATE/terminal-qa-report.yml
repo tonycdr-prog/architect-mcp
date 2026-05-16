@@ -1,0 +1,68 @@
+name: Terminal QA report
+description: Report a real terminal smoke result for architect-mcp-tui.
+title: "[terminal-qa]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing in a real terminal. Do not include secrets, tokens, private repository names, or private file contents.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows PowerShell
+        - Windows Git Bash
+        - Windows Terminal
+        - Linux terminal
+        - macOS terminal
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS and CPU
+      description: Example: Windows 11 x64, Ubuntu 24.04 arm64, Fedora 41 x64.
+    validations:
+      required: true
+  - type: input
+    id: package-version
+    attributes:
+      label: architect-mcp package version
+      description: Paste the npm package version or release tag you tested.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands run
+      description: Paste the commands you ran. Redact paths if needed.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: smoke-report
+    attributes:
+      label: Smoke report
+      description: Paste the output from architect-mcp-tui smoke --json, or the relevant short output if JSON is not available.
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Passed
+        - Passed with warnings
+        - Failed
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Rendering issues, mouse behavior, resize behavior, unclear docs, install oddities, or anything brittle.
+    validations:
+      required: false

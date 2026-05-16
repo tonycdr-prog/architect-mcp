@@ -2,6 +2,8 @@
 
 Use this page for release-candidate validation that cannot be proven by unit tests alone. Do not publish a TUI release until the clean release gate passes and the platform smoke matrix is green or explicitly waived.
 
+For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md).
+
 ## Automated Matrix
 
 The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa.yml` workflows run on pull requests and manual dispatch across:
@@ -34,14 +36,15 @@ Before marking a TUI release ready, run at least one live workflow on each targe
 | Platform | Required checks |
 | --- | --- |
 | macOS | `npm run release:check`, `npm run tui:build`, `architect-mcp-tui config adapters --json`, gate-only `run --jsonl`, and one isolated-worktree `--execute` with a safe shell adapter |
-| Linux | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs --help`, gate-only `run --jsonl`, and adapter health output |
-| Windows | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs --help`, shim tests, and `architect-mcp-tui config adapters --json` |
+| Linux | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs smoke --json`, and one optional interactive launch |
+| Windows | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs smoke --json`, shim tests, and one optional interactive launch |
 
 ## Live Workflow Checklist
 
 Use a fresh private repository or local throwaway git repo. Do not run destructive commands in public repositories.
 
 1. Confirm `architect-mcp-tui config adapters --json` reports Codex auth accurately.
+1. Run `architect-mcp-tui smoke --json` and save the report.
 2. Run a vague prompt in gate-only mode and confirm it stops at `approval_required` after `grill_me`.
 3. Run a ready prompt through `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` without `--execute`; confirm no adapter process starts.
 4. Run a safe shell adapter with `--execute` in an isolated worktree; confirm JSONL remains parseable and includes `diff_evidence`.

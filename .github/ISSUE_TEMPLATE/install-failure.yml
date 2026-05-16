@@ -1,0 +1,71 @@
+name: Install failure
+description: Report an npm, shim, release-binary, checksum, or cache failure.
+title: "[install]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for install, launch, download, checksum, cache, or binary execution failures. Do not include npm tokens, GitHub tokens, private registry credentials, or private package URLs.
+  - type: dropdown
+    id: install-path
+    attributes:
+      label: Install path
+      options:
+        - npm install -g
+        - npx
+        - source checkout
+        - GitHub release binary
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS and CPU
+      description: Example: Windows 11 x64, Ubuntu 24.04 arm64, macOS 15 arm64.
+    validations:
+      required: true
+  - type: input
+    id: node-npm
+    attributes:
+      label: Node and npm versions
+      description: Example: node v24.11.1, npm 11.6.4.
+    validations:
+      required: true
+  - type: input
+    id: package-version
+    attributes:
+      label: architect-mcp package version
+      description: Paste the package version, tag, or exact command target.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands run
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: failure-output
+    attributes:
+      label: Failure output
+      description: Paste the shortest useful error output. Redact usernames or local paths if needed.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: smoke-output
+    attributes:
+      label: Smoke output if available
+      description: If architect-mcp-tui smoke --json runs at all, paste it here.
+      render: json
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Mention proxy, antivirus, shell, terminal app, custom cache directory, or corporate network details if relevant.
+    validations:
+      required: false
