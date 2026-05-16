@@ -198,6 +198,28 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
     assert_eq!(session.approval_status, ApprovalStatus::Pending);
 
     let update = engine
+        .apply_input("review files")
+        .await
+        .expect("re-review files");
+    let session = update.session.expect("session");
+    assert!(!session.execution_approved);
+
+    let blocked = engine
+        .apply_input("run adapter")
+        .await
+        .expect_err("execution approval required after re-review");
+    assert!(
+        blocked
+            .to_string()
+            .contains("approve adapter execution before run adapter")
+    );
+
+    engine
+        .apply_input("approve rerun isolated adapter")
+        .await
+        .expect("re-approve execution");
+
+    let update = engine
         .apply_input("run adapter")
         .await
         .expect("run adapter");

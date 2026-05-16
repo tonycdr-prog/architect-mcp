@@ -26,9 +26,10 @@ pub enum SessionPhase {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ApprovalStatus {
+    #[default]
     Pending,
     Approved,
     Rejected,
@@ -57,6 +58,7 @@ pub struct TuiSession {
     pub adapter_crashed: bool,
     #[serde(default)]
     pub arena_candidates: Vec<ArenaCandidateRecord>,
+    #[serde(default)]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
     pub created_at: u64,
@@ -113,6 +115,7 @@ impl TuiSession {
 
     pub fn clear_execution_approval(&mut self) {
         self.execution_approved = false;
+        self.execution_approval_reason = None;
         self.updated_at = unix_timestamp();
     }
 
@@ -187,6 +190,7 @@ fn unix_timestamp() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn session_store_round_trips_without_secrets() {
@@ -244,5 +248,29 @@ mod tests {
             session.brief["repoLayout"]["pathMap"]["tui"][0],
             "crates/architect-tui/src"
         );
+    }
+
+    #[test]
+    fn legacy_sessions_without_new_approval_fields_deserialize() {
+        let legacy = json!({
+            "id": "session-1",
+            "prompt": "build",
+            "adapter": "codex",
+            "phase": "file_plan_reviewed",
+            "brief": {},
+            "gates": {},
+            "verification": {},
+            "worktree": null,
+            "diffStat": null,
+            "changedFiles": [],
+            "createdAt": 1,
+            "updatedAt": 1
+        });
+
+        let loaded: TuiSession = serde_json::from_value(legacy).expect("deserialize");
+        assert!(!loaded.execution_approved);
+        assert!(loaded.execution_approval_reason.is_none());
+        assert_eq!(loaded.approval_status, ApprovalStatus::Pending);
+        assert!(loaded.approval_reason.is_none());
     }
 }
