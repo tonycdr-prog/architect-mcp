@@ -29,6 +29,8 @@ pub mod mcp;
 mod mcp_client;
 pub mod orchestrator;
 pub mod session;
+#[cfg(test)]
+mod session_tests;
 pub mod smoke;
 mod smoke_report;
 mod smoke_types;
