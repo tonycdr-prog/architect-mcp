@@ -49,7 +49,7 @@ fn arena_input_for(session: &TuiSession, adapter: &str) -> ArenaCandidateInput {
         verification_passed: verification_passed(session),
         diff_size: changed_line_count(session),
         contract_drift: contract_drift(session),
-        crashed: false,
+        crashed: session.adapter_crashed,
     }
 }
 

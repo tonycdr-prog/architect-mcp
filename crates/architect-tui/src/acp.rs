@@ -22,8 +22,7 @@ pub async fn run_acp_stdio(config: TuiConfig) -> Result<()> {
         if line.trim().is_empty() {
             continue;
         }
-        let request: Value = serde_json::from_str(&line)?;
-        if let Some(response) = handle_json_rpc_value(&mut state, &config, request) {
+        if let Some(response) = handle_json_rpc_line(&mut state, &config, &line) {
             stdout
                 .write_all(serde_json::to_string(&response)?.as_bytes())
                 .await?;
@@ -32,6 +31,17 @@ pub async fn run_acp_stdio(config: TuiConfig) -> Result<()> {
         }
     }
     Ok(())
+}
+
+pub fn handle_json_rpc_line(state: &mut AcpState, config: &TuiConfig, line: &str) -> Option<Value> {
+    match serde_json::from_str::<Value>(line) {
+        Ok(request) => handle_json_rpc_value(state, config, request),
+        Err(error) => Some(error_response(
+            Value::Null,
+            -32700,
+            &format!("parse error: {error}"),
+        )),
+    }
 }
 
 pub fn handle_json_rpc_value(
@@ -265,5 +275,25 @@ mod tests {
             json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
         );
         assert!(response.is_none());
+    }
+
+    #[test]
+    fn acp_malformed_json_returns_parse_error_without_poisoning_state() {
+        let mut state = AcpState::default();
+        let parse_error =
+            handle_json_rpc_line(&mut state, &TuiConfig::default(), "{bad json").unwrap();
+        assert_eq!(parse_error["error"]["code"], -32700);
+        assert_eq!(parse_error["id"], Value::Null);
+
+        let response = handle_json_rpc_line(
+            &mut state,
+            &TuiConfig::default(),
+            r#"{ "jsonrpc": "2.0", "id": 8, "method": "initialize" }"#,
+        )
+        .unwrap();
+        assert_eq!(
+            response["result"]["serverInfo"]["name"],
+            "architect-mcp-tui"
+        );
     }
 }

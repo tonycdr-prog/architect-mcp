@@ -46,6 +46,8 @@ pub struct TuiSession {
     pub worktree: Option<PathBuf>,
     pub diff_stat: Option<String>,
     pub changed_files: Vec<Value>,
+    #[serde(default)]
+    pub adapter_crashed: bool,
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
     pub created_at: u64,
@@ -67,6 +69,7 @@ impl TuiSession {
             worktree: None,
             diff_stat: None,
             changed_files: Vec::new(),
+            adapter_crashed: false,
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
             created_at: now,
