@@ -33,10 +33,10 @@ Full docs: [tonycdr-prog.github.io/architect-mcp](https://tonycdr-prog.github.io
 
 ## Quick Start
 
-The npm registry name `architect-mcp` is owned by a different package. This project keeps the `architect-mcp` command name, but package distribution uses the scoped package identity `@tonycdr-prog/architect-mcp` and GitHub release tarballs until npm publishing is configured for that scope.
+The npm registry name `architect-mcp` is owned by a different package, so this project publishes as `@tonycdr-prog/architect-mcp` while keeping the `architect-mcp` command name.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.1/tonycdr-prog-architect-mcp-0.2.1.tgz
+npm install -g @tonycdr-prog/architect-mcp
 architect-mcp
 ```
 
@@ -58,7 +58,7 @@ For local MCP clients:
       "args": [
         "-y",
         "--package",
-        "https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.1.1/tonycdr-prog-architect-mcp-0.1.1.tgz",
+        "@tonycdr-prog/architect-mcp@latest",
         "architect-mcp"
       ]
     }
