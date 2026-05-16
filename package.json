@@ -1,6 +1,6 @@
 {
   "name": "@tonycdr-prog/architect-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A local-first agent work gate for coding agents.",
   "type": "module",
   "repository": {

@@ -7,7 +7,7 @@ architect-mcp is a local-first MCP server for coding-agent work gates. It asks b
 The npm registry name `architect-mcp` is owned by a different package. This project keeps the `architect-mcp` command name, but package distribution uses the scoped package identity `@tonycdr-prog/architect-mcp` and GitHub release tarballs until npm publishing is configured for that scope.
 
 ```bash
-npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.0/tonycdr-prog-architect-mcp-0.2.0.tgz
+npm install -g https://github.com/tonycdr-prog/architect-mcp/releases/download/v0.2.1/tonycdr-prog-architect-mcp-0.2.1.tgz
 architect-mcp
 ```
 
