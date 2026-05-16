@@ -5,6 +5,7 @@ use architect_tui::acp::run_acp_stdio;
 use architect_tui::adapter::print_adapter_table;
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
+use architect_tui::smoke::{SmokeOptions, run_smoke};
 use architect_tui::ui::run_interactive;
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
@@ -45,6 +46,15 @@ enum Commands {
     Config {
         #[command(subcommand)]
         command: ConfigCommand,
+    },
+    /// Run a secret-safe terminal QA smoke report.
+    Smoke {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, default_value = SmokeOptions::DEFAULT_PROMPT)]
+        prompt: String,
+        #[arg(long)]
+        skip_gate: bool,
     },
 }
 
@@ -91,6 +101,22 @@ async fn main() -> Result<()> {
             ConfigCommand::Doctor => TuiConfig::doctor(&paths, &config)?,
             ConfigCommand::Adapters { json } => print_adapter_table(&config.adapters, json)?,
         },
+        Some(Commands::Smoke {
+            json,
+            prompt,
+            skip_gate,
+        }) => {
+            run_smoke(
+                workspace,
+                config,
+                SmokeOptions {
+                    json,
+                    prompt,
+                    skip_gate,
+                },
+            )
+            .await?;
+        }
         None => run_interactive(workspace, config).await?,
     }
 

@@ -100,12 +100,13 @@ The package also exposes `architect-mcp-tui`, a Ratatui client for local work-ga
 
 ```bash
 architect-mcp-tui
+architect-mcp-tui smoke --json
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl --execute
 architect-mcp-tui acp --stdio
 ```
 
-See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config, adapters, release binaries, and workflow details.
+See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config, adapters, release binaries, and workflow details. Use [Terminal QA](https://tonycdr-prog.github.io/architect-mcp/terminal-qa) for real Windows and Linux smoke checks.
 
 ## Docs
 
@@ -117,6 +118,7 @@ See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config
 - [Hosted Mode](https://tonycdr-prog.github.io/architect-mcp/hosted-mode)
 - [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)
 - [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui)
+- [Terminal QA](https://tonycdr-prog.github.io/architect-mcp/terminal-qa)
 - [Stack Packs](https://tonycdr-prog.github.io/architect-mcp/stack-packs)
 - [Release Readiness](https://tonycdr-prog.github.io/architect-mcp/release-readiness)
 - [Read-Only Smoke Matrix](https://tonycdr-prog.github.io/architect-mcp/read-only-smoke-matrix)
