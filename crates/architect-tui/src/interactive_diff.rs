@@ -76,7 +76,15 @@ fn approval_status(status: &ApprovalStatus) -> &'static str {
 }
 
 fn safe_relative_path(path: &str) -> Result<PathBuf> {
-    let candidate = Path::new(path);
+    let normalized = path.replace('\\', "/");
+    if normalized
+        .as_bytes()
+        .get(1)
+        .is_some_and(|byte| *byte == b':')
+    {
+        anyhow::bail!("diff file path must be a safe relative workspace path");
+    }
+    let candidate = Path::new(&normalized);
     if candidate.is_absolute()
         || candidate
             .components()
@@ -88,11 +96,11 @@ fn safe_relative_path(path: &str) -> Result<PathBuf> {
 }
 
 fn ensure_changed_file(session: &TuiSession, path: &Path) -> Result<()> {
-    let requested = path.to_string_lossy();
+    let requested = normalized_workspace_path(path);
     let listed = session.changed_files.iter().any(|file| {
         file.get("path")
             .and_then(|value| value.as_str())
-            .is_some_and(|changed| changed == requested)
+            .is_some_and(|changed| normalize_path_text(changed) == requested)
     });
     if listed {
         return Ok(());
@@ -108,6 +116,15 @@ fn focused_diff(worktree: &Path, path: &Path) -> Result<String> {
         .arg(path)
         .output()
         .context("failed to run git diff for focused file")?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let detail = if stderr.is_empty() {
+            "git diff exited without stderr".to_string()
+        } else {
+            stderr
+        };
+        anyhow::bail!("git diff failed for {}: {detail}", path.display());
+    }
     let diff = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if !diff.is_empty() {
         return Ok(diff);
@@ -129,8 +146,22 @@ fn truncate_for_terminal(content: &str) -> String {
     if content.len() <= LIMIT {
         content.to_string()
     } else {
-        format!("{}\n[truncated after {LIMIT} bytes]", &content[..LIMIT])
+        let end = content
+            .char_indices()
+            .map(|(index, _)| index)
+            .take_while(|index| *index <= LIMIT)
+            .last()
+            .unwrap_or(0);
+        format!("{}\n[truncated after {LIMIT} bytes]", &content[..end])
     }
+}
+
+fn normalized_workspace_path(path: &Path) -> String {
+    normalize_path_text(&path.to_string_lossy())
+}
+
+fn normalize_path_text(path: &str) -> String {
+    path.replace('\\', "/")
 }
 
 #[cfg(test)]
@@ -145,8 +176,13 @@ mod tests {
     fn rejects_unsafe_diff_paths() {
         assert!(safe_relative_path("../secret").is_err());
         assert!(safe_relative_path("/tmp/secret").is_err());
+        assert!(safe_relative_path("C:\\secret").is_err());
         assert_eq!(
             safe_relative_path("docs/live-qa.md").expect("safe"),
+            PathBuf::from("docs/live-qa.md")
+        );
+        assert_eq!(
+            safe_relative_path("docs\\live-qa.md").expect("safe"),
             PathBuf::from("docs/live-qa.md")
         );
     }
@@ -180,12 +216,30 @@ mod tests {
         assert!(summary.contains("docs/live-qa.md"));
 
         let diff = engine
-            .diff_file("docs/live-qa.md")
+            .diff_file("docs\\live-qa.md")
             .expect("diff")
             .transcript
             .join("\n");
         assert!(diff.contains("diff file docs/live-qa.md"));
         assert!(diff.contains("-before") || diff.contains("+after"));
+    }
+
+    #[test]
+    fn truncates_untracked_unicode_content_on_valid_boundary() {
+        let content = format!("{}étail", "a".repeat(8191));
+        let truncated = truncate_for_terminal(&content);
+        assert!(truncated.contains("[truncated after 8192 bytes]"));
+        assert!(truncated.is_char_boundary(truncated.find('\n').expect("marker line")));
+    }
+
+    #[test]
+    fn focused_diff_reports_git_failures() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir_all(temp.path().join("docs")).expect("docs");
+        std::fs::write(temp.path().join("docs/live-qa.md"), "content\n").expect("file");
+        let error = focused_diff(temp.path(), Path::new("docs/live-qa.md"))
+            .expect_err("non-git worktree should fail");
+        assert!(error.to_string().contains("git diff failed"));
     }
 
     fn run_git<const N: usize>(path: &Path, args: [&str; N]) {
