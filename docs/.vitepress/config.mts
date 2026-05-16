@@ -21,7 +21,8 @@ export default defineConfig({
           { text: "Getting Started", link: "/getting-started" },
           { text: "MCP Client Setup", link: "/mcp-client-setup" },
           { text: "Core Work Gate", link: "/core-work-gate" },
-          { text: "New App Work Gate", link: "/new-app-work-gate" }
+          { text: "New App Work Gate", link: "/new-app-work-gate" },
+          { text: "AI Software Foundry Goal", link: "/goal-ai-software-foundry" }
         ]
       },
       {
