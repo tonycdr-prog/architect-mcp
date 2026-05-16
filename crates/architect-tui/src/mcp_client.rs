@@ -1,6 +1,8 @@
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout};
+use std::sync::mpsc::{self, Receiver};
 use std::thread;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -26,18 +28,27 @@ pub enum McpToolOutcome {
 pub struct StdioMcpClient {
     child: Child,
     stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
+    stdout_rx: Receiver<std::result::Result<Value, String>>,
     next_id: u64,
+    request_timeout: Duration,
 }
 
 impl StdioMcpClient {
     pub fn connect(bridge: &ArchitectMcpBridge) -> Result<Self> {
+        Self::connect_with_timeout(bridge, Duration::from_secs(30))
+    }
+
+    pub fn connect_with_timeout(
+        bridge: &ArchitectMcpBridge,
+        request_timeout: Duration,
+    ) -> Result<Self> {
         let mut child = bridge.spawn()?;
         let stdin = child.stdin.take().context("architect-mcp stdin missing")?;
         let stdout = child
             .stdout
             .take()
             .context("architect-mcp stdout missing")?;
+        let stdout_rx = spawn_stdout_reader(stdout);
         if let Some(stderr) = child.stderr.take() {
             thread::spawn(move || drain_stderr(stderr));
         }
@@ -45,8 +56,9 @@ impl StdioMcpClient {
         let mut client = Self {
             child,
             stdin,
-            stdout: BufReader::new(stdout),
+            stdout_rx,
             next_id: 1,
+            request_timeout,
         };
         let initialize = client.request(
             "initialize",
@@ -103,13 +115,7 @@ impl StdioMcpClient {
         self.stdin.flush()?;
 
         loop {
-            let mut line = String::new();
-            let read = self.stdout.read_line(&mut line)?;
-            if read == 0 {
-                anyhow::bail!("architect-mcp exited before responding to {method}");
-            }
-            let response: Value = serde_json::from_str(line.trim())
-                .with_context(|| format!("invalid JSON-RPC response for {method}"))?;
+            let response = self.recv_response(method)?;
             if response.get("id").and_then(Value::as_u64) != Some(id) {
                 continue;
             }
@@ -123,6 +129,19 @@ impl StdioMcpClient {
         }
     }
 
+    fn recv_response(&self, method: &str) -> Result<Value> {
+        match self.stdout_rx.recv_timeout(self.request_timeout) {
+            Ok(Ok(response)) => Ok(response),
+            Ok(Err(error)) => anyhow::bail!("invalid JSON-RPC response for {method}: {error}"),
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                anyhow::bail!("timed out waiting for architect-mcp response to {method}")
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                anyhow::bail!("architect-mcp exited before responding to {method}")
+            }
+        }
+    }
+
     fn notify(&mut self, method: &str, params: Value) -> Result<()> {
         let notification = json!({
             "jsonrpc": "2.0",
@@ -133,6 +152,31 @@ impl StdioMcpClient {
         self.stdin.flush()?;
         Ok(())
     }
+}
+
+fn spawn_stdout_reader(stdout: ChildStdout) -> Receiver<std::result::Result<Value, String>> {
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let mut reader = BufReader::new(stdout);
+        loop {
+            let mut line = String::new();
+            match reader.read_line(&mut line) {
+                Ok(0) => break,
+                Ok(_) => {
+                    let parsed =
+                        serde_json::from_str(line.trim()).map_err(|error| error.to_string());
+                    if tx.send(parsed).is_err() {
+                        break;
+                    }
+                }
+                Err(error) => {
+                    let _ = tx.send(Err(error.to_string()));
+                    break;
+                }
+            }
+        }
+    });
+    rx
 }
 
 impl Drop for StdioMcpClient {
@@ -203,93 +247,5 @@ fn parse_mcp_error(error: &Value) -> McpResponseError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{config::TuiConfig, mcp::ArchitectMcpBridge};
-    use std::process::Command;
-
-    #[test]
-    fn normalizes_mcp_text_content_as_json() {
-        let outcome = normalize_tool_result(json!({
-            "content": [
-                { "type": "text", "text": "{\"ready\":true}" }
-            ]
-        }));
-        assert_eq!(
-            outcome,
-            McpToolOutcome::Ok {
-                value: json!({ "ready": true })
-            }
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn stdio_mcp_client_calls_tool_and_normalizes_structured_content() {
-        if Command::new("node").arg("--version").output().is_err() {
-            return;
-        }
-        let temp = tempfile::tempdir().expect("tempdir");
-        let mut client = fake_client(&temp);
-
-        let tools = client.list_tools().expect("list tools");
-        assert_eq!(tools["tools"][0]["name"], "grill_me");
-        let result = client
-            .call_tool("grill_me", json!({ "brief": { "idea": "build a thing" } }))
-            .expect("call");
-        assert_eq!(
-            result,
-            McpToolOutcome::Ok {
-                value: json!({ "ok": true, "name": "grill_me" })
-            }
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn stdio_mcp_client_returns_structured_tool_errors() {
-        if Command::new("node").arg("--version").output().is_err() {
-            return;
-        }
-        let temp = tempfile::tempdir().expect("tempdir");
-        let mut client = fake_client(&temp);
-
-        let result = client.call_tool("boom", json!({})).expect("call");
-        assert_eq!(
-            result,
-            McpToolOutcome::Error {
-                error: McpResponseError {
-                    code: -32602,
-                    message: "bad tool".to_string(),
-                    details: None
-                }
-            }
-        );
-    }
-
-    #[cfg(unix)]
-    fn fake_client(temp: &tempfile::TempDir) -> StdioMcpClient {
-        let server_path = temp.path().join("fake-mcp.mjs");
-        std::fs::write(&server_path, fake_mcp_server_script()).expect("write fake server");
-        let mut config = TuiConfig::default();
-        config.architect_mcp.command = Some("node".to_string());
-        config.architect_mcp.args = vec![server_path.display().to_string()];
-        StdioMcpClient::connect(&ArchitectMcpBridge::new(temp.path(), config)).expect("connect")
-    }
-
-    #[cfg(unix)]
-    fn fake_mcp_server_script() -> &'static str {
-        r#"
-import readline from 'node:readline';
-const rl = readline.createInterface({ input: process.stdin });
-rl.on('line', (line) => {
-  const msg = JSON.parse(line);
-  if (!msg.id) return;
-  if (msg.method === 'initialize') console.log(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-11-25', capabilities: {}, serverInfo: { name: 'fake', version: '0.0.0' } } }));
-  else if (msg.method === 'tools/list') console.log(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [{ name: 'grill_me' }] } }));
-  else if (msg.method === 'tools/call' && msg.params.name === 'boom') console.log(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: 'bad tool' } }));
-  else if (msg.method === 'tools/call') console.log(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: JSON.stringify({ ok: true, name: msg.params.name }) }], structuredContent: { ok: true, name: msg.params.name } } }));
-});
-"#
-    }
-}
+#[path = "mcp_client_tests.rs"]
+mod tests;

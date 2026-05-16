@@ -1,11 +1,15 @@
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::adapter::AdapterConfig;
+
+const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -41,9 +45,12 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
         };
     }
 
-    let output = Command::new(&config.command).arg("--version").output();
+    let output = output_with_timeout(
+        Command::new(&config.command).arg("--version"),
+        PROBE_TIMEOUT,
+    );
     match output {
-        Ok(output) if output.status.success() => {
+        Ok(Some(output)) if output.status.success() => {
             let version = first_output_line(&output.stdout, &output.stderr);
             let (auth_status, auth_detail) = probe_adapter_auth(name, config);
             let ready = matches!(
@@ -60,6 +67,15 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
                 detail: auth_detail.unwrap_or_else(|| "installed".to_string()),
             }
         }
+        Ok(None) => AdapterHealth {
+            name: name.to_string(),
+            command: config.command.clone(),
+            installed: false,
+            version: None,
+            auth_status: AuthStatus::Unknown,
+            ready: false,
+            detail: "command timed out during --version probe".to_string(),
+        },
         _ => AdapterHealth {
             name: name.to_string(),
             command: config.command.clone(),
@@ -127,8 +143,11 @@ fn is_codex_adapter(name: &str, command: &str) -> bool {
 }
 
 fn probe_codex_auth(command: &str) -> (AuthStatus, Option<String>) {
-    match Command::new(command).args(["login", "status"]).output() {
-        Ok(output) => {
+    match output_with_timeout(
+        Command::new(command).args(["login", "status"]),
+        PROBE_TIMEOUT,
+    ) {
+        Ok(Some(output)) => {
             let text = joined_output(&output.stdout, &output.stderr);
             let detail = text
                 .lines()
@@ -138,10 +157,36 @@ fn probe_codex_auth(command: &str) -> (AuthStatus, Option<String>) {
             let status = codex_auth_status_from_output(output.status.success(), &text);
             (status, Some(detail))
         }
+        Ok(None) => (
+            AuthStatus::Unknown,
+            Some("codex login status timed out".to_string()),
+        ),
         Err(error) => (
             AuthStatus::Unknown,
             Some(format!("could not run codex login status: {error}")),
         ),
+    }
+}
+
+fn output_with_timeout(
+    command: &mut Command,
+    timeout: Duration,
+) -> std::io::Result<Option<Output>> {
+    let mut child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    let started = Instant::now();
+    loop {
+        if child.try_wait()?.is_some() {
+            return child.wait_with_output().map(Some);
+        }
+        if started.elapsed() >= timeout {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Ok(None);
+        }
+        thread::sleep(Duration::from_millis(20));
     }
 }
 
@@ -201,5 +246,15 @@ mod tests {
         let json = serde_json::to_value(&health).expect("json");
         assert_eq!(json["authStatus"], "authenticated");
         assert_eq!(json["ready"], true);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn command_probe_timeout_returns_none_and_reaps_child() {
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 1"]);
+        let output =
+            output_with_timeout(&mut command, Duration::from_millis(10)).expect("probe command");
+        assert!(output.is_none());
     }
 }
