@@ -3,8 +3,12 @@ pub use crate::interactive_update::WorkflowUpdate;
 use crate::interactive_update::{help_update, inspector_for, update};
 use crate::orchestrator::Orchestrator;
 use crate::session::{SessionPhase, SessionStore, TuiSession};
+use crate::verification::{
+    ensure_verification_passed, normalize_verification_status, required_checks,
+    verification_records,
+};
 use anyhow::Result;
-use serde_json::json;
+use serde_json::{Map, Value, json};
 pub struct InteractiveWorkflowEngine {
     pub(crate) orchestrator: Orchestrator,
     pub(crate) store: SessionStore,
@@ -66,25 +70,35 @@ impl InteractiveWorkflowEngine {
 }
 impl InteractiveWorkflowEngine {
     fn record_verification(&mut self, check: &str, status: &str) -> Result<WorkflowUpdate> {
+        if check.trim().is_empty() {
+            anyhow::bail!("verification check is required");
+        }
+        let normalized = normalize_verification_status(status)?;
+        let session = self.active()?;
+        if session.worktree.is_none()
+            || !matches!(
+                session.phase,
+                SessionPhase::ReviewRequired | SessionPhase::Complete
+            )
+        {
+            anyhow::bail!("run adapter before recording verification evidence");
+        }
         let session = self.update_active(|session| {
             session
                 .verification
-                .insert(check.to_string(), status.to_string());
+                .insert(check.to_string(), normalized.clone());
         })?;
         Ok(update(
-            vec![format!("verification recorded: {check}={status}")],
+            vec![format!("verification recorded: {check}={normalized}")],
             inspector_for(session),
             Some(session.clone()),
         ))
     }
 
     async fn final_review(&mut self, response: &str) -> Result<WorkflowUpdate> {
-        let checks = self
-            .active()?
-            .verification
-            .keys()
-            .cloned()
-            .collect::<Vec<_>>();
+        self.require_adapter_review_evidence()?;
+        ensure_verification_passed(self.active()?)?;
+        let checks = required_checks(self.active()?);
         let result = self
             .call_tool(
                 "review_agent_final_response",
@@ -93,6 +107,7 @@ impl InteractiveWorkflowEngine {
             )
             .await?;
         let session = self.update_active(|session| {
+            session.set_final_response(response.to_string());
             session.set_gate("review_agent_final_response", result);
         })?;
         Ok(update(
@@ -103,11 +118,14 @@ impl InteractiveWorkflowEngine {
     }
 
     async fn session_review(&mut self) -> Result<WorkflowUpdate> {
+        self.require_adapter_review_evidence()?;
+        self.require_final_review_after_verification()?;
+        let request = self.session_review_request()?;
         let result = self
             .call_tool(
                 "review_agent_session",
                 "review whole session for missed gates",
-                json!({ "request": self.active()?.gates.clone() }),
+                json!({ "request": request }),
             )
             .await?;
         let session = self.update_active(|session| {
@@ -130,5 +148,63 @@ impl InteractiveWorkflowEngine {
             inspector_for(session),
             Some(session.clone()),
         ))
+    }
+
+    fn require_adapter_review_evidence(&self) -> Result<()> {
+        let session = self.active()?;
+        if session.worktree.is_none()
+            || !matches!(
+                session.phase,
+                SessionPhase::ReviewRequired | SessionPhase::Complete
+            )
+        {
+            anyhow::bail!("run adapter before final/session review");
+        }
+        Ok(())
+    }
+
+    fn require_final_review_after_verification(&self) -> Result<()> {
+        let session = self.active()?;
+        ensure_verification_passed(session)?;
+        if session
+            .final_response
+            .as_deref()
+            .unwrap_or("")
+            .trim()
+            .is_empty()
+            || !session.gates.contains_key("review_agent_final_response")
+        {
+            anyhow::bail!("run final review after passed verification before session review");
+        }
+        Ok(())
+    }
+
+    fn session_review_request(&self) -> Result<Value> {
+        let session = self.active()?;
+        let mut request = Map::new();
+        request.insert("request".to_string(), Value::String(session.prompt.clone()));
+        request.insert(
+            "changedFiles".to_string(),
+            Value::Array(session.changed_files.clone()),
+        );
+        request.insert(
+            "verification".to_string(),
+            Value::Array(verification_records(session)),
+        );
+        if let Some(final_response) = &session.final_response {
+            request.insert(
+                "finalResponse".to_string(),
+                Value::String(final_response.clone()),
+            );
+        }
+        if let Some(pre_edit) = session.gates.get("create_pre_edit_contract") {
+            if let Some(intent) = pre_edit.get("intent").cloned() {
+                request.insert("intent".to_string(), intent);
+            }
+            if let Some(contract) = pre_edit.get("contract").cloned() {
+                request.insert("contract".to_string(), contract);
+            }
+        }
+        Ok(Value::Object(request))
     }
 }

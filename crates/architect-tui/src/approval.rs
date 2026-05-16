@@ -4,6 +4,7 @@ use std::path::{Component, Path, PathBuf};
 use anyhow::{Context, Result};
 
 use crate::session::{ApprovalStatus, TuiSession};
+use crate::verification::ensure_verification_passed;
 
 const REQUIRED_REVIEW_GATES: &[&str] = &[
     "review_implementation_against_contract",
@@ -51,6 +52,7 @@ fn ensure_reviews_or_override(session: &TuiSession) -> Result<()> {
     if session.approval_status == ApprovalStatus::Override {
         return Ok(());
     }
+    ensure_verification_passed(session)?;
     for gate in REQUIRED_REVIEW_GATES {
         let review = session
             .gates
@@ -134,6 +136,10 @@ mod tests {
         assert!(promote_approved_changes(&mut session, workspace).is_err());
 
         session.approve("reviewed");
+        session.set_required_verification(vec!["npm test".to_string()]);
+        session
+            .verification
+            .insert("npm test".to_string(), "passed".to_string());
         for gate in REQUIRED_REVIEW_GATES {
             session.set_gate(gate, json!({ "ok": true }));
         }

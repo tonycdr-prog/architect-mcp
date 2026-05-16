@@ -29,7 +29,11 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
         format!("phase: {:?}", session.phase),
         format!("adapter: {}", session.adapter),
         format!("gates: {}", session.gates.len()),
-        format!("verification: {}", session.verification.len()),
+        format!(
+            "verification: {}/{}",
+            session.verification.len(),
+            session.required_verification.len()
+        ),
         format!("execution approved: {}", session.execution_approved),
         format!("approval: {:?}", session.approval_status),
         format!("changed files: {}", session.changed_files.len()),
@@ -56,7 +60,7 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promote, arena run <adapter[,adapter]>, arena rank, record verification check=status, final review <text>, session review".to_string(),
+            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promote, arena run <adapter[,adapter]>, arena rank, record verification <required check>=passed, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,

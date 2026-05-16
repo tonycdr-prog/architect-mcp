@@ -59,6 +59,8 @@ Use `answer key=value` to fill grill blockers before rerunning `grill`. List-lik
 
 `approve` is phase-aware. After `review files`, it approves adapter execution only. After adapter evidence, implementation review, and session review are recorded, it approves promotion. Execution approval is cleared after the adapter run, so promotion still needs a separate approval.
 
+Verification evidence is strict. The TUI captures the required checks from the live `grill_me` and build-plan gates, and `record verification <check>=passed` must match those checks before final review, session review, or promotion approval can proceed. Failed, skipped, not-run, missing, and unknown-status records block the normal path; `override [reason]` remains the explicit maintainer escape hatch.
+
 Headless JSONL run:
 
 ```bash

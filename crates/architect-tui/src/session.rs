@@ -47,6 +47,10 @@ pub struct TuiSession {
     pub brief: Value,
     pub gates: BTreeMap<String, Value>,
     pub verification: BTreeMap<String, String>,
+    #[serde(default)]
+    pub required_verification: Vec<String>,
+    #[serde(default)]
+    pub final_response: Option<String>,
     pub worktree: Option<PathBuf>,
     pub diff_stat: Option<String>,
     pub changed_files: Vec<Value>,
@@ -77,6 +81,8 @@ impl TuiSession {
             brief: brief_from_prompt(&prompt),
             gates: BTreeMap::new(),
             verification: BTreeMap::new(),
+            required_verification: Vec::new(),
+            final_response: None,
             worktree: None,
             diff_stat: None,
             changed_files: Vec::new(),
@@ -98,6 +104,23 @@ impl TuiSession {
 
     pub fn set_gate(&mut self, name: &str, value: Value) {
         self.gates.insert(name.to_string(), value);
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn set_required_verification(&mut self, checks: Vec<String>) {
+        let mut checks = checks
+            .into_iter()
+            .map(|check| check.trim().to_string())
+            .filter(|check| !check.is_empty())
+            .collect::<Vec<_>>();
+        checks.sort();
+        checks.dedup();
+        self.required_verification = checks;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn set_final_response(&mut self, response: impl Into<String>) {
+        self.final_response = Some(response.into());
         self.updated_at = unix_timestamp();
     }
 

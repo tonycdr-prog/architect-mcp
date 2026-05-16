@@ -68,6 +68,7 @@ impl InteractiveWorkflowEngine {
             )
             .await?;
         let session = self.update_active(|session| {
+            session.set_required_verification(verification);
             session.set_gate("create_pre_edit_contract", result);
             session.phase = SessionPhase::ContractReady;
         })?;
@@ -94,6 +95,7 @@ impl InteractiveWorkflowEngine {
             )
             .await?;
         let session = self.update_active(|session| {
+            session.set_required_verification(verification);
             session.set_gate("review_build_plan", result);
             session.phase = SessionPhase::PlanReviewed;
         })?;
@@ -146,7 +148,7 @@ impl InteractiveWorkflowEngine {
         let (_, _, verification) = self.gate_inputs()?;
         let gate_state = crate::headless::GateReviewState {
             pre_edit,
-            verification,
+            verification: verification.clone(),
         };
         let mut output = Vec::new();
         let executed = self
@@ -167,6 +169,7 @@ impl InteractiveWorkflowEngine {
             .await?;
         let events = String::from_utf8_lossy(&output).to_string();
         let session = self.update_active(|session| {
+            session.set_required_verification(verification);
             apply_run_evidence(session, &events);
             session.phase = if executed {
                 SessionPhase::ReviewRequired
