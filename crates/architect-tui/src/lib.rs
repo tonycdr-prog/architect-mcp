@@ -1,6 +1,7 @@
 pub mod acp;
 pub mod adapter;
 mod adapter_health;
+mod adapter_probe_command;
 mod adapter_pty;
 mod adapter_review;
 pub mod config;

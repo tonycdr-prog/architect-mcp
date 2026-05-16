@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::process::{Command, Output, Stdio};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::process::Command;
+use std::time::Duration;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::adapter::AdapterConfig;
+use crate::adapter_probe_command::output_with_timeout;
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -43,6 +43,9 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
             ready: false,
             detail: "disabled by configuration".to_string(),
         };
+    }
+    if name == "shell" {
+        return probe_shell_health(name, config);
     }
 
     let output = output_with_timeout(
@@ -84,6 +87,44 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
             auth_status: AuthStatus::Unknown,
             ready: false,
             detail: "command not found or --version failed".to_string(),
+        },
+    }
+}
+
+fn probe_shell_health(name: &str, config: &AdapterConfig) -> AdapterHealth {
+    let mut command = Command::new(&config.command);
+    if cfg!(windows) {
+        command.args(["/C", "ver"]);
+    } else {
+        command.args(["-c", "true"]);
+    }
+    match output_with_timeout(&mut command, PROBE_TIMEOUT) {
+        Ok(Some(output)) if output.status.success() => AdapterHealth {
+            name: name.to_string(),
+            command: config.command.clone(),
+            installed: true,
+            version: None,
+            auth_status: AuthStatus::NotApplicable,
+            ready: true,
+            detail: "shell adapter".to_string(),
+        },
+        Ok(None) => AdapterHealth {
+            name: name.to_string(),
+            command: config.command.clone(),
+            installed: false,
+            version: None,
+            auth_status: AuthStatus::Unknown,
+            ready: false,
+            detail: "command timed out during shell probe".to_string(),
+        },
+        _ => AdapterHealth {
+            name: name.to_string(),
+            command: config.command.clone(),
+            installed: false,
+            version: None,
+            auth_status: AuthStatus::Unknown,
+            ready: false,
+            detail: "command not found or shell probe failed".to_string(),
         },
     }
 }
@@ -168,28 +209,6 @@ fn probe_codex_auth(command: &str) -> (AuthStatus, Option<String>) {
     }
 }
 
-fn output_with_timeout(
-    command: &mut Command,
-    timeout: Duration,
-) -> std::io::Result<Option<Output>> {
-    let mut child = command
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    let started = Instant::now();
-    loop {
-        if child.try_wait()?.is_some() {
-            return child.wait_with_output().map(Some);
-        }
-        if started.elapsed() >= timeout {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Ok(None);
-        }
-        thread::sleep(Duration::from_millis(20));
-    }
-}
-
 pub fn codex_auth_status_from_output(success: bool, output: &str) -> AuthStatus {
     if success && output.contains("Logged in") {
         AuthStatus::Authenticated
@@ -250,11 +269,16 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn command_probe_timeout_returns_none_and_reaps_child() {
-        let mut command = Command::new("sh");
-        command.args(["-c", "sleep 1"]);
-        let output =
-            output_with_timeout(&mut command, Duration::from_millis(10)).expect("probe command");
-        assert!(output.is_none());
+    fn shell_probe_uses_noop_instead_of_version() {
+        let health = probe_adapter_health(
+            "shell",
+            &AdapterConfig {
+                command: "sh".to_string(),
+                ..AdapterConfig::default()
+            },
+        );
+        assert!(health.installed);
+        assert!(health.ready);
+        assert_eq!(health.auth_status, AuthStatus::NotApplicable);
     }
 }

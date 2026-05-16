@@ -218,13 +218,17 @@ fn init_git_repo(path: &std::path::Path) {
 }
 
 fn run_git<const N: usize>(path: &std::path::Path, args: [&str; N]) {
-    let status = Command::new("git")
+    let output = Command::new("git")
         .arg("-C")
         .arg(path)
         .args(args)
-        .status()
+        .output()
         .expect("git command");
-    assert!(status.success());
+    assert!(
+        output.status.success(),
+        "git command failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 fn fake_mcp_server_script() -> &'static str {
