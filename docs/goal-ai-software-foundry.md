@@ -1,0 +1,97 @@
+# AI Software Foundry Goal
+
+This document is the durable repo state for the evolved architect-mcp goal. The active runtime goal lives in Codex `/goal`; this page keeps the expanded spec, roadmap, issue tracker, judge protocol, and evidence log available across sessions.
+
+## Objective
+
+Evolve architect-mcp into the local-first control layer for AI-native software delivery.
+
+It must turn rough product intent into governed software changes: clarify the brief, create a contract, review the build plan and file plan, run agents only with approval, inspect diffs, verify evidence, review drift, and produce honest final/session reviews.
+
+The TUI is the operator surface. It must support new-app creation, repo audit, Codex and other adapters, isolated worktrees, multi-agent arena runs, MCP install recommendations, approval/promotion, release evidence, and hard go/no-go judging.
+
+The human owns decisions. Agents propose and execute. architect-mcp governs.
+
+## Tracking
+
+- Epic: [#142 - Evolve architect-mcp into an AI software delivery control plane](https://github.com/tonycdr-prog/architect-mcp/issues/142)
+- Active slice: [#143 - TUI full control loop: interactive gate to verified promotion](https://github.com/tonycdr-prog/architect-mcp/issues/143)
+- Runtime goal: Codex CLI `/goal`, backed by this document and the GitHub epic.
+
+Every implementation slice should have its own issue and PR. Every PR should link to the epic, list verification, record the judge result, and state remaining gaps.
+
+## Roadmap
+
+| Milestone | Issue | Status | Acceptance signal |
+| --- | --- | --- | --- |
+| TUI production control loop | [#143](https://github.com/tonycdr-prog/architect-mcp/issues/143) | Active | User can complete a TUI work-gate path to verified promotion without bypassing gates. |
+| Adapter evidence and promotion hard gates | [#144](https://github.com/tonycdr-prog/architect-mcp/issues/144) | Planned | Adapter runs record evidence, failures cannot look successful, and promotion is review-gated. |
+| Multi-agent arena hardening | [#145](https://github.com/tonycdr-prog/architect-mcp/issues/145) | Planned | Multiple candidates run in isolated worktrees and are ranked without auto-promotion. |
+| MCP catalog and install-plan flow | [#146](https://github.com/tonycdr-prog/architect-mcp/issues/146) | Planned | Recommendations require clarified need, dry-run install plans, security review, and approval before config writes. |
+| New app to private repo foundry path | [#147](https://github.com/tonycdr-prog/architect-mcp/issues/147) | Planned | A clarified app idea can become a private repo with CI, docs, agent instructions, env template, and first PR evidence. |
+| Governance audit and drift evidence loop | [#148](https://github.com/tonycdr-prog/architect-mcp/issues/148) | Planned | Maintained repos can be audited read-only for drift, stale docs, weak tests, unsafe config, and memory safety. |
+
+Future hosted and team mode should stay behind the local-first proof. Hosted work is not launch-blocking for the local operator path, and hosted mode must keep local-only tools excluded.
+
+## Operating Loop
+
+Each slice should follow the agent work gate:
+
+1. Run `grill_me` and stop while blockers remain.
+2. Create or update the pre-edit contract.
+3. Review the build plan.
+4. Review the proposed file plan.
+5. Run implementation only after approval.
+6. Review implementation drift and repo structure.
+7. Record verification evidence.
+8. Review the final response and full session.
+9. Issue a judge result before merge or launch claims.
+
+For TUI work, the TUI should make these gates visible and enforceable. For docs or planning work, the PR body should still state the relevant checks and judge result.
+
+## Judge Protocol
+
+A slice is `go` only when:
+
+- It advances the evolved spec.
+- User approval is required before repo mutation, adapter execution, MCP install, promotion, merge, and release.
+- Work-gate evidence exists where applicable: grill, contract, plan review, file-plan review, implementation review, verification, final/session review.
+- Docs and public claims match actual behavior.
+- Tests pass, or failures/skips are explicitly justified.
+- `npm run release:check` passes for release-sensitive changes.
+
+A slice is `conditional go` only when:
+
+- Core behavior works.
+- The remaining gap is documented.
+- The gap does not block the next slice.
+- The PR body and this document record the limitation.
+
+A slice is `no-go` when:
+
+- Behavior is simulated but documented as real.
+- User control can be bypassed.
+- Verification is missing or overstated.
+- Hosted/local-only boundaries are unsafe.
+- Release gates fail without a justified non-release scope.
+
+## Evidence Log
+
+| Date | Evidence | Result |
+| --- | --- | --- |
+| 2026-05-16 | [#141](https://github.com/tonycdr-prog/architect-mcp/pull/141) merged terminal QA smoke workflow after green CI, install-smoke, and live-QA workflows. | `go` as baseline terminal QA evidence. |
+| 2026-05-16 | Codex CLI `/goal` accepted the concise evolved objective. | Runtime goal created; detailed spec lives in this document. |
+
+## Current Slice Notes
+
+The next implementation slice is [#143](https://github.com/tonycdr-prog/architect-mcp/issues/143). The desired outcome is a TUI path that behaves like a real operator control loop, not a demo flow: clear gate states, approval pauses, session persistence, adapter execution only after approval, diff inspection, verification capture, and final/session review before promotion.
+
+Before claiming #143 complete, run the TUI checks and the clean release gate:
+
+```bash
+cargo fmt --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+architect-mcp-tui smoke --json
+npm run release:check
+```
