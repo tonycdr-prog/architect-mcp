@@ -1,6 +1,7 @@
 use crate::headless::HeadlessRunOptions;
 use crate::headless_support::{pre_edit_args, proposed_file_plan, verification_checks};
 pub use crate::interactive_commands::{WorkflowCommand, parse_workflow_command};
+use crate::interactive_support::apply_run_evidence;
 pub use crate::interactive_update::WorkflowUpdate;
 use crate::interactive_update::{gate_line, help_update, inspector_for, update};
 use crate::orchestrator::Orchestrator;
@@ -32,6 +33,14 @@ impl InteractiveWorkflowEngine {
             WorkflowCommand::ReviewPlan => self.review_plan().await,
             WorkflowCommand::ReviewFiles => self.review_files().await,
             WorkflowCommand::RunAdapter => self.run_adapter().await,
+            WorkflowCommand::Approve(reason) => self.approve(&reason),
+            WorkflowCommand::Reject(reason) => self.reject(&reason),
+            WorkflowCommand::Override(reason) => self.override_approval(&reason),
+            WorkflowCommand::Promote => self.promote(),
+            WorkflowCommand::DiffSummary => self.diff_summary(),
+            WorkflowCommand::DiffFile(path) => self.diff_file(&path),
+            WorkflowCommand::ArenaRun(adapters) => self.arena_run(adapters).await,
+            WorkflowCommand::ArenaRank => self.arena_rank(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)
             }
@@ -173,6 +182,7 @@ impl InteractiveWorkflowEngine {
             .await?;
         let events = String::from_utf8_lossy(&output).to_string();
         let session = self.update_active(|session| {
+            apply_run_evidence(session, &events);
             session.phase = SessionPhase::ReviewRequired;
         })?;
         Ok(update(
