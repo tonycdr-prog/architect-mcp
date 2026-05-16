@@ -59,7 +59,7 @@ The repository must define `NPM_TOKEN` with permission to publish `@tonycdr-prog
 
 `.github/workflows/tui-release.yml` builds `architect-mcp-tui` for Linux, macOS, and Windows release assets. Each archive is uploaded with a `.sha256` checksum. The npm shim downloads only matching release assets and verifies the checksum before execution.
 
-`.github/workflows/tui-install-smoke.yml` runs the shim and release-binary build path across Ubuntu, macOS, and Windows on pull requests and manual dispatch. `.github/workflows/tui-live-qa.yml` adds cross-platform TUI workflow smoke coverage. Manual OS evidence is tracked in [TUI Live QA](./tui-live-qa.md).
+The shim follows HTTPS redirects for GitHub release asset and checksum downloads. `.github/workflows/tui-install-smoke.yml` runs the shim and release-binary build path across Ubuntu, macOS, and Windows on pull requests and manual dispatch. `.github/workflows/tui-live-qa.yml` adds cross-platform TUI workflow smoke coverage. Manual OS evidence is tracked in [TUI Live QA](./tui-live-qa.md).
 
 ## GitHub Pages
 
