@@ -1055,14 +1055,17 @@ describe("scanWorkspace", () => {
     const root = await mkdtemp(join(tmpdir(), "architect-mcp-scan-"));
     await mkdir(join(root, "ignored"), { recursive: true });
     await mkdir(join(root, "src"), { recursive: true });
+    await mkdir(join(root, "target", "debug"), { recursive: true });
     await writeFile(join(root, "ignored", "secret.ts"), "const secret = process.env.SECRET;");
     await writeFile(join(root, "src", "a.ts"), "export const a = 1;");
     await writeFile(join(root, "src", "b.ts"), "export const b = 1;");
+    await writeFile(join(root, "target", "debug", "generated.rs"), "pub fn generated() {}\n");
 
     const ignored = await scanWorkspaceWithMetadata(root, 10, { ignorePatterns: ["ignored/**"] });
     const truncated = await scanWorkspaceWithMetadata(root, 1);
 
     assert.equal(ignored.files.some((summary) => summary.path.startsWith("ignored/")), false);
+    assert.equal(ignored.files.some((summary) => summary.path.startsWith("target/")), false);
     assert.equal(truncated.files.length, 1);
     assert.equal(truncated.truncated, true);
   });

@@ -37,7 +37,12 @@ const requiredPackageFiles = [
   "packs/expo.json",
   "packs/ai-sdk.json",
   "policy-bundles/balanced.json",
-  "mcp-catalog/servers.json"
+  "mcp-catalog/servers.json",
+  "bin/architect-mcp-tui.cjs",
+  "Cargo.toml",
+  "rust-toolchain.toml",
+  "crates/architect-tui/Cargo.toml",
+  "crates/architect-tui/src/main.rs"
 ];
 const missingPackageFiles = requiredPackageFiles.filter((path) => !packedPaths.has(path));
 if (missingPackageFiles.length > 0) {
@@ -86,6 +91,9 @@ const repoOnlyPackageScripts = [
   "docs:tool-reference:check",
   "docs:build",
   "docs:preview",
+  "tui:build",
+  "tui:test",
+  "rust:check",
   "ingest:llms",
   "dev",
   "dev:http",

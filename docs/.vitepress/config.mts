@@ -9,6 +9,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Guide", link: "/getting-started" },
+      { text: "TUI", link: "/rust-tui" },
       { text: "Tools", link: "/tool-reference" },
       { text: "GitHub", link: "https://github.com/tonycdr-prog/architect-mcp" }
     ],
@@ -20,6 +21,12 @@ export default defineConfig({
           { text: "Getting Started", link: "/getting-started" },
           { text: "MCP Client Setup", link: "/mcp-client-setup" },
           { text: "Core Work Gate", link: "/core-work-gate" }
+        ]
+      },
+      {
+        text: "TUI Platform",
+        items: [
+          { text: "Rust TUI", link: "/rust-tui" }
         ]
       },
       {

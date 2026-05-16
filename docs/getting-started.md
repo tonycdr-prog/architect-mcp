@@ -19,6 +19,21 @@ npm run build
 node dist/index.js
 ```
 
+## Run The TUI
+
+The optional terminal client is `architect-mcp-tui`. From a source checkout:
+
+```bash
+npm run tui:build
+node bin/architect-mcp-tui.cjs
+```
+
+For scriptable automation:
+
+```bash
+architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
+```
+
 ## Default Surface
 
 The default MCP surface exposes only the eight core work-gate tools:
@@ -49,6 +64,8 @@ Before releasing or making broad tool-surface changes, run:
 ```bash
 npm run release:check
 ```
+
+That includes `npm run rust:check` for the TUI workspace.
 
 For normal development, run the narrower checks that match the change:
 
