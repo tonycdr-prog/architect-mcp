@@ -329,17 +329,15 @@ fn shell_writer(path: &str, content: &str) -> AdapterConfig {
 fn shell_writer_portable(path: &str, content: &str) -> AdapterConfig {
     #[cfg(windows)]
     {
-        let windows_path = path.replace('/', "\\");
-        let directory = windows_path
-            .rsplit_once('\\')
-            .map(|(directory, _)| directory)
-            .unwrap_or(".");
+        let path = path.replace('\'', "''");
+        let content = content.replace('\'', "''");
         AdapterConfig {
-            command: "cmd".to_string(),
+            command: "pwsh".to_string(),
             args: vec![
-                "/C".to_string(),
+                "-NoProfile".to_string(),
+                "-Command".to_string(),
                 format!(
-                    "if not exist {directory} mkdir {directory} && > {windows_path} echo {content}"
+                    "$p='{path}'; New-Item -ItemType Directory -Force -Path (Split-Path $p) | Out-Null; Set-Content -NoNewline -Path $p -Value '{content}'"
                 ),
             ],
             ..AdapterConfig::default()
