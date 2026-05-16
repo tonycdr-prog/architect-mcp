@@ -1,31 +1,15 @@
-use std::collections::BTreeMap;
-
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
-use uuid::Uuid;
 
+use crate::acp_state::AcpState;
 use crate::config::TuiConfig;
 use crate::mcp::CORE_WORK_GATE_TOOLS;
 
+pub use crate::acp_state::{AcpSession, AcpSessionStatus};
+
 pub fn acp_sdk_marker() -> &'static str {
     std::any::type_name::<agent_client_protocol::schema::ProtocolVersion>()
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct AcpSession {
-    pub id: String,
-    pub adapter: String,
-    pub mode: String,
-    pub concurrency: usize,
-    pub worktree_isolation: bool,
-    pub approval_policy: String,
-}
-
-#[derive(Debug, Default)]
-pub struct AcpState {
-    sessions: BTreeMap<String, AcpSession>,
 }
 
 pub async fn run_acp_stdio(config: TuiConfig) -> Result<()> {
@@ -55,13 +39,12 @@ pub fn handle_json_rpc_value(
     config: &TuiConfig,
     request: Value,
 ) -> Option<Value> {
-    let id = request.get("id").cloned().unwrap_or(Value::Null);
+    let id = request.get("id").cloned()?;
     let method = request
         .get("method")
         .and_then(Value::as_str)
         .unwrap_or_default();
     let params = request.get("params").cloned().unwrap_or_else(|| json!({}));
-
     let result = match method {
         "initialize" => json!({
             "protocolVersion": "1",
@@ -86,58 +69,66 @@ pub fn handle_json_rpc_value(
             "approvalPolicy": config.agents.approval_policy
         }),
         "session/new" => {
-            let adapter = params
-                .get("adapter")
-                .and_then(Value::as_str)
-                .unwrap_or(&config.agents.default_adapter)
-                .to_string();
-            let mode = params
-                .get("mode")
-                .and_then(Value::as_str)
-                .unwrap_or("new-app")
-                .to_string();
-            let concurrency = params
-                .get("concurrency")
-                .and_then(Value::as_u64)
-                .unwrap_or(1) as usize;
-            let session = AcpSession {
-                id: Uuid::new_v4().to_string(),
-                adapter,
-                mode,
-                concurrency,
-                worktree_isolation: config.agents.worktree_isolation,
-                approval_policy: config.agents.approval_policy.clone(),
-            };
-            state.sessions.insert(session.id.clone(), session.clone());
+            let session = state.create_session(config, &params);
             json!({ "session": session })
         }
         "session/prompt" => {
+            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
+                return Some(error_response(id, -32602, "sessionId is required"));
+            };
             let prompt = params
                 .get("prompt")
                 .and_then(Value::as_str)
                 .unwrap_or_default();
+            let events = match state.record_prompt_turn(session_id, prompt) {
+                Ok(events) => events,
+                Err(error) => return Some(error_response(id, -32004, &error.to_string())),
+            };
             json!({
                 "accepted": true,
+                "sessionId": session_id,
                 "prompt": prompt,
                 "plan": CORE_WORK_GATE_TOOLS,
-                "events": [
-                    { "type": "plan_update", "message": "grill and contract required before edits" },
-                    { "type": "tool", "name": "grill_me" },
-                    { "type": "terminal", "stream": "status", "text": "adapter execution pending approval" }
-                ]
+                "events": events
             })
         }
-        "session/cancel" => json!({ "cancelled": true }),
+        "session/get" => {
+            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
+                return Some(error_response(id, -32602, "sessionId is required"));
+            };
+            let session = match state.session(session_id) {
+                Ok(session) => session,
+                Err(error) => return Some(error_response(id, -32004, &error.to_string())),
+            };
+            json!({ "session": session })
+        }
+        "session/events" => {
+            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
+                return Some(error_response(id, -32602, "sessionId is required"));
+            };
+            let session = match state.session(session_id) {
+                Ok(session) => session,
+                Err(error) => return Some(error_response(id, -32004, &error.to_string())),
+            };
+            json!({ "sessionId": session_id, "events": session.events })
+        }
+        "session/cancel" => {
+            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
+                return Some(error_response(id, -32602, "sessionId is required"));
+            };
+            let event = match state.cancel(session_id) {
+                Ok(event) => event,
+                Err(error) => return Some(error_response(id, -32004, &error.to_string())),
+            };
+            json!({ "cancelled": true, "sessionId": session_id, "event": event })
+        }
         "shutdown" => json!({ "ok": true }),
         _ => {
-            return Some(json!({
-                "jsonrpc": "2.0",
-                "id": id,
-                "error": {
-                    "code": -32601,
-                    "message": format!("unknown method '{method}'")
-                }
-            }));
+            return Some(error_response(
+                id,
+                -32601,
+                &format!("unknown method '{method}'"),
+            ));
         }
     };
 
@@ -146,6 +137,17 @@ pub fn handle_json_rpc_value(
         "id": id,
         "result": result
     }))
+}
+
+fn error_response(id: Value, code: i32, message: &str) -> Value {
+    json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "error": {
+            "code": code,
+            "message": message
+        }
+    })
 }
 
 #[cfg(test)]
@@ -177,6 +179,15 @@ mod tests {
     #[test]
     fn acp_prompt_returns_golden_work_gate_plan() {
         let mut state = AcpState::default();
+        let session = handle_json_rpc_value(
+            &mut state,
+            &TuiConfig::default(),
+            json!({ "jsonrpc": "2.0", "id": 2, "method": "session/new" }),
+        )
+        .expect("session response")["result"]["session"]["id"]
+            .as_str()
+            .unwrap()
+            .to_string();
         let response = handle_json_rpc_value(
             &mut state,
             &TuiConfig::default(),
@@ -184,7 +195,7 @@ mod tests {
                 "jsonrpc": "2.0",
                 "id": 3,
                 "method": "session/prompt",
-                "params": { "prompt": "build an app" }
+                "params": { "sessionId": session, "prompt": "build an app" }
             }),
         )
         .expect("response");
@@ -203,5 +214,56 @@ mod tests {
         .expect("response");
         assert_eq!(response["result"]["worktreeIsolation"], true);
         assert_eq!(response["result"]["approvalPolicy"], "manual");
+    }
+
+    #[test]
+    fn acp_rejects_unknown_session_and_tracks_cancellation() {
+        let mut state = AcpState::default();
+        let missing = handle_json_rpc_value(
+            &mut state,
+            &TuiConfig::default(),
+            json!({
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "session/prompt",
+                "params": { "sessionId": "missing", "prompt": "build" }
+            }),
+        )
+        .expect("error response");
+        assert_eq!(missing["error"]["code"], -32004);
+
+        let session = handle_json_rpc_value(
+            &mut state,
+            &TuiConfig::default(),
+            json!({ "jsonrpc": "2.0", "id": 6, "method": "session/new" }),
+        )
+        .expect("session response")["result"]["session"]["id"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let cancel = handle_json_rpc_value(
+            &mut state,
+            &TuiConfig::default(),
+            json!({
+                "jsonrpc": "2.0",
+                "id": 7,
+                "method": "session/cancel",
+                "params": { "sessionId": session }
+            }),
+        )
+        .expect("cancel response");
+        assert_eq!(cancel["result"]["cancelled"], true);
+        assert_eq!(cancel["result"]["event"]["type"], "cancelled");
+    }
+
+    #[test]
+    fn acp_notifications_do_not_emit_responses() {
+        let mut state = AcpState::default();
+        let response = handle_json_rpc_value(
+            &mut state,
+            &TuiConfig::default(),
+            json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
+        );
+        assert!(response.is_none());
     }
 }

@@ -26,7 +26,8 @@ export default defineConfig({
       {
         text: "TUI Platform",
         items: [
-          { text: "Rust TUI", link: "/rust-tui" }
+          { text: "Rust TUI", link: "/rust-tui" },
+          { text: "TUI Live QA", link: "/tui-live-qa" }
         ]
       },
       {

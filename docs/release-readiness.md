@@ -59,6 +59,8 @@ The repository must define `NPM_TOKEN` with permission to publish `@tonycdr-prog
 
 `.github/workflows/tui-release.yml` builds `architect-mcp-tui` for Linux, macOS, and Windows release assets. Each archive is uploaded with a `.sha256` checksum. The npm shim downloads only matching release assets and verifies the checksum before execution.
 
+`.github/workflows/tui-install-smoke.yml` runs the shim and release-binary build path across Ubuntu, macOS, and Windows on pull requests and manual dispatch. Manual OS evidence is tracked in [TUI Live QA](./tui-live-qa.md).
+
 ## GitHub Pages
 
 The docs site builds with VitePress from the existing `docs/` directory and uses `base: "/architect-mcp/"`. The Pages workflow runs on pushes to `main` and manual dispatch, installs with Node 22, builds with `npm run docs:build`, uploads `docs/.vitepress/dist`, and deploys via GitHub Pages Actions.

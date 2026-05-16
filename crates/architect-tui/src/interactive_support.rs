@@ -51,3 +51,31 @@ impl InteractiveWorkflowEngine {
         self.active()
     }
 }
+
+pub(crate) fn apply_run_evidence(session: &mut TuiSession, events: &str) {
+    for line in events.lines() {
+        let Ok(event) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        if event.get("type").and_then(Value::as_str) == Some("diff_evidence") {
+            if let Some(worktree) = event.get("worktree").and_then(Value::as_str) {
+                session.worktree = Some(worktree.into());
+            }
+            session.diff_stat = event
+                .get("diff_stat")
+                .and_then(Value::as_str)
+                .map(ToString::to_string);
+            session.changed_files = event
+                .get("changed_files")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+        }
+        if event.get("type").and_then(Value::as_str) == Some("mcp_result")
+            && let Some(name) = event.get("name").and_then(Value::as_str)
+        {
+            let result = event.get("result").cloned().unwrap_or(Value::Null);
+            session.set_gate(name, result);
+        }
+    }
+}
