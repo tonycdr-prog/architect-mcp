@@ -39,3 +39,7 @@ The final response should be specific and evidence-backed:
 - Which checks passed, failed, were skipped, or were not run.
 - Assumptions and remaining gaps.
 - No unsupported root-cause claims.
+
+## Optional MCP Integration Gate
+
+When a project brief implies external tooling, use the advanced MCP catalog after the core flow has clarified the provider and boundary. `recommend_mcp_servers` should ask when the brief only says "database" or "payments". `create_mcp_install_plan` and `review_mcp_install_plan` keep installation dry-run and reviewable before any local config write.

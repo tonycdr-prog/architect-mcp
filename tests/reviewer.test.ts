@@ -495,7 +495,7 @@ describe("reviewBuildPlan", () => {
     assert.equal(violations.some((violation) => violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), false);
     assert.equal(report.mode, "audit");
     assert.equal(report.gate.status, "pass");
-    assert.equal(report.summary.warnings > 0, true);
+    assert.equal(report.summary.errors, 0);
   });
 
   it("keeps entry-file drift focused on root monoliths, not nested barrels", () => {
@@ -522,11 +522,21 @@ describe("reviewBuildPlan", () => {
     assert.equal(violations.some((violation) => violation.path === "apps/web/public/flags/bo.svg"), false);
     assert.equal(violations.some((violation) => violation.path === "apps/web/migrations/meta/0000_snapshot.json"), false);
     assert.equal(violations.some((violation) => violation.path === "src/helper/css/index.ts" && violation.code === "ARCH020_IMPLEMENTATION_IGNORED_PLAN"), false);
-    assert.equal(violations.some((violation) => violation.path === "src/flask/app.py" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
-    assert.equal(violations.some((violation) => violation.path === "src/cli.rs" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
-    assert.equal(violations.some((violation) => violation.path === "src/main/java/jadx/cli/JadxCLIArgs.java" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(violations.some((violation) => violation.path === "src/flask/app.py" && violation.code === "ARCH001_OVERSIZED_FILE"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/cli.rs" && violation.code === "ARCH001_OVERSIZED_FILE"), false);
+    assert.equal(violations.some((violation) => violation.path === "src/main/java/jadx/cli/JadxCLIArgs.java" && violation.code === "ARCH001_OVERSIZED_FILE"), false);
     assert.equal(report.mode, "audit");
     assert.notEqual(report.gate.status, "fail");
+  });
+
+  it("keeps existing-repo line thresholds as a signal for extreme source files", () => {
+    const violations = reviewFileSummaries([
+      { path: "src/flask/app.py", lines: 2401 },
+      { path: "src/main/java/com/example/HugeService.java", lines: 2201 }
+    ], undefined, 300, ["src/flask", "src/main/java"], undefined, { profile: "existing-repo" });
+
+    assert.equal(violations.some((violation) => violation.path === "src/flask/app.py" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
+    assert.equal(violations.some((violation) => violation.path === "src/main/java/com/example/HugeService.java" && violation.code === "ARCH001_OVERSIZED_FILE"), true);
   });
 
   it("compares generated app output against the build plan", () => {

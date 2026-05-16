@@ -5,3 +5,4 @@ export type * from "./llmsTypes.js";
 export type * from "./harnessTypes.js";
 export type * from "./memoryTypes.js";
 export type * from "./skillCatalogTypes.js";
+export type * from "./mcpCatalogTypes.js";

@@ -27,8 +27,11 @@ export default defineConfig({
         items: [
           { text: "Tool Reference", link: "/tool-reference" },
           { text: "Hosted Mode", link: "/hosted-mode" },
+          { text: "MCP Integrations", link: "/mcp-integrations" },
           { text: "Stack Packs", link: "/stack-packs" },
-          { text: "Release Readiness", link: "/release-readiness" }
+          { text: "Release Readiness", link: "/release-readiness" },
+          { text: "Read-Only Smoke Matrix", link: "/read-only-smoke-matrix" },
+          { text: "Obsidian Project Memory", link: "/obsidian-project-memory" }
         ]
       },
       {

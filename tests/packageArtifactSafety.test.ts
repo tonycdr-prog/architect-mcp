@@ -13,6 +13,7 @@ describe("package artifact and generated CI safety", () => {
     assert.equal(packageJson.files.includes("scripts"), false);
     assert.equal(packageJson.files.includes("stack-sources"), false);
     assert.equal(packageJson.files.includes("stack-sources/ingested/index.json"), true);
+    assert.equal(packageJson.files.includes("mcp-catalog"), true);
     assert.equal(packageJson.scripts["precheck:v10"], "npm run build");
     assert.equal(packageJson.scripts["release:check"], "npm run check:v10");
   });
