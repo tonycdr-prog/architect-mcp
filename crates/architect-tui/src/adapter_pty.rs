@@ -8,6 +8,9 @@ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 
 use crate::adapter::{AdapterConfig, AgentEvent};
 
+const OUTPUT_LIMIT_BYTES: usize = 64 * 1024;
+const TRUNCATED_MARKER: &str = "[truncated after 65536 bytes]";
+
 #[derive(Debug, Clone)]
 pub struct PtyRunOptions {
     pub adapter_name: String,
@@ -51,32 +54,45 @@ pub fn run_adapter_pty(config: &AdapterConfig, options: PtyRunOptions) -> Result
     let (output_tx, output_rx) = mpsc::channel();
     thread::spawn(move || {
         let mut output = String::new();
+        let mut truncated = false;
         let mut buffer = [0_u8; 4096];
         loop {
             match reader.read(&mut buffer) {
                 Ok(0) => break,
                 Ok(read) => {
-                    output.push_str(&String::from_utf8_lossy(&buffer[..read]));
-                    if output.len() > 64 * 1024 {
-                        break;
+                    let remaining = OUTPUT_LIMIT_BYTES.saturating_sub(output.len());
+                    if remaining == 0 {
+                        truncated = true;
+                        continue;
+                    }
+                    let chunk = String::from_utf8_lossy(&buffer[..read]);
+                    if chunk.len() > remaining {
+                        output.push_str(&prefix_by_bytes(&chunk, remaining));
+                        truncated = true;
+                    } else {
+                        output.push_str(&chunk);
                     }
                 }
                 Err(_) => break,
             }
         }
-        let _ = output_tx.send(output);
+        if truncated {
+            output.push_str(TRUNCATED_MARKER);
+        }
+        let _ = output_tx.send((output, truncated));
     });
 
     let started = Instant::now();
     loop {
         if let Ok(Some(status)) = child.try_wait() {
             drop(pair.master);
-            let output = output_rx
+            let (output, truncated) = output_rx
                 .recv_timeout(Duration::from_millis(200))
                 .unwrap_or_default();
             events.push(AgentEvent::Output {
                 stream: "pty".to_string(),
                 text: output,
+                truncated,
             });
             events.push(AgentEvent::Completed {
                 exit_code: Some(status.exit_code() as i32),
@@ -85,12 +101,24 @@ pub fn run_adapter_pty(config: &AdapterConfig, options: PtyRunOptions) -> Result
         }
         if started.elapsed() >= options.timeout {
             let _ = child.kill();
+            let _ = child.wait();
             drop(pair.master);
             events.push(AgentEvent::TimedOut);
             return Ok(events);
         }
         thread::sleep(Duration::from_millis(20));
     }
+}
+
+fn prefix_by_bytes(text: &str, max_bytes: usize) -> String {
+    let mut out = String::new();
+    for ch in text.chars() {
+        if out.len() + ch.len_utf8() > max_bytes {
+            break;
+        }
+        out.push(ch);
+    }
+    out
 }
 
 #[cfg(test)]
@@ -148,5 +176,35 @@ mod tests {
                 .iter()
                 .any(|event| matches!(event, AgentEvent::TimedOut))
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn pty_runner_marks_truncated_output() {
+        let events = run_adapter_pty(
+            &AdapterConfig {
+                command: "sh".to_string(),
+                args: vec![
+                    "-c".to_string(),
+                    "python3 - <<'PY'\nprint('x' * 70000)\nPY".to_string(),
+                ],
+                ..AdapterConfig::default()
+            },
+            PtyRunOptions {
+                adapter_name: "shell".to_string(),
+                prompt: String::new(),
+                timeout: Duration::from_secs(2),
+            },
+        )
+        .expect("pty run");
+
+        assert!(events.iter().any(|event| matches!(
+            event,
+            AgentEvent::Output {
+                text,
+                truncated: true,
+                ..
+            } if text.contains(TRUNCATED_MARKER)
+        )));
     }
 }

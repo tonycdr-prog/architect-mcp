@@ -27,7 +27,7 @@ features:
   - title: Advanced maturity criteria
     details: Stack packs, governed MCP install plans, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
   - title: Rust TUI platform
-    details: Ratatui brings the work gate into a mouse-aware terminal client with adapter orchestration, headless JSONL, isolated worktrees, and ACP stdio mode.
+    details: Ratatui brings the live work gate into a mouse-aware terminal client with adapter readiness, guarded headless JSONL, and provisional ACP stdio mode.
   - title: Release-gated
     details: The clean-checkout release gate is npm run release:check, which includes Rust checks, typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
 ---

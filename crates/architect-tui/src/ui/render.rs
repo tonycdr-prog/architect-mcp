@@ -9,14 +9,13 @@ use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 use ratatui::{Frame, Terminal};
 
 use crate::config::TuiConfig;
 
-use super::app::{AppState, Panel};
+use super::app::{AppState, Panel, PanelLayout};
 use super::events::{RenderScheduler, handle_event};
 
 type TuiTerminal = Terminal<CrosstermBackend<Stdout>>;
@@ -30,7 +29,7 @@ pub async fn run_interactive(workspace: PathBuf, config: TuiConfig) -> Result<()
         scheduler.mark_panels(app.take_dirty());
         if scheduler.should_draw() {
             let _dirty = scheduler.take_dirty();
-            terminal.draw(|frame| render_app(frame, &app))?;
+            terminal.draw(|frame| render_app(frame, &mut app))?;
         }
         if event::poll(Duration::from_millis(config.ui.tick_millis))? {
             let quit = handle_event(&mut app, event::read()?);
@@ -72,19 +71,9 @@ fn restore_terminal(terminal: &mut TuiTerminal, mouse: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn render_app(frame: &mut Frame<'_>, app: &AppState) {
-    let root = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(8), Constraint::Length(3)])
-        .split(frame.area());
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(30),
-            Constraint::Min(50),
-            Constraint::Length(34),
-        ])
-        .split(root[0]);
+pub fn render_app(frame: &mut Frame<'_>, app: &mut AppState) {
+    let layout = PanelLayout::from_area(frame.area());
+    app.set_layout(layout);
 
     let agents: Vec<ListItem<'_>> = app
         .agents
@@ -96,7 +85,7 @@ pub fn render_app(frame: &mut Frame<'_>, app: &AppState) {
         .collect();
     frame.render_widget(
         List::new(agents).block(panel_block("Agents", app.active_panel == Panel::Sessions)),
-        columns[0],
+        layout.sessions,
     );
 
     let transcript = app.transcript.join("\n");
@@ -107,7 +96,7 @@ pub fn render_app(frame: &mut Frame<'_>, app: &AppState) {
                 app.active_panel == Panel::Transcript,
             ))
             .wrap(Wrap { trim: false }),
-        columns[1],
+        layout.transcript,
     );
 
     let inspector = format!(
@@ -127,13 +116,13 @@ pub fn render_app(frame: &mut Frame<'_>, app: &AppState) {
                 app.active_panel == Panel::Inspector,
             ))
             .wrap(Wrap { trim: false }),
-        columns[2],
+        layout.inspector,
     );
 
     frame.render_widget(
         Paragraph::new(format!("> {}", app.input))
             .block(panel_block("Command", app.active_panel == Panel::Command)),
-        root[1],
+        layout.command,
     );
 }
 
@@ -161,10 +150,11 @@ mod tests {
     fn renders_main_surfaces_to_test_backend() {
         let backend = TestBackend::new(120, 30);
         let mut terminal = Terminal::new(backend).expect("terminal");
-        let app = AppState::new(".".into(), TuiConfig::default());
+        let mut app = AppState::new(".".into(), TuiConfig::default());
         terminal
-            .draw(|frame| render_app(frame, &app))
+            .draw(|frame| render_app(frame, &mut app))
             .expect("draw");
+        assert!(app.layout.is_some());
         let buffer = terminal.backend().buffer();
         let rendered = format!("{buffer:?}");
         assert!(rendered.contains("Agents"));

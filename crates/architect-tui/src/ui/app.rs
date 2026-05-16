@@ -1,6 +1,9 @@
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+
+use crate::adapter::{AuthStatus, probe_adapter_health};
 use crate::config::TuiConfig;
 use crate::mcp::ArchitectMcpBridge;
 use crate::orchestrator::{AppBuildWorkflow, Orchestrator, workspace_name};
@@ -20,6 +23,14 @@ pub struct AgentNode {
     pub pinned: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PanelLayout {
+    pub sessions: Rect,
+    pub transcript: Rect,
+    pub inspector: Rect,
+    pub command: Rect,
+}
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub workspace: PathBuf,
@@ -31,6 +42,51 @@ pub struct AppState {
     pub input: String,
     pub dirty: BTreeSet<Panel>,
     pub workflow: AppBuildWorkflow,
+    pub layout: Option<PanelLayout>,
+}
+
+impl PanelLayout {
+    pub fn from_area(area: Rect) -> Self {
+        let root = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(8), Constraint::Length(3)])
+            .split(area);
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Length(30),
+                Constraint::Min(50),
+                Constraint::Length(34),
+            ])
+            .split(root[0]);
+        Self {
+            sessions: columns[0],
+            transcript: columns[1],
+            inspector: columns[2],
+            command: root[1],
+        }
+    }
+
+    pub fn panel_at(&self, column: u16, row: u16) -> Option<Panel> {
+        if contains(self.sessions, column, row) {
+            Some(Panel::Sessions)
+        } else if contains(self.transcript, column, row) {
+            Some(Panel::Transcript)
+        } else if contains(self.inspector, column, row) {
+            Some(Panel::Inspector)
+        } else if contains(self.command, column, row) {
+            Some(Panel::Command)
+        } else {
+            None
+        }
+    }
+
+    pub fn agent_index_at(&self, row: u16) -> Option<usize> {
+        if row <= self.sessions.y {
+            return None;
+        }
+        Some(row.saturating_sub(self.sessions.y + 1) as usize)
+    }
 }
 
 impl AppState {
@@ -40,11 +96,14 @@ impl AppState {
         let workflow = orchestrator.new_app_workflow("new app idea");
         let agents = config
             .adapters
-            .keys()
-            .map(|name| AgentNode {
-                name: name.clone(),
-                status: "ready".to_string(),
-                pinned: name == &config.agents.default_adapter,
+            .iter()
+            .map(|(name, adapter)| {
+                let health = probe_adapter_health(name, adapter);
+                AgentNode {
+                    name: name.clone(),
+                    status: agent_status(&health),
+                    pinned: name == &config.agents.default_adapter,
+                }
             })
             .collect();
         let transcript = bridge
@@ -71,7 +130,20 @@ impl AppState {
                 Panel::Command,
             ]),
             workflow,
+            layout: None,
         }
+    }
+
+    pub fn set_layout(&mut self, layout: PanelLayout) {
+        self.layout = Some(layout);
+    }
+
+    pub fn panel_at(&self, column: u16, row: u16) -> Option<Panel> {
+        self.layout.and_then(|layout| layout.panel_at(column, row))
+    }
+
+    pub fn agent_index_at(&self, row: u16) -> Option<usize> {
+        self.layout.and_then(|layout| layout.agent_index_at(row))
     }
 
     pub fn mark_dirty(&mut self, panel: Panel) {
@@ -95,7 +167,6 @@ impl AppState {
     pub fn pin_agent_at(&mut self, index: usize) {
         if let Some(agent) = self.agents.get_mut(index) {
             agent.pinned = !agent.pinned;
-            agent.status = if agent.pinned { "pinned" } else { "ready" }.to_string();
             self.mark_dirty(Panel::Sessions);
         }
     }
@@ -118,5 +189,26 @@ impl AppState {
         self.input.clear();
         self.mark_dirty(Panel::Transcript);
         self.mark_dirty(Panel::Command);
+    }
+}
+
+fn contains(rect: Rect, column: u16, row: u16) -> bool {
+    column >= rect.x
+        && column < rect.x.saturating_add(rect.width)
+        && row >= rect.y
+        && row < rect.y.saturating_add(rect.height)
+}
+
+fn agent_status(health: &crate::adapter::AdapterHealth) -> String {
+    if !health.installed {
+        return "unavailable".to_string();
+    }
+    if health.ready {
+        return "ready".to_string();
+    }
+    match health.auth_status {
+        AuthStatus::NeedsLogin => "needs login".to_string(),
+        AuthStatus::Unknown => "auth unknown".to_string(),
+        AuthStatus::Authenticated | AuthStatus::NotApplicable => "ready".to_string(),
     }
 }

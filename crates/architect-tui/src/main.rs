@@ -33,6 +33,8 @@ enum Commands {
         jsonl: bool,
         #[arg(long, default_value_t = 1)]
         concurrency: usize,
+        #[arg(long)]
+        execute: bool,
     },
     /// Serve an Agent Client Protocol endpoint over stdio.
     Acp {
@@ -65,6 +67,7 @@ async fn main() -> Result<()> {
             adapter,
             jsonl,
             concurrency,
+            execute,
         }) => {
             let orchestrator = Orchestrator::new(workspace, config);
             orchestrator
@@ -73,6 +76,7 @@ async fn main() -> Result<()> {
                     adapter,
                     jsonl,
                     concurrency,
+                    execute,
                 })
                 .await?;
         }
@@ -85,7 +89,7 @@ async fn main() -> Result<()> {
         Some(Commands::Config { command }) => match command {
             ConfigCommand::Init { force } => TuiConfig::init(&paths, force)?,
             ConfigCommand::Doctor => TuiConfig::doctor(&paths, &config)?,
-            ConfigCommand::Adapters => print_adapter_table(&config.adapters)?,
+            ConfigCommand::Adapters { json } => print_adapter_table(&config.adapters, json)?,
         },
         None => run_interactive(workspace, config).await?,
     }

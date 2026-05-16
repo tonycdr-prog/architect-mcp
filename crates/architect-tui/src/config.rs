@@ -84,7 +84,10 @@ pub enum ConfigCommand {
     /// Validate merged user and repo config.
     Doctor,
     /// Probe configured adapters.
-    Adapters,
+    Adapters {
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 impl Default for ArchitectMcpConfig {

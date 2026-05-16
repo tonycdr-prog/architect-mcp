@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::config::TuiConfig;
+pub use crate::mcp_client::{McpResponseError, McpToolOutcome, StdioMcpClient};
 
 pub const CORE_WORK_GATE_TOOLS: [&str; 6] = [
     "grill_me",

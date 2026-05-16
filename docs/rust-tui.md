@@ -1,6 +1,6 @@
 # Rust TUI
 
-`architect-mcp-tui` is a Ratatui and crossterm terminal client for architect-mcp. It keeps the TypeScript MCP server as the work-gate source of truth, then adds a local UI for intake, plan review, file-plan approval, adapter execution, verification, and final/session review.
+`architect-mcp-tui` is a Ratatui and crossterm terminal client for architect-mcp. It keeps the TypeScript MCP server as the work-gate source of truth, then adds a local UI and headless runner for intake, plan review, adapter readiness, and guarded agent execution.
 
 ## Install
 
@@ -34,11 +34,19 @@ Headless JSONL run:
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
 ```
 
+Headless mode is gate-only by default. It calls live architect-mcp tools and stops before adapter execution unless `--execute` is supplied:
+
+```bash
+architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl --execute
+```
+
 ACP stdio server:
 
 ```bash
 architect-mcp-tui acp --stdio
 ```
+
+ACP mode is currently a provisional JSON-RPC compatibility surface for early client testing, not a full ACP conformance claim.
 
 Config commands:
 
@@ -46,40 +54,43 @@ Config commands:
 architect-mcp-tui config init
 architect-mcp-tui config doctor
 architect-mcp-tui config adapters
+architect-mcp-tui config adapters --json
 ```
 
 ## Work Gate
 
-Every coding and app-building loop is routed through the architect-mcp work gate:
+Every coding and app-building loop starts with the architect-mcp work gate:
 
 1. `grill_me`
 2. `create_pre_edit_contract`
 3. `review_build_plan`
 4. `review_proposed_file_plan`
-5. adapter execution
+5. adapter execution only after explicit approval or `--execute`
 6. `review_implementation_against_contract`
 7. verification evidence
 8. `review_agent_final_response`
 9. `review_agent_session`
 
-The TUI starts architect-mcp with `ARCHITECT_MCP_TOOL_SURFACE=advanced` so the guarded Integrations panel can access catalog and install-plan review tools while local-only tools stay behind local execution boundaries.
+The headless runner starts architect-mcp with `ARCHITECT_MCP_TOOL_SURFACE=advanced`, calls `grill_me` over stdio first, and stops with `approval_required` when the brief is incomplete. If the brief is ready, it calls `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan`, then pauses before any adapter process unless `--execute` is present.
 
 ## Interface
 
 The main layout has four surfaces:
 
 - Left: session and agent tree.
-- Center: transcript, plan, and diff panel.
+- Center: transcript and plan panel.
 - Right: inspector for gates, adapters, and approval state.
 - Bottom: command palette and prompt input.
 
-Mouse capture supports click, drag, scroll, tab switching, agent pinning, and approval actions. The renderer coalesces dirty widgets and relies on Ratatui backend diffing instead of clearing the screen after startup.
+Mouse capture supports layout-aware click, drag, scroll, tab switching, and agent pinning. Approval buttons and diff promotion are planned workflow actions, not release-ready behavior yet.
+
+The render scheduler coalesces redraw requests and relies on Ratatui backend diffing instead of clearing the screen after startup. It does not perform true widget-level partial painting.
 
 ## Adapters
 
-Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing.
+Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing. Codex also reports auth state from `codex login status`; it is ready only when the command succeeds and reports `Logged in`. Other authenticated CLIs remain `auth unknown` until reliable probes are added.
 
-Agents run in a PTY by default. Parallel and arena flows use isolated git worktrees by default. Shared-workspace mode requires explicit confirmation in the UI.
+Agents run in a PTY by default when execution is explicitly enabled. PTY output is capped with an explicit truncation marker. Parallel, arena, and worktree promotion flows are still production-readiness follow-up work.
 
 ## Config
 

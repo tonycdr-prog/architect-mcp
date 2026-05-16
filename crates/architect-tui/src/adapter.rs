@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
-use std::process::Command;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+pub use crate::adapter_health::{
+    AdapterHealth, AuthStatus, adapter_healths, codex_auth_status_from_output, print_adapter_table,
+    probe_adapter_health,
+};
 pub use crate::adapter_pty::{PtyRunOptions, run_adapter_pty};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -26,13 +29,24 @@ pub struct AdapterProbe {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum AgentEvent {
-    Started { adapter: String },
-    Output { stream: String, text: String },
-    Completed { exit_code: Option<i32> },
+    Started {
+        adapter: String,
+    },
+    Output {
+        stream: String,
+        text: String,
+        truncated: bool,
+    },
+    Completed {
+        exit_code: Option<i32>,
+    },
     TimedOut,
     Cancelled,
-    Crashed { message: String },
+    Crashed {
+        message: String,
+    },
 }
 
 impl Default for AdapterConfig {
@@ -121,53 +135,13 @@ fn default_shell() -> &'static str {
 }
 
 pub fn probe_adapter(name: &str, config: &AdapterConfig) -> AdapterProbe {
-    if config.available == Some(false) {
-        return AdapterProbe {
-            name: name.to_string(),
-            command: config.command.clone(),
-            available: false,
-            version: None,
-        };
+    let health = probe_adapter_health(name, config);
+    AdapterProbe {
+        name: health.name,
+        command: health.command,
+        available: health.installed,
+        version: health.version,
     }
-
-    let output = Command::new(&config.command).arg("--version").output();
-    match output {
-        Ok(output) if output.status.success() => {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let version = stdout
-                .lines()
-                .chain(stderr.lines())
-                .find(|line| !line.trim().is_empty())
-                .map(|line| line.trim().to_string());
-            AdapterProbe {
-                name: name.to_string(),
-                command: config.command.clone(),
-                available: true,
-                version,
-            }
-        }
-        _ => AdapterProbe {
-            name: name.to_string(),
-            command: config.command.clone(),
-            available: false,
-            version: None,
-        },
-    }
-}
-
-pub fn print_adapter_table(adapters: &BTreeMap<String, AdapterConfig>) -> Result<()> {
-    for (name, adapter) in adapters {
-        let probe = probe_adapter(name, adapter);
-        let status = if probe.available {
-            "available"
-        } else {
-            "unavailable"
-        };
-        let version = probe.version.unwrap_or_else(|| "-".to_string());
-        println!("{name}\t{}\t{status}\t{version}", adapter.command);
-    }
-    Ok(())
 }
 
 #[cfg(test)]

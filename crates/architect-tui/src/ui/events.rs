@@ -70,26 +70,35 @@ pub fn handle_event(app: &mut AppState, event: Event) -> bool {
         },
         Event::Mouse(mouse) => match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
-                if mouse.column < 30 {
-                    let index = mouse.row.saturating_sub(3) as usize;
-                    app.pin_agent_at(index);
-                    app.active_panel = Panel::Sessions;
-                } else if mouse.column > 90 {
-                    app.active_panel = Panel::Inspector;
-                    app.mark_dirty(Panel::Inspector);
-                } else {
-                    app.active_panel = Panel::Transcript;
-                    app.mark_dirty(Panel::Transcript);
+                if let Some(panel) = app.panel_at(mouse.column, mouse.row) {
+                    app.active_panel = panel;
+                    match panel {
+                        Panel::Sessions => {
+                            if let Some(index) = app.agent_index_at(mouse.row) {
+                                app.pin_agent_at(index);
+                            }
+                        }
+                        Panel::Transcript | Panel::Inspector | Panel::Command => {
+                            app.mark_dirty(panel);
+                        }
+                    }
                 }
             }
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
-                app.transcript.push("scroll: transcript".to_string());
-                app.mark_dirty(Panel::Transcript);
+                let panel = app
+                    .panel_at(mouse.column, mouse.row)
+                    .unwrap_or(Panel::Transcript);
+                if panel == Panel::Transcript {
+                    app.transcript.push("scroll: transcript".to_string());
+                    app.mark_dirty(Panel::Transcript);
+                }
             }
             MouseEventKind::Drag(MouseButton::Left) => {
-                app.inspector
-                    .push(format!("drag: {},{}", mouse.column, mouse.row));
-                app.mark_dirty(Panel::Inspector);
+                if app.panel_at(mouse.column, mouse.row) == Some(Panel::Inspector) {
+                    app.inspector
+                        .push(format!("drag: {},{}", mouse.column, mouse.row));
+                    app.mark_dirty(Panel::Inspector);
+                }
             }
             _ => {}
         },
@@ -112,6 +121,7 @@ mod tests {
     use super::*;
     use crate::config::TuiConfig;
     use crossterm::event::{KeyEvent, KeyModifiers, MouseEvent};
+    use ratatui::layout::Rect;
 
     #[test]
     fn key_events_update_input_and_submit() {
@@ -132,12 +142,15 @@ mod tests {
     #[test]
     fn mouse_click_pins_agent_and_drag_updates_inspector() {
         let mut app = AppState::new(".".into(), TuiConfig::default());
+        app.set_layout(super::super::app::PanelLayout::from_area(Rect::new(
+            0, 0, 120, 30,
+        )));
         handle_event(
             &mut app,
             Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: 2,
-                row: 3,
+                row: 1,
                 modifiers: KeyModifiers::NONE,
             }),
         );
