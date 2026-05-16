@@ -30,13 +30,14 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
         format!("adapter: {}", session.adapter),
         format!("gates: {}", session.gates.len()),
         format!("verification: {}", session.verification.len()),
+        format!("approval: {:?}", session.approval_status),
     ]
 }
 
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, answer key=value, grill, contract, review plan, review files, run adapter, record verification check=status, final review <text>, session review".to_string(),
+            "commands: new app <idea>, answer key=value, grill, contract, review plan, review files, run adapter, approve [reason], reject [reason], override [reason], promote, arena rank, record verification check=status, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,

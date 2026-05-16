@@ -23,6 +23,16 @@ pub enum SessionPhase {
     Cancelled,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalStatus {
+    Pending,
+    Approved,
+    Rejected,
+    Promoted,
+    Override,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TuiSession {
@@ -36,6 +46,10 @@ pub struct TuiSession {
     pub worktree: Option<PathBuf>,
     pub diff_stat: Option<String>,
     pub changed_files: Vec<Value>,
+    #[serde(default)]
+    pub adapter_crashed: bool,
+    pub approval_status: ApprovalStatus,
+    pub approval_reason: Option<String>,
     pub created_at: u64,
     pub updated_at: u64,
 }
@@ -55,6 +69,9 @@ impl TuiSession {
             worktree: None,
             diff_stat: None,
             changed_files: Vec::new(),
+            adapter_crashed: false,
+            approval_status: ApprovalStatus::Pending,
+            approval_reason: None,
             created_at: now,
             updated_at: now,
         }
@@ -71,6 +88,36 @@ impl TuiSession {
     pub fn set_gate(&mut self, name: &str, value: Value) {
         self.gates.insert(name.to_string(), value);
         self.updated_at = unix_timestamp();
+    }
+
+    pub fn approve(&mut self, reason: impl Into<String>) {
+        self.approval_status = ApprovalStatus::Approved;
+        self.approval_reason = Some(reason.into());
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn reject(&mut self, reason: impl Into<String>) {
+        self.approval_status = ApprovalStatus::Rejected;
+        self.approval_reason = Some(reason.into());
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn override_approval(&mut self, reason: impl Into<String>) {
+        self.approval_status = ApprovalStatus::Override;
+        self.approval_reason = Some(reason.into());
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn mark_promoted(&mut self) {
+        self.approval_status = ApprovalStatus::Promoted;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn can_promote(&self) -> bool {
+        matches!(
+            self.approval_status,
+            ApprovalStatus::Approved | ApprovalStatus::Override
+        )
     }
 }
 
@@ -133,5 +180,15 @@ mod tests {
         let loaded = store.load(&session.id).expect("load");
         assert_eq!(loaded.prompt, "build a recipe app");
         assert_eq!(loaded.brief["users"], "home cooks");
+    }
+
+    #[test]
+    fn approval_state_controls_promotion_readiness() {
+        let mut session = TuiSession::new("build a recipe app", "codex");
+        assert!(!session.can_promote());
+        session.approve("review gates passed");
+        assert!(session.can_promote());
+        session.mark_promoted();
+        assert_eq!(session.approval_status, ApprovalStatus::Promoted);
     }
 }

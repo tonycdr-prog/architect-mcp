@@ -7,6 +7,11 @@ pub enum WorkflowCommand {
     ReviewPlan,
     ReviewFiles,
     RunAdapter,
+    Approve(String),
+    Reject(String),
+    Override(String),
+    Promote,
+    ArenaRank,
     RecordVerification { check: String, status: String },
     FinalReview(String),
     SessionReview,
@@ -33,8 +38,22 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "review plan" => WorkflowCommand::ReviewPlan,
         "review files" | "review file plan" => WorkflowCommand::ReviewFiles,
         "run adapter" => WorkflowCommand::RunAdapter,
+        "approve" => WorkflowCommand::Approve("approved in TUI".to_string()),
+        "reject" => WorkflowCommand::Reject("rejected in TUI".to_string()),
+        "override" => WorkflowCommand::Override("manual TUI override".to_string()),
+        "promote" => WorkflowCommand::Promote,
+        "arena rank" => WorkflowCommand::ArenaRank,
         "session review" => WorkflowCommand::SessionReview,
         "cancel" => WorkflowCommand::Cancel,
+        _ if trimmed.starts_with("approve ") => {
+            WorkflowCommand::Approve(trimmed["approve ".len()..].trim().to_string())
+        }
+        _ if trimmed.starts_with("reject ") => {
+            WorkflowCommand::Reject(trimmed["reject ".len()..].trim().to_string())
+        }
+        _ if trimmed.starts_with("override ") => {
+            WorkflowCommand::Override(trimmed["override ".len()..].trim().to_string())
+        }
         _ if trimmed.starts_with("record verification ") => parse_verification(trimmed),
         _ if trimmed.starts_with("final review ") => {
             WorkflowCommand::FinalReview(trimmed["final review ".len()..].trim().to_string())
@@ -74,6 +93,18 @@ mod tests {
         assert_eq!(
             parse_workflow_command("review files"),
             WorkflowCommand::ReviewFiles
+        );
+        assert_eq!(
+            parse_workflow_command("approve review gates passed"),
+            WorkflowCommand::Approve("review gates passed".to_string())
+        );
+        assert_eq!(
+            parse_workflow_command("arena rank"),
+            WorkflowCommand::ArenaRank
+        );
+        assert_eq!(
+            parse_workflow_command("override maintainer accepted known warning"),
+            WorkflowCommand::Override("maintainer accepted known warning".to_string())
         );
     }
 }
