@@ -11,6 +11,9 @@ pub enum WorkflowCommand {
     Reject(String),
     Override(String),
     Promote,
+    DiffSummary,
+    DiffFile(String),
+    ArenaRun(Vec<String>),
     ArenaRank,
     RecordVerification { check: String, status: String },
     FinalReview(String),
@@ -42,6 +45,7 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "reject" => WorkflowCommand::Reject("rejected in TUI".to_string()),
         "override" => WorkflowCommand::Override("manual TUI override".to_string()),
         "promote" => WorkflowCommand::Promote,
+        "diff" | "diff summary" => WorkflowCommand::DiffSummary,
         "arena rank" => WorkflowCommand::ArenaRank,
         "session review" => WorkflowCommand::SessionReview,
         "cancel" => WorkflowCommand::Cancel,
@@ -54,12 +58,27 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         _ if trimmed.starts_with("override ") => {
             WorkflowCommand::Override(trimmed["override ".len()..].trim().to_string())
         }
+        _ if trimmed.starts_with("diff file ") => {
+            WorkflowCommand::DiffFile(trimmed["diff file ".len()..].trim().to_string())
+        }
+        _ if trimmed.starts_with("arena run ") => {
+            WorkflowCommand::ArenaRun(parse_adapters(&trimmed["arena run ".len()..]))
+        }
         _ if trimmed.starts_with("record verification ") => parse_verification(trimmed),
         _ if trimmed.starts_with("final review ") => {
             WorkflowCommand::FinalReview(trimmed["final review ".len()..].trim().to_string())
         }
         _ => WorkflowCommand::Help,
     }
+}
+
+fn parse_adapters(value: &str) -> Vec<String> {
+    value
+        .split([',', ' '])
+        .map(str::trim)
+        .filter(|adapter| !adapter.is_empty())
+        .map(ToString::to_string)
+        .collect()
 }
 
 fn parse_verification(input: &str) -> WorkflowCommand {
@@ -101,6 +120,14 @@ mod tests {
         assert_eq!(
             parse_workflow_command("arena rank"),
             WorkflowCommand::ArenaRank
+        );
+        assert_eq!(
+            parse_workflow_command("arena run codex, shell"),
+            WorkflowCommand::ArenaRun(vec!["codex".to_string(), "shell".to_string()])
+        );
+        assert_eq!(
+            parse_workflow_command("diff file docs/live-qa.md"),
+            WorkflowCommand::DiffFile("docs/live-qa.md".to_string())
         );
         assert_eq!(
             parse_workflow_command("override maintainer accepted known warning"),

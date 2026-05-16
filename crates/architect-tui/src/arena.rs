@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -29,6 +30,33 @@ pub struct RankedArenaCandidate {
     pub reasons: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ArenaCandidateRecord {
+    pub adapter: String,
+    pub worktree: Option<String>,
+    pub review_status: ArenaReviewStatus,
+    pub verification_passed: bool,
+    pub diff_size: u64,
+    pub contract_drift: bool,
+    pub crashed: bool,
+    pub changed_files: Vec<Value>,
+    pub summary: Vec<String>,
+}
+
+impl ArenaCandidateRecord {
+    pub fn as_input(&self) -> ArenaCandidateInput {
+        ArenaCandidateInput {
+            adapter: self.adapter.clone(),
+            review_status: self.review_status.clone(),
+            verification_passed: self.verification_passed,
+            diff_size: self.diff_size,
+            contract_drift: self.contract_drift,
+            crashed: self.crashed,
+        }
+    }
+}
+
 pub fn rank_arena_candidates(candidates: Vec<ArenaCandidateInput>) -> Vec<RankedArenaCandidate> {
     let mut ranked = candidates
         .into_iter()
@@ -44,6 +72,15 @@ pub fn rank_arena_candidates(candidates: Vec<ArenaCandidateInput>) -> Vec<Ranked
         candidate.rank = index + 1;
     }
     ranked
+}
+
+pub fn rank_arena_records(candidates: &[ArenaCandidateRecord]) -> Vec<RankedArenaCandidate> {
+    rank_arena_candidates(
+        candidates
+            .iter()
+            .map(ArenaCandidateRecord::as_input)
+            .collect(),
+    )
 }
 
 fn score_candidate(candidate: ArenaCandidateInput) -> RankedArenaCandidate {
@@ -132,5 +169,35 @@ mod tests {
                 .iter()
                 .any(|reason| reason == "adapter crashed or timed out")
         );
+    }
+
+    #[test]
+    fn arena_records_rank_with_same_scoring_model() {
+        let ranked = rank_arena_records(&[
+            ArenaCandidateRecord {
+                adapter: "codex".to_string(),
+                worktree: Some(".architect-mcp/worktrees/session/codex".to_string()),
+                review_status: ArenaReviewStatus::Pass,
+                verification_passed: true,
+                diff_size: 12,
+                contract_drift: false,
+                crashed: false,
+                changed_files: Vec::new(),
+                summary: Vec::new(),
+            },
+            ArenaCandidateRecord {
+                adapter: "shell".to_string(),
+                worktree: Some(".architect-mcp/worktrees/session/shell".to_string()),
+                review_status: ArenaReviewStatus::Fail,
+                verification_passed: false,
+                diff_size: 0,
+                contract_drift: true,
+                crashed: false,
+                changed_files: Vec::new(),
+                summary: Vec::new(),
+            },
+        ]);
+        assert_eq!(ranked[0].adapter, "codex");
+        assert_eq!(ranked[1].adapter, "shell");
     }
 }

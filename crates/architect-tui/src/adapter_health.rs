@@ -44,7 +44,7 @@ pub fn probe_adapter_health(name: &str, config: &AdapterConfig) -> AdapterHealth
             detail: "disabled by configuration".to_string(),
         };
     }
-    if name == "shell" {
+    if is_shell_adapter(name, &config.command) {
         return probe_shell_health(name, config);
     }
 
@@ -158,7 +158,7 @@ pub fn print_adapter_table(adapters: &BTreeMap<String, AdapterConfig>, json: boo
 }
 
 fn probe_adapter_auth(name: &str, config: &AdapterConfig) -> (AuthStatus, Option<String>) {
-    if name == "shell" {
+    if is_shell_adapter(name, &config.command) {
         return (AuthStatus::NotApplicable, Some("shell adapter".to_string()));
     }
     if is_codex_adapter(name, &config.command) {
@@ -170,17 +170,28 @@ fn probe_adapter_auth(name: &str, config: &AdapterConfig) -> (AuthStatus, Option
     )
 }
 
+fn is_shell_adapter(name: &str, command: &str) -> bool {
+    name.eq_ignore_ascii_case("shell")
+        || Path::new(command)
+            .file_name()
+            .and_then(|file_name| file_name.to_str())
+            .is_some_and(|file_name| {
+                matches!(
+                    file_name.to_ascii_lowercase().as_str(),
+                    "sh" | "bash" | "zsh" | "fish" | "pwsh" | "powershell" | "cmd" | "cmd.exe"
+                )
+            })
+}
+
 fn is_codex_adapter(name: &str, command: &str) -> bool {
-    if name.eq_ignore_ascii_case("codex") {
-        return true;
-    }
-    Path::new(command)
-        .file_name()
-        .and_then(|file_name| file_name.to_str())
-        .map(|file_name| {
-            file_name.eq_ignore_ascii_case("codex") || file_name.eq_ignore_ascii_case("codex.exe")
-        })
-        .unwrap_or(false)
+    name.eq_ignore_ascii_case("codex")
+        || Path::new(command)
+            .file_name()
+            .and_then(|file_name| file_name.to_str())
+            .is_some_and(|file_name| {
+                file_name.eq_ignore_ascii_case("codex")
+                    || file_name.eq_ignore_ascii_case("codex.exe")
+            })
 }
 
 fn probe_codex_auth(command: &str) -> (AuthStatus, Option<String>) {
