@@ -268,6 +268,12 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
             .contains("record passed verification")
     );
 
+    let status = engine
+        .apply_input("verification status")
+        .await
+        .expect("verification status");
+    assert!(status.transcript.join("\n").contains("npm test=not_run"));
+
     let bad_status = engine
         .apply_input("record verification npm test=blocked")
         .await
@@ -278,10 +284,25 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
             .contains("verification status must be one of")
     );
 
+    let unknown_check = engine
+        .apply_input("record verification npm run test=passed")
+        .await
+        .expect_err("unknown verification check");
+    assert!(
+        unknown_check
+            .to_string()
+            .contains("verification check is not required")
+    );
+
     engine
         .apply_input("record verification npm test=failed")
         .await
         .expect("failed verification recorded");
+    let status = engine
+        .apply_input("verification")
+        .await
+        .expect("verification status");
+    assert!(status.transcript.join("\n").contains("npm test=failed"));
     let still_blocked = engine
         .apply_input("final review Changed files: docs/approved-run.md. Verification: npm test passed. Assumptions: isolated review. Not done: promotion remains pending.")
         .await
@@ -292,6 +313,16 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
         .apply_input("record verification npm test=passed")
         .await
         .expect("passed verification recorded");
+    let status = engine
+        .apply_input("verification")
+        .await
+        .expect("verification status");
+    assert!(
+        status
+            .transcript
+            .join("\n")
+            .contains("verification: 1/1 passed")
+    );
     let session_before_final = engine
         .apply_input("session review")
         .await

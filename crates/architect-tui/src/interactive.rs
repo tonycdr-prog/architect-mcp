@@ -4,8 +4,8 @@ use crate::interactive_update::{help_update, inspector_for, update};
 use crate::orchestrator::Orchestrator;
 use crate::session::{SessionPhase, SessionStore, TuiSession};
 use crate::verification::{
-    ensure_verification_passed, normalize_verification_status, required_checks,
-    verification_records,
+    ensure_known_verification_check, ensure_verification_passed, normalize_verification_status,
+    required_checks, verification_records, verification_summary_lines,
 };
 use anyhow::Result;
 use serde_json::{Map, Value, json};
@@ -43,6 +43,7 @@ impl InteractiveWorkflowEngine {
             WorkflowCommand::DiffFile(path) => self.diff_file(&path),
             WorkflowCommand::ArenaRun(adapters) => self.arena_run(adapters).await,
             WorkflowCommand::ArenaRank => self.arena_rank(),
+            WorkflowCommand::VerificationStatus => self.verification_status(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)
             }
@@ -75,6 +76,8 @@ impl InteractiveWorkflowEngine {
         }
         let normalized = normalize_verification_status(status)?;
         let session = self.active()?;
+        let check = check.trim();
+        ensure_known_verification_check(session, check)?;
         if session.worktree.is_none()
             || !matches!(
                 session.phase,
@@ -90,6 +93,15 @@ impl InteractiveWorkflowEngine {
         })?;
         Ok(update(
             vec![format!("verification recorded: {check}={normalized}")],
+            inspector_for(session),
+            Some(session.clone()),
+        ))
+    }
+
+    fn verification_status(&self) -> Result<WorkflowUpdate> {
+        let session = self.active()?;
+        Ok(update(
+            verification_summary_lines(session),
             inspector_for(session),
             Some(session.clone()),
         ))
