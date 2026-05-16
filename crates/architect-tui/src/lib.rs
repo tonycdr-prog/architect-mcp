@@ -19,6 +19,7 @@ mod interactive_approval;
 mod interactive_arena;
 mod interactive_commands;
 mod interactive_diff;
+mod interactive_gate_flow;
 mod interactive_support;
 mod interactive_update;
 pub mod mcp;

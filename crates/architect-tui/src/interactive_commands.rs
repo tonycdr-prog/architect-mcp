@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkflowCommand {
     NewApp(String),
+    Resume(String),
     Answer { key: String, value: String },
     Grill,
     CreateContract,
@@ -26,6 +27,12 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
     let trimmed = input.trim();
     if let Some(idea) = trimmed.strip_prefix("new app ") {
         return WorkflowCommand::NewApp(idea.trim().to_string());
+    }
+    if let Some(id) = trimmed
+        .strip_prefix("resume ")
+        .or_else(|| trimmed.strip_prefix("load session "))
+    {
+        return WorkflowCommand::Resume(id.trim().to_string());
     }
     if let Some(answer) = trimmed.strip_prefix("answer ")
         && let Some((key, value)) = answer.split_once('=')
@@ -112,6 +119,10 @@ mod tests {
         assert_eq!(
             parse_workflow_command("review files"),
             WorkflowCommand::ReviewFiles
+        );
+        assert_eq!(
+            parse_workflow_command("resume abc-123"),
+            WorkflowCommand::Resume("abc-123".to_string())
         );
         assert_eq!(
             parse_workflow_command("approve review gates passed"),

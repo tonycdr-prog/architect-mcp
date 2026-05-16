@@ -30,6 +30,12 @@ async fn headless_execute_uses_isolated_worktree_and_review_gates() {
         return;
     };
     init_git_repo(_temp.path());
+    std::fs::create_dir_all(_temp.path().join("docs")).expect("docs dir");
+    std::fs::write(
+        _temp.path().join("docs/main-dirty.md"),
+        "not adapter work\n",
+    )
+    .expect("dirty main workspace file");
     let mut shell = orchestrator
         .config_mut()
         .adapters
@@ -79,6 +85,13 @@ async fn headless_execute_uses_isolated_worktree_and_review_gates() {
             .contains(".architect-mcp/worktrees")
     );
     assert_eq!(diff["changed_files"][0]["path"], "docs/live-qa.md");
+    assert!(
+        !diff["changed_files"]
+            .as_array()
+            .expect("changed files")
+            .iter()
+            .any(|file| file["path"] == "docs/main-dirty.md")
+    );
     assert!(
         events
             .iter()
@@ -138,6 +151,91 @@ async fn interactive_approval_commands_cover_reject_cancel_and_failed_review() {
         update.session.expect("session").phase,
         SessionPhase::Cancelled
     );
+}
+
+#[tokio::test]
+async fn interactive_flow_blocks_until_grill_is_ready_and_shows_blockers() {
+    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app build an app")
+        .await
+        .expect("new app");
+    let missing_grill = engine.apply_input("contract").await.expect_err("blocked");
+    assert!(missing_grill.to_string().contains("run grill"));
+
+    let update = engine.apply_input("grill").await.expect("grill");
+    let transcript = update.transcript.join("\n");
+    assert!(transcript.contains("grill_me: needs input"));
+    assert!(transcript.contains("blocker: Missing users"));
+    assert!(transcript.contains("next question: Who uses it?"));
+    assert_eq!(
+        update.session.expect("session").phase,
+        SessionPhase::IntakeBlocked
+    );
+
+    let blocked_contract = engine.apply_input("contract").await.expect_err("blocked");
+    assert!(
+        blocked_contract
+            .to_string()
+            .contains("grill_me must be ready before this command")
+    );
+}
+
+#[tokio::test]
+async fn interactive_ready_flow_enforces_gate_order_and_persists_resume() {
+    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator.clone());
+
+    let created = engine
+        .apply_input("new app ready app with users flows stack risks verification")
+        .await
+        .expect("new app");
+    let session_id = created.session.expect("session").id;
+
+    let adapter_blocked = engine
+        .apply_input("run adapter")
+        .await
+        .expect_err("blocked");
+    assert!(
+        adapter_blocked
+            .to_string()
+            .contains("review files before run adapter")
+    );
+    engine.apply_input("grill").await.expect("grill");
+    let files_before_plan = engine
+        .apply_input("review files")
+        .await
+        .expect_err("blocked");
+    assert!(
+        files_before_plan
+            .to_string()
+            .contains("review plan before review files")
+    );
+    engine.apply_input("contract").await.expect("contract");
+    engine.apply_input("review plan").await.expect("plan");
+    let update = engine.apply_input("review files").await.expect("files");
+    let session = update.session.expect("session");
+    assert_eq!(session.phase, SessionPhase::FilePlanReviewed);
+    assert!(session.gates.contains_key("grill_me"));
+    assert!(session.gates.contains_key("create_pre_edit_contract"));
+    assert!(session.gates.contains_key("review_build_plan"));
+    assert!(session.gates.contains_key("review_proposed_file_plan"));
+
+    let mut resumed = InteractiveWorkflowEngine::new(orchestrator);
+    let update = resumed
+        .apply_input(&format!("resume {session_id}"))
+        .await
+        .expect("resume");
+    let session = update.session.expect("session");
+    assert_eq!(session.id, session_id);
+    assert_eq!(session.phase, SessionPhase::FilePlanReviewed);
+    assert!(update.transcript.join("\n").contains("session resumed"));
 }
 
 #[cfg(unix)]

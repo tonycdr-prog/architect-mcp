@@ -43,3 +43,5 @@ The final response should be specific and evidence-backed:
 ## Optional MCP Integration Gate
 
 When a project brief implies external tooling, use the advanced MCP catalog after the core flow has clarified the provider and boundary. `recommend_mcp_servers` should ask when the brief only says "database" or "payments". `create_mcp_install_plan` and `review_mcp_install_plan` keep installation dry-run and reviewable before any local config write.
+
+For a concrete repository-creation walkthrough, see [New App Through The Work Gate](./new-app-work-gate.md).

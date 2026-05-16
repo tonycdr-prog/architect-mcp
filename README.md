@@ -112,6 +112,7 @@ See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config
 - [Getting Started](https://tonycdr-prog.github.io/architect-mcp/getting-started)
 - [MCP Client Setup](https://tonycdr-prog.github.io/architect-mcp/mcp-client-setup)
 - [Core Work Gate](https://tonycdr-prog.github.io/architect-mcp/core-work-gate)
+- [New App Work Gate](https://tonycdr-prog.github.io/architect-mcp/new-app-work-gate)
 - [Tool Reference](https://tonycdr-prog.github.io/architect-mcp/tool-reference)
 - [Hosted Mode](https://tonycdr-prog.github.io/architect-mcp/hosted-mode)
 - [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)

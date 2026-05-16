@@ -13,6 +13,9 @@ hero:
       text: Core Flow
       link: /core-work-gate
     - theme: alt
+      text: New App Flow
+      link: /new-app-work-gate
+    - theme: alt
       text: Tool Reference
       link: /tool-reference
     - theme: alt
@@ -60,6 +63,7 @@ architect-mcp
 - [Getting Started](/getting-started)
 - [MCP Client Setup](/mcp-client-setup)
 - [Core Work Gate](/core-work-gate)
+- [New App Work Gate](/new-app-work-gate)
 - [Hosted Mode](/hosted-mode)
 - [MCP Integrations](/mcp-integrations)
 - [Rust TUI](/rust-tui)
