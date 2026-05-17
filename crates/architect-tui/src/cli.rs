@@ -67,6 +67,8 @@ pub enum Commands {
         source: Option<String>,
         #[arg(long)]
         notes: Option<String>,
+        #[arg(long, value_name = "YYYY-MM-DD")]
+        collected_at: Option<String>,
     },
     /// Run a scripted interactive command-palette walkthrough in a throwaway workspace.
     Walkthrough {

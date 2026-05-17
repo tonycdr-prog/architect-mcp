@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for testing in a real terminal. On Linux and Windows, run `architect-mcp-tui terminal-evidence --markdown` and paste that public-safe issue comment below. Use `architect-mcp-tui terminal-evidence --json` only when a maintainer asks for a local file. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
+        Thanks for testing in a real terminal. On Linux and Windows, run `architect-mcp-tui terminal-evidence --markdown` and paste that public-safe issue comment below. The command fills `collectedAt` automatically. Use `architect-mcp-tui terminal-evidence --json` only when a maintainer asks for a local file. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
   - type: dropdown
     id: platform
     attributes:
@@ -56,6 +56,7 @@ body:
               "status": "passed",
               "source": "REPLACE with public issue or PR link for this real terminal run",
               "commandSummary": "REPLACE with commands that passed or failed on this real machine",
+              "collectedAt": "YYYY-MM-DD",
               "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
             }
           ]
