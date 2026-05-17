@@ -66,6 +66,84 @@ pub(crate) fn build_promotion_receipt(
     }
 }
 
+pub fn promotion_receipt_lines(session: &TuiSession) -> Vec<String> {
+    let Some(receipt) = &session.promotion_receipt else {
+        return vec![
+            "promotion receipt: missing".to_string(),
+            "next: promote approved changes before inspecting a receipt".to_string(),
+        ];
+    };
+    let mut lines = vec![
+        "promotion receipt: recorded".to_string(),
+        format!("decision: {}", receipt.decision),
+        format!(
+            "reason: {}",
+            receipt.reason.as_deref().unwrap_or("not recorded")
+        ),
+        format!("promoted files: {}", receipt.promoted_files.len()),
+    ];
+    lines.extend(
+        receipt
+            .promoted_files
+            .iter()
+            .take(8)
+            .map(|path| format!("  file: {path}")),
+    );
+    if receipt.promoted_files.len() > 8 {
+        lines.push(format!(
+            "  ... {} more file(s)",
+            receipt.promoted_files.len() - 8
+        ));
+    }
+    lines.push(format!(
+        "changed-file evidence: {}",
+        receipt.changed_files.len()
+    ));
+    lines.push("review gates:".to_string());
+    lines.extend(
+        receipt
+            .review_gates
+            .iter()
+            .map(|(name, gate)| format!("  {name}: {}", compact_gate_state(gate))),
+    );
+    lines.push("verification:".to_string());
+    if receipt.verification.is_empty() {
+        lines.push("  none recorded".to_string());
+    } else {
+        lines.extend(
+            receipt
+                .verification
+                .iter()
+                .map(|(check, status)| format!("  {check}={status}")),
+        );
+    }
+    lines.push(format!(
+        "adapter issues: {}",
+        receipt.adapter_run_issues.len()
+    ));
+    lines
+}
+
+fn compact_gate_state(gate: &PromotionReviewGateReceipt) -> String {
+    if !gate.present {
+        return "missing".to_string();
+    }
+    let mut parts = vec!["present".to_string()];
+    if let Some(status) = &gate.status {
+        parts.push(format!("status={status}"));
+    }
+    if let Some(valid) = gate.valid {
+        parts.push(format!("valid={valid}"));
+    }
+    if let Some(errors) = gate.errors {
+        parts.push(format!("errors={errors}"));
+    }
+    if let Some(warnings) = gate.warnings {
+        parts.push(format!("warnings={warnings}"));
+    }
+    parts.join(" ")
+}
+
 fn promotion_decision(status: &ApprovalStatus) -> &'static str {
     match status {
         ApprovalStatus::Approved => "approved",

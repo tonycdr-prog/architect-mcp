@@ -16,6 +16,7 @@ pub enum WorkflowCommand {
     Override(String),
     Promote,
     PromotionStatus,
+    PromotionReceipt,
     DiffSummary,
     DiffFile(String),
     ArenaRun(Vec<String>),
@@ -85,6 +86,7 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "override" => WorkflowCommand::Override(String::new()),
         "promote" => WorkflowCommand::Promote,
         "promotion status" => WorkflowCommand::PromotionStatus,
+        "promotion receipt" | "receipt" => WorkflowCommand::PromotionReceipt,
         "diff" | "diff summary" => WorkflowCommand::DiffSummary,
         "arena rank" => WorkflowCommand::ArenaRank,
         "integrations recommend" | "mcp recommend" => {

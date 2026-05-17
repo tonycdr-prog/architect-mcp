@@ -106,7 +106,7 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override <reason>, promotion status, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], foundry plan <repo> [owner=name], foundry status, foundry approve <reason>, foundry stage, foundry create, foundry create --execute, verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
+            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override <reason>, promotion status, promotion receipt, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], foundry plan <repo> [owner=name], foundry status, foundry approve <reason>, foundry stage, foundry create, foundry create --execute, verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,

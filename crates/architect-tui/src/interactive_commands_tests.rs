@@ -107,4 +107,8 @@ fn parses_command_palette_actions() {
         parse_workflow_command("promotion status"),
         WorkflowCommand::PromotionStatus
     );
+    assert_eq!(
+        parse_workflow_command("promotion receipt"),
+        WorkflowCommand::PromotionReceipt
+    );
 }
