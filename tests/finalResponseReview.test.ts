@@ -21,6 +21,62 @@ describe("reviewAgentFinalResponse", () => {
 
     assert.equal(result.status, "pass");
     assert.equal(result.valid, true);
+    assert.equal(result.summary.verificationReceipts, 0);
+  });
+
+  it("distinguishes claimed checks from attached command receipts", () => {
+    const result = reviewAgentFinalResponse({
+      response: "Changed final review evidence. Verified with npm test. Assumptions: none. Not done: no remaining requested work.",
+      requiredChecks: ["npm test"],
+      receiptNow: "2026-05-17T22:30:00.000Z",
+      verificationReceipts: [{
+        command: "npm test",
+        status: "passed",
+        source: "ci",
+        summary: "CI job passed",
+        recordedAt: "2026-05-17T22:29:00.000Z"
+      }]
+    });
+
+    assert.equal(result.status, "pass");
+    assert.equal(result.verificationEvidence.claimedChecks[0].mentioned, true);
+    assert.equal(result.verificationEvidence.receipts.complete, true);
+  });
+
+  it("warns on explicit missing receipts and fails stale or failed receipt evidence", () => {
+    const missing = reviewAgentFinalResponse({
+      response: "Changed docs. Verified with npm test. Assumptions: none. Not done: no remaining requested work.",
+      requiredChecks: ["npm test"],
+      verificationReceipts: []
+    });
+    const stale = reviewAgentFinalResponse({
+      response: "Changed docs. Verified with npm test. Assumptions: none. Not done: no remaining requested work.",
+      requiredChecks: ["npm test"],
+      receiptNow: "2026-05-17T22:30:00.000Z",
+      receiptMaxAgeSeconds: 60,
+      verificationReceipts: [{
+        command: "npm test",
+        status: "passed",
+        source: "local_terminal",
+        summary: "Passed locally",
+        recordedAt: "2026-05-17T21:00:00.000Z"
+      }]
+    });
+    const failed = reviewAgentFinalResponse({
+      response: "Changed docs. Verified with npm test. Assumptions: none. Not done: no remaining requested work.",
+      requiredChecks: ["npm test"],
+      verificationReceipts: [{
+        command: "npm test",
+        status: "failed",
+        source: "local_terminal",
+        summary: "Failed locally",
+        runId: "run-246"
+      }]
+    });
+
+    assert.equal(missing.status, "warn");
+    assert.equal(stale.status, "fail");
+    assert.equal(failed.status, "fail");
   });
 
   it("accepts untrusted input labels without treating them as workflow authority", () => {

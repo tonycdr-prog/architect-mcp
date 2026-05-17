@@ -4,6 +4,7 @@ import { harnessIntentResultSchema, preEditContractSchema } from "./harnessSchem
 import { memoryProposalSchema } from "./memorySchemas.js";
 import { boundedArray, idText, longText, mediumText, optionalText, pathText } from "./schemaLimits.js";
 import { untrustedInputSources } from "../../domain/untrustedInputs.js";
+import { verificationReceiptSources } from "../../domain/verificationReceipts.js";
 import { workGateSequence } from "../../domain/workGateCompleteness.js";
 
 const untrustedInputSchema = z.object({
@@ -11,6 +12,14 @@ const untrustedInputSchema = z.object({
 }).strict();
 
 const workGateNameSchema = z.enum(workGateSequence);
+const verificationReceiptSchema = z.object({
+  command: mediumText,
+  status: z.enum(["not_run", "passed", "failed", "skipped"]),
+  source: z.enum(verificationReceiptSources),
+  summary: mediumText,
+  recordedAt: optionalText(mediumText),
+  runId: optionalText(idText)
+}).strict();
 
 export const workGateCompletenessInputSchema = z.object({
   records: boundedArray(z.object({
@@ -56,7 +65,10 @@ export const clientRecipeInputSchema = z.object({
 export const finalResponseReviewInputSchema = z.object({
   response: longText,
   requiredChecks: boundedArray(mediumText, 100).optional(),
-  untrustedInputs: boundedArray(untrustedInputSchema, 100).optional()
+  untrustedInputs: boundedArray(untrustedInputSchema, 100).optional(),
+  verificationReceipts: boundedArray(verificationReceiptSchema, 100).optional(),
+  receiptNow: optionalText(mediumText),
+  receiptMaxAgeSeconds: z.number().int().positive().max(31_536_000).optional()
 }).strict();
 
 export const mcpConfigFileScanInputSchema = z.object({
@@ -74,6 +86,9 @@ export const agentSessionReviewInputSchema = z.object({
     status: z.enum(["not_run", "passed", "failed", "skipped"]),
     note: optionalText(mediumText)
   }).strict()).max(100).optional(),
+  verificationReceipts: boundedArray(verificationReceiptSchema, 100).optional(),
+  receiptNow: optionalText(mediumText),
+  receiptMaxAgeSeconds: z.number().int().positive().max(31_536_000).optional(),
   finalResponse: optionalText(longText),
   memories: boundedArray(memoryProposalSchema, 200).optional(),
   request: optionalText(mediumText),

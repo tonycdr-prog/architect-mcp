@@ -2,6 +2,7 @@ import { reviewAgentFinalResponse } from "./finalResponseReview.js";
 import { reviewMemoryRelevance } from "./harnessMemory.js";
 import { reviewImplementationAgainstContract } from "./harness.js";
 import { normalizeUntrustedInputs, type RawUntrustedInput } from "./untrustedInputs.js";
+import { reviewVerificationReceipts, type VerificationReceipt } from "./verificationReceipts.js";
 import type { HarnessIntentResult, MemoryProposal, PreEditContract, FileSummary } from "./types.js";
 
 export type AgentSessionReviewInput = {
@@ -9,6 +10,9 @@ export type AgentSessionReviewInput = {
   contract?: PreEditContract;
   changedFiles?: FileSummary[];
   verification?: Array<{ check: string; status: "not_run" | "passed" | "failed" | "skipped"; note?: string }>;
+  verificationReceipts?: VerificationReceipt[];
+  receiptNow?: string;
+  receiptMaxAgeSeconds?: number;
   finalResponse?: string;
   memories?: MemoryProposal[];
   request?: string;
@@ -64,11 +68,32 @@ export function reviewAgentSession(input: AgentSessionReviewInput) {
     });
   }
 
+  if (input.verification?.length || input.verificationReceipts !== undefined) {
+    const receiptReview = reviewVerificationReceipts({
+      requiredChecks: input.contract?.verificationChecks,
+      verification: input.verification,
+      receipts: input.verificationReceipts,
+      now: input.receiptNow,
+      maxAgeSeconds: input.receiptMaxAgeSeconds
+    });
+    sections.push({
+      name: "verification-evidence",
+      status: receiptReview.status as "pass" | "warn" | "fail",
+      summary: receiptReview.valid
+        ? "Verification records and command receipts are public-safe."
+        : "Verification receipts are missing, stale, failed, or incomplete.",
+      details: receiptReview
+    });
+  }
+
   if (input.finalResponse) {
     const finalReview = reviewAgentFinalResponse({
       response: input.finalResponse,
       requiredChecks: input.contract?.verificationChecks,
-      untrustedInputs
+      untrustedInputs,
+      verificationReceipts: input.verificationReceipts,
+      receiptNow: input.receiptNow,
+      receiptMaxAgeSeconds: input.receiptMaxAgeSeconds
     });
     sections.push({
       name: "final-response",

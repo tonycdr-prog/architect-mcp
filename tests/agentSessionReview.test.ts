@@ -71,6 +71,54 @@ describe("reviewAgentSession", () => {
     assert.equal(secretMemory.status, "fail");
     assert.equal(secretMemory.sections.some((section) => section.name === "memory"), true);
   });
+
+  it("reviews attached verification receipts separately from session records and final wording", () => {
+    const intent = interpretImplementationIntent({
+      request: "add receipt checks",
+      mode: "guided-yolo",
+      verification: ["npm test"]
+    });
+    const contract = createPreEditContract({
+      intent,
+      likelyFiles: ["src/domain/finalResponseReview.ts"],
+      verificationChecks: ["npm test"]
+    });
+    const report = reviewAgentSession({
+      contract,
+      verification: [{ check: "npm test", status: "passed" }],
+      receiptNow: "2026-05-17T22:30:00.000Z",
+      verificationReceipts: [{
+        command: "npm test",
+        status: "passed",
+        source: "ci",
+        summary: "CI passed",
+        recordedAt: "2026-05-17T22:29:00.000Z"
+      }],
+      finalResponse: "Changed final/session evidence. Verified with npm test. Assumptions: none. Not done: no remaining requested work."
+    });
+
+    const section = report.sections.find((item) => item.name === "verification-evidence");
+    assert.equal(report.status, "pass");
+    assert.equal(section?.status, "pass");
+    assert.match(JSON.stringify(section?.details), /matchedRequired/);
+  });
+
+  it("fails session review when attached receipt evidence contradicts a passed record", () => {
+    const report = reviewAgentSession({
+      verification: [{ check: "npm test", status: "passed" }],
+      verificationReceipts: [{
+        command: "npm test",
+        status: "failed",
+        source: "local_terminal",
+        summary: "Command failed",
+        runId: "run-246"
+      }],
+      finalResponse: "Changed receipt handling. Verified with npm test. Assumptions: none. Not done: no remaining requested work."
+    });
+
+    assert.equal(report.status, "fail");
+    assert.equal(report.sections.some((section) => section.name === "verification-evidence" && section.status === "fail"), true);
+  });
 });
 
 function memory(overrides: Partial<MemoryProposal> = {}): MemoryProposal {
