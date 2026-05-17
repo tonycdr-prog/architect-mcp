@@ -1,5 +1,7 @@
 pub mod acp;
 mod acp_state;
+#[cfg(test)]
+mod acp_tests;
 pub mod adapter;
 mod adapter_health;
 mod adapter_probe_command;

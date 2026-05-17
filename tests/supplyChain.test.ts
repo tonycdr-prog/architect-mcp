@@ -224,12 +224,14 @@ describe("supply-chain and release hygiene", () => {
     assert.match(docs, /npm run release:check/);
   });
 
-  it("keeps the evolved goal ledger aligned with the current stacked launch top", () => {
+  it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#165 - Keep evolved goal evidence ledger current during TUI stack landing\]/);
-    assert.match(goal, /\[PR #210\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/210\)/);
-    assert.match(goal, /discovered explicit PR stack is mechanically clean through #210/);
+    assert.match(goal, /Active slice: \[#212 - Harden ACP session config validation\]/);
+    assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
+    assert.match(goal, /fail-closed ACP session configuration/);
+    assert.match(goal, /unknown session parameters/);
+    assert.match(goal, /discovered explicit PR stack is mechanically clean through #213/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
