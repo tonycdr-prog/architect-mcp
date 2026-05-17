@@ -203,6 +203,7 @@ fn pr(number: u64, status: LaunchStackItemStatus) -> LaunchStackPullRequest {
         is_draft: false,
         review_decision: Some("APPROVED".to_string()),
         merge_state_status: "CLEAN".to_string(),
+        mergeable: Some("MERGEABLE".to_string()),
         checks: LaunchStackCheckSummary {
             total: 8,
             passed: 8,

@@ -37,6 +37,7 @@
 - Launch-stack merge plans are read-only checklists; they must never merge PRs, close issues, tag releases, publish packages, or replace real terminal QA evidence.
 - Launch-stack readiness must include GitHub PR review decisions; requested changes are `no_go`, required review is `conditional_go`, and clean checks alone are not launch proof.
 - Launch-stack readiness must fail closed when maintainers supply explicit `--required-check` names and any named check is absent from a PR.
+- Launch-stack readiness may treat `UNSTABLE` as passing only when GitHub also reports `MERGEABLE`, explicit required checks were supplied, every required check is present and green, and no checks are failed or pending; dirty/unknown merge states remain blocking.
 - Public launch-readiness and evidence-index summaries must expose missing required-check evidence by PR number without dumping raw check rollups.
 - Hosted published-package smoke is baseline evidence only; it must validate non-interactive install/help/adapter JSON/gate-only JSONL without claiming to satisfy manual terminal QA.
 - Linux ARM64 TUI release support must ship as a release asset and source-built PR smoke before published-package ARM64 smoke is added.

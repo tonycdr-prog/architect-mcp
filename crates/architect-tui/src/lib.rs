@@ -104,6 +104,8 @@ mod launch_stack_github;
 mod launch_stack_merge_plan;
 #[cfg(test)]
 mod launch_stack_merge_plan_tests;
+#[cfg(test)]
+mod launch_stack_mergeability_tests;
 mod launch_stack_output;
 mod launch_stack_pr_status;
 #[cfg(test)]
