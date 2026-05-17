@@ -32,10 +32,29 @@ pub(crate) fn filter_memory_proposals(
             let lower = proposal.text.to_ascii_lowercase();
             let unsafe_reason = if looks_secret_like(&proposal.text) {
                 Some("secret-shaped text")
-            } else if lower.contains("raw chat") || lower.contains("conversation log") {
-                Some("raw conversation log")
+            } else if lower.contains("raw chat")
+                || lower.contains("conversation log")
+                || lower.contains("full chat transcript")
+                || lower.contains("chat transcript")
+            {
+                Some("raw conversation log or transcript")
             } else if lower.contains("transient task") || lower.contains("temporary detail") {
                 Some("transient task detail")
+            } else if lower.contains("customer data")
+                || lower.contains("private customer")
+                || lower.contains("customer record")
+            {
+                Some("private customer data")
+            } else if lower.contains("speculative guess")
+                || lower.contains("speculative detail")
+                || lower.contains("not yet confirmed")
+            {
+                Some("speculative content")
+            } else if lower.contains("sensitive security finding")
+                || lower.contains("exploit detail")
+                || lower.contains("vulnerability detail")
+            {
+                Some("sensitive security finding")
             } else {
                 None
             };

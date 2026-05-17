@@ -63,6 +63,26 @@ fn memory_proposals_reject_secrets_raw_chat_and_transient_details() {
     assert_eq!(proposals[0].text, "release gate: npm run release:check");
 }
 
+#[test]
+fn memory_proposals_reject_all_agents_md_prohibited_categories() {
+    let keep = "architect-mcp release gate: npm run release:check (clean checkout)";
+    let proposals = filter_memory_proposals(vec![
+        proposal(keep),
+        proposal("full chat transcript from today's session"),
+        proposal("chat transcript: agent said hello"),
+        proposal("customer data: user email and plan tier"),
+        proposal("private customer record with billing details"),
+        proposal("speculative guess: maybe the db is postgres"),
+        proposal("speculative detail about future architecture"),
+        proposal("sensitive security finding: auth bypass in login"),
+        proposal("exploit detail: SSRF via redirect"),
+        proposal("vulnerability detail from pentest report"),
+    ]);
+
+    assert_eq!(proposals.len(), 1, "only the safe proposal should survive");
+    assert_eq!(proposals[0].text, keep);
+}
+
 fn proposal(text: &str) -> GovernanceMemoryProposal {
     GovernanceMemoryProposal {
         scope: "architect-mcp".to_string(),
