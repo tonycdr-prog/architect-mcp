@@ -15,6 +15,8 @@ architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 
 It runs the smoke checks internally and writes a launch-judge-compatible summary. Use `--markdown` when pasting directly into a GitHub issue; it wraps the public-safe JSON in a fenced block that `collect-terminal-evidence` can read. Use `--json` when saving a local file for `launch-judge --terminal-evidence`. Public reports should paste this summary, not the raw smoke JSON. The command auto-detects Linux and Windows; use `--platform linux` or `--platform windows` only when a maintainer asks you to summarize already-verified external evidence.
 
+Terminal evidence also records `environment`. Reports with `local_terminal` or `vm_or_cloud_terminal` can satisfy final manual terminal QA when the rest of the report is clean. Reports from `hosted_ci`, `container`, missing provenance, or `unknown` are still useful smoke evidence, but they remain `conditional_go` and do not replace manual Linux/Windows terminal QA. The command auto-detects hosted CI and common container markers when it can; pass `--environment vm-or-cloud-terminal` only when the run really happened in a VM or cloud dev box terminal.
+
 Generated terminal evidence includes `collectedAt` automatically using the current UTC date. Maintainers summarizing already-verified external evidence can pass `--collected-at YYYY-MM-DD`; values outside that date format fail without echoing the raw input.
 
 ## Local Troubleshooting Smoke
@@ -184,6 +186,7 @@ The generated evidence has this shape:
     {
       "platform": "linux",
       "status": "passed",
+      "environment": "local_terminal",
       "source": "issue #136 public-safe terminal QA report",
       "commandSummary": "architect-mcp-tui --help, config adapters --json, and gate-only run --jsonl passed",
       "collectedAt": "2026-05-17",
@@ -193,7 +196,7 @@ The generated evidence has this shape:
 }
 ```
 
-Use `platform` as `linux` or `windows`, and `status` as `passed`, `passed_with_warnings`, or `failed`. For each platform, also include:
+Use `platform` as `linux` or `windows`, `status` as `passed`, `passed_with_warnings`, or `failed`, and `environment` as `local_terminal`, `vm_or_cloud_terminal`, `container`, `hosted_ci`, or `unknown`. For each platform, also include:
 
 - OS and CPU architecture.
 - Node and npm versions.

@@ -2,7 +2,7 @@
 
 Use this page for release-candidate validation that cannot be proven by unit tests alone. Do not publish a TUI release until the clean release gate passes and the platform smoke matrix is green or explicitly waived.
 
-For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). Linux and Windows Terminal QA reports should include public-safe launch judge evidence generated with `architect-mcp-tui terminal-evidence --markdown`, including the generated `collectedAt` date, collected with `architect-mcp-tui collect-terminal-evidence --json`, and consumable with `architect-mcp-tui launch-judge --terminal-evidence`; they should not include raw smoke JSON, raw stdout/stderr logs, absolute local paths, cache paths, private repo names, or tokens. For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
+For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). Linux and Windows Terminal QA reports should include public-safe launch judge evidence generated with `architect-mcp-tui terminal-evidence --markdown`, including the generated `collectedAt` date and `environment` provenance, collected with `architect-mcp-tui collect-terminal-evidence --json`, and consumable with `architect-mcp-tui launch-judge --terminal-evidence`; they should not include raw smoke JSON, raw stdout/stderr logs, absolute local paths, cache paths, private repo names, or tokens. For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
 
 ## Automated Matrix
 
@@ -56,7 +56,7 @@ Use `launch-judge --public-summary` or `launch-readiness --public-summary` for P
 
 Use `collect-terminal-evidence` when Linux and Windows evidence is posted as fenced JSON in a GitHub issue. It performs a read-only GitHub CLI lookup, extracts public-safe evidence blocks, applies the same launch-judge validation rules, and prints merged evidence for local release judging. It does not replace the underlying terminal QA or mutate the issue.
 
-Use `launch-readiness` when maintainers need one public-safe report for both the PR stack and the terminal-evidence issue. It reuses `launch-stack` and `collect-terminal-evidence`, stays read-only, can discover a stacked PR chain with `--stack-from-pr`, and keeps explicit blocker waivers separate from real Linux/Windows terminal evidence. If maintainers intentionally launch without real manual Linux/Windows terminal evidence, they must pass `--waive-terminal-evidence ISSUE=reason`; the report records the waiver while leaving the terminal-evidence issue section visibly incomplete.
+Use `launch-readiness` when maintainers need one public-safe report for both the PR stack and the terminal-evidence issue. It reuses `launch-stack` and `collect-terminal-evidence`, stays read-only, can discover a stacked PR chain with `--stack-from-pr`, and keeps explicit blocker waivers separate from real Linux/Windows terminal evidence. Clean terminal evidence must come from `local_terminal` or `vm_or_cloud_terminal`; hosted CI, container, unknown, or missing provenance remains conditional. If maintainers intentionally launch without real manual Linux/Windows terminal evidence, they must pass `--waive-terminal-evidence ISSUE=reason`; the report records the waiver while leaving the terminal-evidence issue section visibly incomplete.
 
 Use `evidence-index --json` when automation needs one public-safe release artifact that includes both launch-readiness state and governance-audit state. Use `evidence-index --markdown` when maintainers need a human-readable PR comment, release-note block, or goal-ledger update. Use `evidence-index --markdown-output <path>` when that handoff should survive as a workspace artifact; the path must be relative to the workspace, parent directories are created, and no GitHub comment or release is posted automatically. Add `evidence-index --require-go` when a script should fail unless the combined evidence is exactly `go`; without that flag, `conditional_go` remains a successful handoff result so incomplete evidence can still be published honestly. These modes emit or write the combined judge result plus section summaries and next actions, and should be preferred over pasting raw local `launch-readiness --json` or `governance-audit --json` output into public issues.
 
@@ -86,6 +86,7 @@ If a maintainer must normalize already-posted notes manually, keep the same laun
     {
       "platform": "linux",
       "status": "passed",
+      "environment": "local_terminal",
       "source": "issue #136 public-safe terminal QA report",
       "commandSummary": "architect-mcp-tui --help, config adapters --json, and gate-only run --jsonl passed",
       "collectedAt": "2026-05-17",

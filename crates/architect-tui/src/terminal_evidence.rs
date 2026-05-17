@@ -9,6 +9,7 @@ use crate::launch_judge_report::{
 };
 use crate::smoke::{SmokeOptions, SmokeReport, SmokeStatus, build_smoke_report};
 use crate::terminal_evidence_date::collected_at_value;
+use crate::terminal_evidence_environment::resolve_environment;
 
 #[derive(Debug, Clone)]
 pub struct TerminalEvidenceOptions {
@@ -17,6 +18,7 @@ pub struct TerminalEvidenceOptions {
     pub prompt: String,
     pub skip_gate: bool,
     pub platform: Option<String>,
+    pub environment: Option<String>,
     pub source: Option<String>,
     pub notes: Option<String>,
     pub collected_at: Option<String>,
@@ -81,6 +83,7 @@ pub(crate) fn evidence_from_smoke(
     let report = LaunchJudgeTerminalEvidenceReport {
         platform,
         status: status_from_smoke(&smoke.status),
+        environment: Some(resolve_environment(options.environment.as_deref())?),
         source,
         command_summary: command_summary(smoke),
         collected_at: Some(collected_at_value(options.collected_at.as_deref())?),

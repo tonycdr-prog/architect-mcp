@@ -68,6 +68,7 @@ fn complete_terminal_evidence_passes() {
         {
           "platform": "linux",
           "status": "passed",
+          "environment": "local_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
           "collectedAt": "2026-05-17",
@@ -76,6 +77,7 @@ fn complete_terminal_evidence_passes() {
         {
           "platform": "windows",
           "status": "passed",
+          "environment": "vm_or_cloud_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
           "collectedAt": "2026-05-17",
@@ -106,6 +108,7 @@ fn multiple_terminal_evidence_files_are_merged() {
             {
               "platform": "linux",
               "status": "passed",
+              "environment": "local_terminal",
               "source": "issue #136 linux public-safe summary",
               "commandSummary": "architect-mcp-tui terminal-evidence --json passed on linux"
             }
@@ -119,6 +122,7 @@ fn multiple_terminal_evidence_files_are_merged() {
             {
               "platform": "windows",
               "status": "passed",
+              "environment": "vm_or_cloud_terminal",
               "source": "issue #136 windows public-safe summary",
               "commandSummary": "architect-mcp-tui terminal-evidence --json passed on windows"
             }
@@ -152,6 +156,7 @@ fn template_placeholder_terminal_evidence_is_not_go() {
         {
           "platform": "linux",
           "status": "passed",
+          "environment": "local_terminal",
           "source": "REPLACE with public issue or PR link for this real terminal run",
           "commandSummary": "REPLACE with commands that passed or failed on this real machine",
           "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
@@ -159,6 +164,7 @@ fn template_placeholder_terminal_evidence_is_not_go() {
         {
           "platform": "windows",
           "status": "passed",
+          "environment": "vm_or_cloud_terminal",
           "source": "issue #136 public-safe terminal QA report",
           "commandSummary": "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized",
           "notes": "summary only, no raw logs"
@@ -189,6 +195,7 @@ fn missing_platform_terminal_evidence_stays_conditional() {
         {
           "platform": "linux",
           "status": "passed",
+          "environment": "local_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed"
         }
@@ -210,12 +217,14 @@ fn failed_terminal_evidence_is_no_go() {
         {
           "platform": "linux",
           "status": "failed",
+          "environment": "local_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "launch command failed before drawing"
         },
         {
           "platform": "windows",
           "status": "passed",
+          "environment": "vm_or_cloud_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed"
         }
@@ -237,6 +246,7 @@ fn unsafe_terminal_evidence_fails_closed() {
         {
           "platform": "linux",
           "status": "passed",
+          "environment": "local_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help passed",
           "stdout": "/Users/example/private/path"
@@ -244,6 +254,7 @@ fn unsafe_terminal_evidence_fails_closed() {
         {
           "platform": "windows",
           "status": "passed",
+          "environment": "vm_or_cloud_terminal",
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help passed"
         }

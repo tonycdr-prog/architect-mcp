@@ -202,10 +202,10 @@ fn complete_terminal_evidence() -> crate::issue_terminal_evidence::IssueTerminal
             "body": "",
             "comments": [
                 {
-                    "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"source\":\"issue #136 linux public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on linux\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
+                    "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"issue #136 linux public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on linux\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
                 },
                 {
-                    "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"windows\",\"status\":\"passed\",\"source\":\"issue #136 windows public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on windows\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
+                    "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"windows\",\"status\":\"passed\",\"environment\":\"vm_or_cloud_terminal\",\"source\":\"issue #136 windows public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on windows\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
                 }
             ]
         }),

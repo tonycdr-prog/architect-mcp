@@ -236,7 +236,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#228 - Record foundry proof-repo retention decisions\]/);
+    assert.match(goal, /Active slice: \[#230 - Require terminal evidence provenance for launch readiness\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -249,6 +249,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#224\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/224\)/);
     assert.match(goal, /\[#226\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/226\)/);
     assert.match(goal, /\[#228\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/228\)/);
+    assert.match(goal, /\[#230\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/230\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -259,7 +260,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /read-only launch-stack merge checklist/);
     assert.match(goal, /public-safe repo-foundry smoke summaries/);
     assert.match(goal, /explicit foundry proof-repo retention decisions/);
-    assert.match(goal, /#228 in PR #229 stacked next/);
+    assert.match(goal, /provenance-aware terminal evidence validation/);
+    assert.match(goal, /#228 in PR #229/);
+    assert.match(goal, /#230 stacked next/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

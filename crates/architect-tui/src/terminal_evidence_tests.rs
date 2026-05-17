@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::adapter::{AdapterHealth, AuthStatus};
 use crate::issue_terminal_evidence_source::extract_json_blocks;
-use crate::launch_judge_report::LaunchJudgeTerminalEvidenceStatus;
+use crate::launch_judge_report::{
+    LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
+};
 use crate::mcp::McpProcessSpec;
 use crate::smoke::SmokeStatus;
 use crate::smoke_types::{
@@ -24,6 +26,7 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
             markdown: false,
             skip_gate: false,
             platform: None,
+            environment: Some("local-terminal".to_string()),
             source: Some(
                 "/home/example/private issue #136 public-safe terminal QA report ghp_secret"
                     .to_string(),
@@ -43,6 +46,10 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
     assert_eq!(
         report.status,
         LaunchJudgeTerminalEvidenceStatus::PassedWithWarnings
+    );
+    assert_eq!(
+        report.environment,
+        Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal)
     );
     assert_eq!(report.collected_at.as_deref(), Some("2026-05-17"));
     assert!(report.command_summary.contains("approval_required"));
@@ -79,6 +86,7 @@ fn evidence_from_smoke_rejects_unsupported_auto_platform() {
             prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
             skip_gate: false,
             platform: None,
+            environment: None,
             source: None,
             notes: None,
             collected_at: None,
@@ -100,6 +108,7 @@ fn terminal_evidence_markdown_is_ready_for_issue_comments() {
             prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
             skip_gate: false,
             platform: None,
+            environment: Some("vm-or-cloud-terminal".to_string()),
             source: Some("issue #136 Windows terminal report".to_string()),
             notes: Some("resize, mouse, and exit checks passed".to_string()),
             collected_at: Some("2026-05-17".to_string()),
@@ -111,6 +120,7 @@ fn terminal_evidence_markdown_is_ready_for_issue_comments() {
     assert!(markdown.contains("```json"));
     assert!(markdown.contains("\"schemaVersion\": 1"));
     assert!(markdown.contains("\"platform\": \"windows\""));
+    assert!(markdown.contains("\"environment\": \"vm_or_cloud_terminal\""));
     assert!(markdown.contains("\"collectedAt\": \"2026-05-17\""));
     assert!(markdown.contains("This command does not create, edit, or close GitHub issues"));
     assert_eq!(extract_json_blocks(&markdown).len(), 1);
@@ -128,6 +138,7 @@ fn terminal_evidence_rejects_ambiguous_output_modes() {
         prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
         skip_gate: false,
         platform: None,
+        environment: None,
         source: None,
         notes: None,
         collected_at: None,
@@ -148,6 +159,7 @@ fn terminal_evidence_rejects_invalid_collected_at_override_without_echoing_input
             prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
             skip_gate: false,
             platform: None,
+            environment: None,
             source: None,
             notes: None,
             collected_at: Some("/home/example/private 2026-99-99 npm_secret".to_string()),
@@ -172,6 +184,7 @@ fn terminal_evidence_defaults_collected_at_to_utc_date() {
             prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
             skip_gate: false,
             platform: None,
+            environment: None,
             source: None,
             notes: None,
             collected_at: None,

@@ -53,10 +53,10 @@ fn collector_passes_complete_linux_and_windows_issue_evidence() {
         "body": "",
         "comments": [
             {
-                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"source\":\"issue #136 linux public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on linux\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
+                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"issue #136 linux public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on linux\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
             },
             {
-                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"windows\",\"status\":\"passed\",\"source\":\"issue #136 windows public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on windows\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
+                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"windows\",\"status\":\"passed\",\"environment\":\"vm_or_cloud_terminal\",\"source\":\"issue #136 windows public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on windows\",\"collectedAt\":\"2026-05-17\",\"notes\":\"summary only, no raw logs\"}]}\n```"
             }
         ]
     });
@@ -126,7 +126,7 @@ fn collector_warns_on_template_placeholder_evidence() {
         "body": "",
         "comments": [
             {
-                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"source\":\"REPLACE with public issue or PR link for this real terminal run\",\"commandSummary\":\"REPLACE with commands that passed or failed on this real machine\",\"notes\":\"REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local\"},{\"platform\":\"windows\",\"status\":\"passed\",\"source\":\"issue #136 public-safe terminal QA report\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized\",\"notes\":\"summary only, no raw logs\"}]}\n```"
+                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"REPLACE with public issue or PR link for this real terminal run\",\"commandSummary\":\"REPLACE with commands that passed or failed on this real machine\",\"notes\":\"REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local\"},{\"platform\":\"windows\",\"status\":\"passed\",\"environment\":\"vm_or_cloud_terminal\",\"source\":\"issue #136 public-safe terminal QA report\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized\",\"notes\":\"summary only, no raw logs\"}]}\n```"
             }
         ]
     });
@@ -211,7 +211,7 @@ fn collector_warns_on_duplicate_or_missing_platforms() {
         "body": "",
         "comments": [
             {
-                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"source\":\"issue #136 linux 1\",\"commandSummary\":\"passed\"},{\"platform\":\"linux\",\"status\":\"passed\",\"source\":\"issue #136 linux 2\",\"commandSummary\":\"passed\"}]}\n```"
+                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"issue #136 linux 1\",\"commandSummary\":\"passed\"},{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"issue #136 linux 2\",\"commandSummary\":\"passed\"}]}\n```"
             }
         ]
     });

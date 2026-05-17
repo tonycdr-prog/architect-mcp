@@ -4,7 +4,8 @@ use serde::Serialize;
 
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeReport,
-    LaunchJudgeResult, LaunchJudgeTerminalEvidenceStatus, LaunchJudgeTerminalEvidenceSummary,
+    LaunchJudgeResult, LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
+    LaunchJudgeTerminalEvidenceSummary,
 };
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -53,6 +54,7 @@ pub struct LaunchJudgePublicTerminalEvidence {
 pub struct LaunchJudgePublicTerminalEvidenceReport {
     pub platform: String,
     pub status: LaunchJudgeTerminalEvidenceStatus,
+    pub environment: Option<LaunchJudgeTerminalEvidenceEnvironment>,
     pub collected_at: Option<String>,
 }
 
@@ -120,6 +122,7 @@ fn public_terminal_evidence(
             .map(|report| LaunchJudgePublicTerminalEvidenceReport {
                 platform: public_text(&report.platform, 80),
                 status: report.status.clone(),
+                environment: report.environment.clone(),
                 collected_at: report
                     .collected_at
                     .as_deref()

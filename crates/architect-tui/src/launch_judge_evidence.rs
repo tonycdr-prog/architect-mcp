@@ -9,6 +9,7 @@ use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeTerminalEvidenceReport,
     LaunchJudgeTerminalEvidenceStatus, LaunchJudgeTerminalEvidenceSummary, check,
 };
+use crate::terminal_evidence_environment::validate_report_environment;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -218,6 +219,7 @@ fn normalize_and_validate_reports(
                 report.platform
             ));
         }
+        validate_report_environment(report, issues);
         if uses_template_placeholder(report) {
             issues.push(format!(
                 "terminal evidence for '{}' appears to use a template placeholder; replace it with real platform-specific QA evidence",
