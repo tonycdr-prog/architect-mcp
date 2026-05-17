@@ -4,6 +4,7 @@ use std::path::{Component, Path, PathBuf};
 use anyhow::{Context, Result};
 use serde_json::Value;
 
+use crate::approval_reason::valid_promotion_override_recorded;
 use crate::session::{ApprovalStatus, SessionPhase, TuiSession};
 use crate::verification::ensure_verification_passed;
 
@@ -58,7 +59,7 @@ pub fn promote_approved_changes(
 pub(crate) fn promotion_readiness(session: &TuiSession, workspace: &Path) -> PromotionReadiness {
     let mut blockers = Vec::new();
     let mut next_actions = Vec::new();
-    let override_recorded = session.approval_status == ApprovalStatus::Override;
+    let override_recorded = valid_promotion_override_recorded(session);
 
     if !session.can_promote() {
         blockers.push("promotion approval missing".to_string());
@@ -70,6 +71,11 @@ pub(crate) fn promotion_readiness(session: &TuiSession, workspace: &Path) -> Pro
                 "complete final/session review, then run approve <reason>",
             );
         }
+    }
+
+    if session.approval_status == ApprovalStatus::Override && !override_recorded {
+        blockers.push("explicit promotion override reason missing".to_string());
+        push_action(&mut next_actions, "run override <reason>");
     }
 
     match &session.worktree {
@@ -137,7 +143,12 @@ pub(crate) fn promotion_status_lines(session: &TuiSession, workspace: &Path) -> 
         if readiness.ready { "ready" } else { "blocked" }
     )];
     if session.approval_status == ApprovalStatus::Override {
-        lines.push("override: recorded; review and verification blockers are bypassed".to_string());
+        lines.push(if valid_promotion_override_recorded(session) {
+            "override: recorded with explicit reason; adapter-run, review, and verification blockers are bypassed".to_string()
+        } else {
+            "override: invalid; explicit reason required before blockers can be bypassed"
+                .to_string()
+        });
     }
     lines.extend(
         readiness
@@ -159,9 +170,6 @@ fn review_gate_blockers(
     blockers: &mut Vec<String>,
     next_actions: &mut Vec<String>,
 ) {
-    if session.approval_status == ApprovalStatus::Override {
-        return;
-    }
     for gate in REQUIRED_REVIEW_GATES {
         match session.gates.get(*gate) {
             Some(review) => {

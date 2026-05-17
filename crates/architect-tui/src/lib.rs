@@ -12,6 +12,7 @@ mod adapter_probe_command;
 mod adapter_pty;
 mod adapter_review;
 mod approval;
+mod approval_reason;
 #[cfg(test)]
 mod approval_tests;
 pub mod arena;

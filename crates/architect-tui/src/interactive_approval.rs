@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use crate::approval::{promote_approved_changes, promotion_status_lines};
+use crate::approval_reason::normalize_promotion_override_reason;
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
 use crate::session::SessionPhase;
@@ -54,7 +55,8 @@ impl InteractiveWorkflowEngine {
     }
 
     pub(crate) fn override_approval(&mut self, reason: &str) -> Result<WorkflowUpdate> {
-        let session = self.update_active(|session| session.override_approval(reason))?;
+        let reason = normalize_promotion_override_reason(reason)?;
+        let session = self.update_active(|session| session.override_approval(reason.clone()))?;
         Ok(update(
             vec![format!("promotion override recorded: {reason}")],
             inspector_for(session),
