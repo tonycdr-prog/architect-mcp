@@ -16,9 +16,11 @@ describe("published package TUI smoke workflow", () => {
     assert.doesNotMatch(workflow, /macos-14/);
     assert.match(workflow, /node-version: "22"/);
     assert.match(workflow, /npm install --prefix "\$smoke_dir" @tonycdr-prog\/architect-mcp@latest/);
+    assert.match(workflow, /node_modules", "@tonycdr-prog", "architect-mcp", "dist", "index\.js"/);
+    assert.match(workflow, /path\.join\(smokeDir, "tui\.toml"\)/);
     assert.match(workflow, /npm exec --prefix "\$smoke_dir" -- architect-mcp-tui --help/);
-    assert.match(workflow, /architect-mcp-tui config adapters --json/);
-    assert.match(workflow, /architect-mcp-tui run/);
+    assert.match(workflow, /architect-mcp-tui --config "\$smoke_dir\/tui\.toml" config adapters --json/);
+    assert.match(workflow, /architect-mcp-tui --config "\$smoke_dir\/tui\.toml" run/);
     assert.match(workflow, /--jsonl/);
     assert.match(workflow, /approval_required/);
     assert.match(workflow, /adapter_started/);

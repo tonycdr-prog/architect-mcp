@@ -37,9 +37,29 @@ jobs:
           npm install --prefix "$smoke_dir" @tonycdr-prog/architect-mcp@latest
           npm list --prefix "$smoke_dir" @tonycdr-prog/architect-mcp
 
+          node - "$smoke_dir" <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const smokeDir = process.argv[2];
+          const mcpIndex = path.join(smokeDir, "node_modules", "@tonycdr-prog", "architect-mcp", "dist", "index.js");
+          if (!fs.existsSync(mcpIndex)) {
+            throw new Error(`missing published MCP server entrypoint: ${mcpIndex}`);
+          }
+          fs.writeFileSync(
+            path.join(smokeDir, "tui.toml"),
+            [
+              "[architect_mcp]",
+              'command = "node"',
+              `args = [${JSON.stringify(mcpIndex)}]`,
+              'tool_surface = "advanced"',
+              ""
+            ].join("\n")
+          );
+          NODE
+
           npm exec --prefix "$smoke_dir" -- architect-mcp-tui --help
 
-          npm exec --prefix "$smoke_dir" -- architect-mcp-tui config adapters --json > "$smoke_dir/adapters.json"
+          npm exec --prefix "$smoke_dir" -- architect-mcp-tui --config "$smoke_dir/tui.toml" config adapters --json > "$smoke_dir/adapters.json"
           node - "$smoke_dir/adapters.json" <<'NODE'
           const fs = require("node:fs");
           const adaptersPath = process.argv[2];
@@ -55,7 +75,7 @@ jobs:
           console.log(`adapter health entries: ${adapters.length}`);
           NODE
 
-          npm exec --prefix "$smoke_dir" -- architect-mcp-tui run \
+          npm exec --prefix "$smoke_dir" -- architect-mcp-tui --config "$smoke_dir/tui.toml" run \
             --prompt "Build a small private notes app with local storage and tests" \
             --adapter codex \
             --jsonl > "$smoke_dir/gate.jsonl"
