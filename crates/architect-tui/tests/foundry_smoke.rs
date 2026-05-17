@@ -64,9 +64,11 @@ async fn foundry_smoke_live_requires_private_repo_mutation_confirmation() {
     .await
     .expect_err("missing confirmation should fail closed");
 
-    assert!(error
-        .to_string()
-        .contains("--confirm-private-repo-mutation"));
+    assert!(
+        error
+            .to_string()
+            .contains("--confirm-private-repo-mutation")
+    );
 }
 
 fn fake_mcp_config() -> Option<(std::path::PathBuf, TuiConfig, tempfile::TempDir)> {

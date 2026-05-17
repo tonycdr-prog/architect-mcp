@@ -107,6 +107,39 @@ fn public_summary_omits_raw_command_output_and_mcp_payload_details() {
     assert!(!json.contains("/Users/example/workspace/staged"));
 }
 
+#[test]
+fn public_summary_draft_pr_verification_requires_url() {
+    let mut report = sample_report(FoundrySmokeStatus::Passed, "live");
+    report.github.as_mut().unwrap().draft_pr_url = None;
+
+    let summary = build_foundry_smoke_public_summary(&report);
+
+    assert!(!summary.github.as_ref().unwrap().draft_pr_verified);
+}
+
+#[test]
+fn public_summary_redacts_short_repo_names_and_private_key_markers() {
+    let mut report = sample_report(FoundrySmokeStatus::Failed, "live");
+    report.target = "owner/xy".to_string();
+    report.github.as_mut().unwrap().repo_url = "https://github.com/owner/xy".to_string();
+    report.github.as_mut().unwrap().draft_pr_url =
+        Some("https://github.com/owner/xy/pull/1".to_string());
+    report.error = Some(
+        "repo xy failed with -----BEGIN PRIVATE KEY----- abc123 -----END PRIVATE KEY-----"
+            .to_string(),
+    );
+
+    let summary = build_foundry_smoke_public_summary(&report);
+    let json = serde_json::to_string(&summary).expect("serialize summary");
+
+    assert!(json.contains("[redacted-secret]"));
+    assert!(!json.contains("owner/xy"));
+    assert!(!json.contains("https://github.com/owner/xy"));
+    assert!(!json.contains("xy failed"));
+    assert!(!json.contains("BEGIN PRIVATE KEY"));
+    assert!(!json.contains("abc123"));
+}
+
 fn sample_report(status: FoundrySmokeStatus, mode: &str) -> FoundrySmokeReport {
     FoundrySmokeReport {
         schema_version: 1,

@@ -1,5 +1,8 @@
+use std::cmp::Reverse;
+
 use serde::Serialize;
 
+use crate::foundry_smoke_github::foundry_github_verification_passed;
 use crate::foundry_smoke_report::{FoundrySmokeReport, FoundrySmokeStatus};
 use crate::launch_stack_github::public_text;
 
@@ -59,20 +62,18 @@ pub(crate) fn print_foundry_smoke_public_summary(
 pub(crate) fn build_foundry_smoke_public_summary(
     report: &FoundrySmokeReport,
 ) -> FoundrySmokePublicSummary {
-    let github = report.github.as_ref().map(|github| {
-        let draft_pr_verified = github.draft_pr_number.is_some()
-            && github.draft_pr_is_draft == Some(true)
-            && github.draft_pr_state.as_deref() == Some("OPEN");
-        FoundrySmokeGithubPublicSummary {
+    let github = report
+        .github
+        .as_ref()
+        .map(|github| FoundrySmokeGithubPublicSummary {
             private_repo_verified: github.is_private,
-            draft_pr_verified,
+            draft_pr_verified: foundry_github_verification_passed(github),
             draft_pr_state: github
                 .draft_pr_state
                 .as_ref()
                 .map(|state| public_text(state, 40)),
             draft_pr_is_draft: github.draft_pr_is_draft,
-        }
-    });
+        });
     let commands = FoundrySmokeCommandPublicSummary {
         total: report.commands.len(),
         passed: report.commands.iter().filter(|command| command.ok).count(),
@@ -166,12 +167,7 @@ fn public_error_text(report: &FoundrySmokeReport, value: &str, max_len: usize) -
 
 fn report_specific_values(report: &FoundrySmokeReport) -> Vec<String> {
     let mut values = vec![report.target.clone()];
-    if let Some(repo_name) = report
-        .target
-        .rsplit_once('/')
-        .map(|(_, repo)| repo)
-        .filter(|repo| repo.chars().count() > 3)
-    {
+    if let Some(repo_name) = report.target.rsplit_once('/').map(|(_, repo)| repo) {
         values.push(repo_name.to_string());
     }
     if let Some(github) = &report.github {
@@ -180,5 +176,7 @@ fn report_specific_values(report: &FoundrySmokeReport) -> Vec<String> {
             values.push(draft_pr_url.clone());
         }
     }
+    values.sort_by_key(|value| Reverse(value.len()));
+    values.dedup();
     values
 }
