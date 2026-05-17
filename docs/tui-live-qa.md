@@ -12,7 +12,7 @@ The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa
 - macOS 14.
 - Windows latest.
 
-The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds a local debug TUI binary before exercising the shim help path and workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
+The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds a local debug TUI binary before exercising the shim help path and workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence. The post-release smoke workflow runs on Ubuntu and Windows only and validates `architect-mcp-tui --help`, `config adapters --json` (with JSON parse assertion), and a gate-only `run --jsonl` (with per-line JSON parse assertion) to confirm the binary and MCP gate path work on both platforms without a real terminal.
 
 ## Post-Release Evidence
 
@@ -23,6 +23,7 @@ Latest recorded release: `v0.2.1`, published on 2026-05-16.
 | npm publish workflow for `v0.2.1` | Ubuntu publish runner | Passed | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25968887248 |
 | TUI install-smoke workflow | Ubuntu, macOS 14, Windows latest | Passed on latest recorded PR run | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25970418642 |
 | TUI live-QA smoke workflow | Ubuntu, macOS 14, Windows latest | Passed on latest recorded PR run | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25969825040 |
+| TUI post-release smoke workflow | Ubuntu, Windows latest | See workflow runs | `.github/workflows/tui-post-release-smoke.yml` — validates `--help`, `config adapters --json`, and gate-only `run --jsonl` on each platform |
 | Manual macOS source-checkout smoke | macOS local terminal | Record in the release PR or release notes when run | Maintainer evidence required before a TUI production go decision |
 | Manual Linux terminal smoke | Linux local or VM terminal | Pending unless explicitly waived | Hosted workflow evidence is not a substitute for a real terminal smoke |
 | Manual Windows terminal smoke | Windows Terminal or PowerShell | Pending unless explicitly waived | Hosted workflow evidence is not a substitute for a real terminal smoke |

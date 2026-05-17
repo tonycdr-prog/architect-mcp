@@ -133,6 +133,23 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /npm run tui:live-qa/);
   });
 
+  it("runs post-release TUI smoke on ubuntu and windows with pinned actions", () => {
+    const workflow = readFileSync(".github/workflows/tui-post-release-smoke.yml", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /ubuntu-latest/);
+    assert.match(workflow, /windows-latest/);
+    assert.doesNotMatch(workflow, /macos/);
+    assert.match(workflow, /rustup toolchain install 1\.94\.0 --profile minimal/);
+    assert.match(workflow, /npm run tui:build/);
+    assert.match(workflow, /node bin\/architect-mcp-tui\.cjs --help/);
+    assert.match(workflow, /config adapters --json/);
+    assert.match(workflow, /JSON\.parse/);
+    assert.match(workflow, /--jsonl/);
+  });
+
   it("configures Dependabot for npm, Cargo, and GitHub Actions", () => {
     const config = readFileSync(".github/dependabot.yml", "utf8");
 

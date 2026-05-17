@@ -1,0 +1,82 @@
+name: TUI post-release smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "crates/architect-tui/**"
+      - "bin/architect-mcp-tui.cjs"
+      - ".github/workflows/tui-post-release-smoke.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+permissions:
+  contents: read
+
+jobs:
+  post-release-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install 1.94.0 --profile minimal
+          rustup default 1.94.0
+      - name: Build TUI release binary
+        run: npm run tui:build
+      - name: Smoke --help
+        run: |
+          node bin/architect-mcp-tui.cjs --help
+          echo "help exit: $?"
+      - name: Smoke config adapters --json
+        run: |
+          node bin/architect-mcp-tui.cjs config adapters --json > adapters-out.json
+          echo "--- adapter health ---"
+          cat adapters-out.json
+          echo "--- validating JSON ---"
+          node -e "
+            const fs = require('node:fs');
+            const raw = fs.readFileSync('adapters-out.json', 'utf8');
+            JSON.parse(raw);
+            console.log('config adapters JSON is valid');
+          "
+      - name: Smoke gate-only JSONL run
+        run: |
+          node bin/architect-mcp-tui.cjs run \
+            --prompt "Build a tiny local notes app for one developer. Flows: create, edit, delete. Stack: TypeScript CLI. Verification: unit tests." \
+            --adapter codex \
+            --jsonl > jsonl-out.txt
+          echo "--- JSONL output ---"
+          cat jsonl-out.txt
+          echo "--- validating JSONL ---"
+          node -e "
+            const fs = require('node:fs');
+            const lines = fs.readFileSync('jsonl-out.txt', 'utf8').split('\n').filter(Boolean);
+            console.log('JSONL line count:', lines.length);
+            if (lines.length === 0) { console.error('no JSONL output'); process.exit(1); }
+            lines.forEach((line, i) => {
+              try { JSON.parse(line); }
+              catch (e) { console.error('invalid JSON on line', i + 1, ':', line); process.exit(1); }
+            });
+            console.log('All JSONL lines are valid JSON');
+          "
