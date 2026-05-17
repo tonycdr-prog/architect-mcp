@@ -40,7 +40,10 @@ pub enum WorkflowCommand {
     },
     FoundryStatus,
     FoundryApprove(String),
-    FoundryCreate,
+    FoundryStage,
+    FoundryCreate {
+        execute: bool,
+    },
     VerificationStatus,
     RecordVerification {
         check: String,
@@ -95,7 +98,11 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
             WorkflowCommand::IntegrationsWrite { target_path: None }
         }
         "foundry status" | "repo status" => WorkflowCommand::FoundryStatus,
-        "foundry create" | "repo create" => WorkflowCommand::FoundryCreate,
+        "foundry stage" | "repo stage" => WorkflowCommand::FoundryStage,
+        "foundry create" | "repo create" => WorkflowCommand::FoundryCreate { execute: false },
+        "foundry create --execute" | "repo create --execute" | "foundry execute" => {
+            WorkflowCommand::FoundryCreate { execute: true }
+        }
         "verification" | "verification status" => WorkflowCommand::VerificationStatus,
         "session review" => WorkflowCommand::SessionReview,
         "cancel" => WorkflowCommand::Cancel,
