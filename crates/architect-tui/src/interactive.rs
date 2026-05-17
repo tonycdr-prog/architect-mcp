@@ -45,6 +45,25 @@ impl InteractiveWorkflowEngine {
             WorkflowCommand::ArenaRun(adapters) => self.arena_run(adapters).await,
             WorkflowCommand::ArenaRank => self.arena_rank(),
             WorkflowCommand::ArenaSelect(adapter) => self.arena_select(&adapter),
+            WorkflowCommand::IntegrationsRecommend(context) => {
+                self.integrations_recommend(&context).await
+            }
+            WorkflowCommand::IntegrationsPlan {
+                server_id,
+                target_client,
+            } => {
+                self.integrations_plan(&server_id, target_client.as_deref())
+                    .await
+            }
+            WorkflowCommand::IntegrationsReview => self.integrations_review().await,
+            WorkflowCommand::IntegrationsApplyDryRun { target_path } => {
+                self.integrations_apply_dry_run(target_path.as_deref())
+                    .await
+            }
+            WorkflowCommand::IntegrationsApprove(reason) => self.integrations_approve(&reason),
+            WorkflowCommand::IntegrationsWrite { target_path } => {
+                self.integrations_write(target_path.as_deref()).await
+            }
             WorkflowCommand::VerificationStatus => self.verification_status(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)

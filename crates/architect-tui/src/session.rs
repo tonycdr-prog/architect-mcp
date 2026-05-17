@@ -75,6 +75,16 @@ pub struct TuiSession {
     pub adapter_run_issues: Vec<String>,
     #[serde(default)]
     pub arena_candidates: Vec<ArenaCandidateRecord>,
+    #[serde(default)]
+    pub mcp_recommendation: Option<Value>,
+    #[serde(default)]
+    pub mcp_install_plan: Option<Value>,
+    #[serde(default)]
+    pub mcp_install_review: Option<Value>,
+    #[serde(default)]
+    pub mcp_install_approved: bool,
+    #[serde(default)]
+    pub mcp_install_approval_reason: Option<String>,
     #[serde(default = "default_approval_status")]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
@@ -104,6 +114,11 @@ impl TuiSession {
             adapter_crashed: false,
             adapter_run_issues: Vec::new(),
             arena_candidates: Vec::new(),
+            mcp_recommendation: None,
+            mcp_install_plan: None,
+            mcp_install_review: None,
+            mcp_install_approved: false,
+            mcp_install_approval_reason: None,
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
             created_at: now,
@@ -113,6 +128,7 @@ impl TuiSession {
 
     pub fn set_answer(&mut self, key: &str, value: &str) {
         apply_brief_answer(&mut self.brief, key, value);
+        self.clear_mcp_integration_state();
         self.updated_at = unix_timestamp();
     }
 
@@ -251,7 +267,7 @@ impl SessionStore {
     }
 }
 
-fn unix_timestamp() -> u64 {
+pub(crate) fn unix_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()

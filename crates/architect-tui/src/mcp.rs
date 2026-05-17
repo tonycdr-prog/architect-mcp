@@ -120,6 +120,7 @@ impl ArchitectMcpBridge {
             "recommend_mcp_servers",
             "create_mcp_install_plan",
             "review_mcp_install_plan",
+            "apply_mcp_install_plan",
         ]
     }
 }

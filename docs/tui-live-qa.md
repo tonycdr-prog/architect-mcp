@@ -56,7 +56,9 @@ Use a fresh private repository or local throwaway git repo. Do not run destructi
 6. In the interactive TUI, create a session, run `diff summary`, run `diff file <path>`, run `promotion status`, run `approve <reason>`, run `promote`, and confirm only the changed files from `.architect-mcp/worktrees/<session>/<adapter>` are copied.
 7. After file-plan review, approve arena execution, run `arena run <adapter[,adapter]>`, then `arena rank`, and confirm candidates are ranked without auto-merging.
 8. Run `arena select <adapter>` for one candidate and confirm promotion still requires verification, final/session review, and a separate promotion approval before files are copied.
-9. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
+9. Run `integrations recommend` for a generic database request and confirm it asks for a provider before Supabase can be planned.
+10. After explicitly setting a provider, run `integrations plan <server>`, `integrations review`, `integrations apply`, `integrations approve <reason>`, and `integrations write`, and confirm the dry run does not write while the final write requires approval.
+11. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
 
 ## Evidence To Record
 

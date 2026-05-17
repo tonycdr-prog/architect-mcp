@@ -39,6 +39,16 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
         format!("changed files: {}", session.changed_files.len()),
         format!("adapter issues: {}", session.adapter_run_issues.len()),
         format!("arena candidates: {}", session.arena_candidates.len()),
+        format!(
+            "mcp recommendation: {}",
+            session
+                .mcp_recommendation
+                .as_ref()
+                .and_then(|value| value.get("status"))
+                .and_then(|value| value.as_str())
+                .unwrap_or("none")
+        ),
+        format!("mcp install approved: {}", session.mcp_install_approved),
     ];
     if !session.adapter_run_issues.is_empty() {
         lines.push("adapter issue detail:".to_string());
@@ -65,13 +75,24 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
             )
         }));
     }
+    if let Some(plan) = &session.mcp_install_plan {
+        lines.push(format!(
+            "mcp plan: {} -> {}",
+            plan.get("serverId")
+                .and_then(|value| value.as_str())
+                .unwrap_or("unknown"),
+            plan.get("targetClient")
+                .and_then(|value| value.as_str())
+                .unwrap_or("unknown")
+        ));
+    }
     lines
 }
 
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promotion status, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
+            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promotion status, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,
