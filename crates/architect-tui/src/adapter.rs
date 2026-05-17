@@ -85,10 +85,7 @@ impl AdapterConfig {
 
 pub fn default_adapters() -> BTreeMap<String, AdapterConfig> {
     BTreeMap::from([
-        (
-            "codex".to_string(),
-            adapter("codex", std::iter::empty::<&str>()),
-        ),
+        ("codex".to_string(), codex_exec_adapter()),
         (
             "claude".to_string(),
             adapter("claude", std::iter::empty::<&str>()),
@@ -110,6 +107,21 @@ pub fn default_adapters() -> BTreeMap<String, AdapterConfig> {
             adapter(default_shell(), std::iter::empty::<&str>()),
         ),
     ])
+}
+
+fn codex_exec_adapter() -> AdapterConfig {
+    adapter(
+        "codex",
+        [
+            "exec",
+            "--sandbox",
+            "workspace-write",
+            "--json",
+            "--color",
+            "never",
+            "--ephemeral",
+        ],
+    )
 }
 
 fn adapter<I, S>(command: &str, args: I) -> AdapterConfig
@@ -155,6 +167,18 @@ mod tests {
             assert!(adapters.contains_key(name), "missing {name}");
             assert!(adapters[name].pty);
         }
+        assert_eq!(
+            adapters["codex"].args,
+            vec![
+                "exec".to_string(),
+                "--sandbox".to_string(),
+                "workspace-write".to_string(),
+                "--json".to_string(),
+                "--color".to_string(),
+                "never".to_string(),
+                "--ephemeral".to_string()
+            ]
+        );
     }
 
     #[test]

@@ -43,9 +43,10 @@ pub(crate) async fn run_ready_adapter<W: AsyncWriteExt + Unpin>(
         return Ok(false);
     };
     adapter.working_directory = Some(workspace.display().to_string());
+    let prompt = gated_adapter_prompt(prompt, gate_state);
     let run_options = crate::adapter::PtyRunOptions {
         adapter_name: options.adapter.clone(),
-        prompt: prompt.to_string(),
+        prompt,
         timeout: Duration::from_secs(orchestrator.config.agents.default_timeout_seconds),
     };
     let events = if adapter.pty {
@@ -214,4 +215,65 @@ fn ensure_git_repo(workspace: &std::path::Path) -> Result<()> {
         anyhow::bail!("adapter execution requires a git workspace for isolated worktrees");
     }
     Ok(())
+}
+
+fn gated_adapter_prompt(prompt: &str, gate_state: &GateReviewState) -> String {
+    let contract = gate_state
+        .pre_edit
+        .get("contract")
+        .unwrap_or(&gate_state.pre_edit);
+    let contract_json =
+        serde_json::to_string_pretty(contract).unwrap_or_else(|_| contract.to_string());
+    let verification = verification_list(&gate_state.verification);
+    format!(
+        "architect-mcp approved this adapter execution after the local work gate.\n\n\
+Original request:\n{prompt}\n\n\
+Approved pre-edit contract JSON:\n```json\n{contract_json}\n```\n\n\
+Required verification checks:\n{verification}\n\n\
+Execution rules:\n\
+- Work only inside the current isolated adapter worktree.\n\
+- Do not commit, push, merge, promote, publish, or edit files outside this worktree.\n\
+- Implement the smallest useful slice that satisfies the approved contract.\n\
+- Leave changes uncommitted for architect-mcp review and human promotion.\n\
+- In the final response, state changed files, verification run or not run, assumptions, and remaining work."
+    )
+}
+
+fn verification_list(checks: &[String]) -> String {
+    if checks.is_empty() {
+        return "- No explicit checks supplied by the gate; report verification honestly."
+            .to_string();
+    }
+    checks
+        .iter()
+        .map(|check| format!("- {check}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gated_adapter_prompt_includes_contract_and_execution_rules() {
+        let gate_state = GateReviewState {
+            pre_edit: json!({
+                "contract": {
+                    "name": "Local Notes",
+                    "allowedFiles": ["src/features/notes/**"]
+                }
+            }),
+            verification: vec!["npm test".to_string(), "npm run build".to_string()],
+        };
+
+        let prompt = gated_adapter_prompt("Build notes CRUD", &gate_state);
+
+        assert!(prompt.contains("Original request:\nBuild notes CRUD"));
+        assert!(prompt.contains("\"name\": \"Local Notes\""));
+        assert!(prompt.contains("- npm test"));
+        assert!(prompt.contains("- npm run build"));
+        assert!(prompt.contains("Do not commit, push, merge, promote, publish"));
+        assert!(prompt.contains("Leave changes uncommitted"));
+    }
 }
