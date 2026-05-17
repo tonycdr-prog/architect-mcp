@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use crate::acp_state::{ACP_MAX_CONCURRENCY, ACP_MIN_CONCURRENCY, ACP_MODES, AcpState};
@@ -7,6 +7,9 @@ use crate::config::TuiConfig;
 use crate::mcp::CORE_WORK_GATE_TOOLS;
 
 pub use crate::acp_state::{AcpSession, AcpSessionStatus};
+
+const SESSION_PROMPT_PARAMS: [&str; 2] = ["sessionId", "prompt"];
+const SESSION_ID_PARAMS: [&str; 1] = ["sessionId"];
 
 pub fn acp_sdk_marker() -> &'static str {
     std::any::type_name::<agent_client_protocol::schema::ProtocolVersion>()
@@ -90,13 +93,25 @@ pub fn handle_json_rpc_value(
             json!({ "session": session })
         }
         "session/prompt" => {
-            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
-                return Some(error_response(id, -32602, "sessionId is required"));
+            let params = match validate_params("session/prompt", &params, &SESSION_PROMPT_PARAMS) {
+                Ok(params) => params,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
             };
-            let prompt = params
-                .get("prompt")
-                .and_then(Value::as_str)
-                .unwrap_or_default();
+            let session_id = match required_string_param("session/prompt", params, "sessionId") {
+                Ok(session_id) => session_id,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+            };
+            let prompt = match required_string_param("session/prompt", params, "prompt") {
+                Ok(prompt) => prompt,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+            };
+            if prompt.trim().is_empty() {
+                return Some(error_response(
+                    id,
+                    -32602,
+                    "ACP parameter 'prompt' must not be blank for method 'session/prompt'",
+                ));
+            }
             let events = match state.record_prompt_turn(session_id, prompt) {
                 Ok(events) => events,
                 Err(error) => return Some(error_response(id, -32004, &error.to_string())),
@@ -110,8 +125,13 @@ pub fn handle_json_rpc_value(
             })
         }
         "session/get" => {
-            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
-                return Some(error_response(id, -32602, "sessionId is required"));
+            let params = match validate_params("session/get", &params, &SESSION_ID_PARAMS) {
+                Ok(params) => params,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+            };
+            let session_id = match required_string_param("session/get", params, "sessionId") {
+                Ok(session_id) => session_id,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
             };
             let session = match state.session(session_id) {
                 Ok(session) => session,
@@ -120,8 +140,13 @@ pub fn handle_json_rpc_value(
             json!({ "session": session })
         }
         "session/events" => {
-            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
-                return Some(error_response(id, -32602, "sessionId is required"));
+            let params = match validate_params("session/events", &params, &SESSION_ID_PARAMS) {
+                Ok(params) => params,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+            };
+            let session_id = match required_string_param("session/events", params, "sessionId") {
+                Ok(session_id) => session_id,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
             };
             let session = match state.session(session_id) {
                 Ok(session) => session,
@@ -130,8 +155,13 @@ pub fn handle_json_rpc_value(
             json!({ "sessionId": session_id, "events": session.events })
         }
         "session/cancel" => {
-            let Some(session_id) = params.get("sessionId").and_then(Value::as_str) else {
-                return Some(error_response(id, -32602, "sessionId is required"));
+            let params = match validate_params("session/cancel", &params, &SESSION_ID_PARAMS) {
+                Ok(params) => params,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+            };
+            let session_id = match required_string_param("session/cancel", params, "sessionId") {
+                Ok(session_id) => session_id,
+                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
             };
             let event = match state.cancel(session_id) {
                 Ok(event) => event,
@@ -154,6 +184,36 @@ pub fn handle_json_rpc_value(
         "id": id,
         "result": result
     }))
+}
+
+fn validate_params<'a>(
+    method: &str,
+    params: &'a Value,
+    allowed: &[&str],
+) -> Result<&'a Map<String, Value>> {
+    let Some(object) = params.as_object() else {
+        anyhow::bail!("ACP method '{method}' params must be an object");
+    };
+    for name in object.keys() {
+        if !allowed.contains(&name.as_str()) {
+            anyhow::bail!("unsupported ACP parameter '{name}' for method '{method}'");
+        }
+    }
+    Ok(object)
+}
+
+fn required_string_param<'a>(
+    method: &str,
+    params: &'a Map<String, Value>,
+    name: &str,
+) -> Result<&'a str> {
+    let Some(value) = params.get(name) else {
+        anyhow::bail!("ACP parameter '{name}' is required for method '{method}'");
+    };
+    let Some(value) = value.as_str() else {
+        anyhow::bail!("ACP parameter '{name}' must be a string for method '{method}'");
+    };
+    Ok(value)
 }
 
 fn error_response(id: Value, code: i32, message: &str) -> Value {
