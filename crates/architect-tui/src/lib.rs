@@ -1,5 +1,7 @@
 pub mod acp;
 #[cfg(test)]
+mod acp_envelope_tests;
+#[cfg(test)]
 mod acp_param_tests;
 mod acp_state;
 #[cfg(test)]
