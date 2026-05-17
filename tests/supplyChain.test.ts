@@ -121,6 +121,23 @@ describe("supply-chain and release hygiene", () => {
     assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
   });
 
+  it("keeps the evolved goal ledger tied to the open implementation stack", () => {
+    const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
+
+    for (const issue of ["#142", "#143", "#144", "#145", "#146", "#147", "#148"]) {
+      assert.match(goal, new RegExp(issue));
+    }
+    for (let pr = 150; pr <= 164; pr += 1) {
+      assert.match(goal, new RegExp(`#${pr}`));
+    }
+
+    assert.match(goal, /Do not treat any unmerged PR/);
+    assert.match(goal, /not merged or released/);
+    assert.match(goal, /conditional go/);
+    assert.match(goal, /Real Windows and Linux human terminal evidence/);
+    assert.match(goal, /npm run release:check/);
+  });
+
   it("runs cross-platform TUI live QA smoke with pinned actions", () => {
     const workflow = readFileSync(".github/workflows/tui-live-qa.yml", "utf8");
     const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
