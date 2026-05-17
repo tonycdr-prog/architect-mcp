@@ -63,7 +63,7 @@ Use `answer key=value` to fill grill blockers before rerunning `grill`. List-lik
 
 Verification evidence is strict. The TUI captures the required checks from the live `grill_me` and build-plan gates. Use `verification status` to list the required checks, then use `record verification <check>=passed` with an exact required check name before final review, session review, or promotion approval can proceed. Failed, skipped, not-run, missing, unknown-check, and unknown-status records block the normal path; `override [reason]` remains the explicit maintainer escape hatch.
 
-Adapter run evidence is also strict. Timeout, crash, cancellation, non-zero exit, and truncated output are saved into the session as adapter issues, shown in the inspector, and block normal promotion approval/readiness until the adapter is rerun successfully or a maintainer records an explicit override.
+Adapter run evidence is also strict. Timeout, crash, cancellation, non-zero exit, and truncated output are saved into the session as adapter issues, shown in the inspector, and block normal promotion approval/readiness until the adapter is rerun successfully or a maintainer records an explicit override. A rerun requires file-plan review and execution approval again, replaces the managed isolated worktree for that session/adapter, clears stale run evidence, and then applies the new evidence.
 
 Headless JSONL run:
 

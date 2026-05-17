@@ -169,6 +169,7 @@ impl InteractiveWorkflowEngine {
             .await?;
         let events = String::from_utf8_lossy(&output).to_string();
         let session = self.update_active(|session| {
+            session.clear_adapter_run_evidence();
             session.set_required_verification(verification);
             apply_run_evidence(session, &events);
             session.phase = if executed {

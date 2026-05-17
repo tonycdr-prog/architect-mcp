@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
@@ -125,6 +127,7 @@ async fn prepare_adapter_workspace<W: AsyncWriteExt + Unpin>(
     }
     ensure_git_repo(&orchestrator.workspace)?;
     let worktree = orchestrator.worktree_path_for_agent(session_id, &options.adapter);
+    reset_existing_adapter_worktree(orchestrator, &worktree)?;
     if let Some(parent) = worktree.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -145,6 +148,59 @@ async fn prepare_adapter_workspace<W: AsyncWriteExt + Unpin>(
         );
     }
     Ok(Some(worktree))
+}
+
+fn reset_existing_adapter_worktree(orchestrator: &Orchestrator, worktree: &Path) -> Result<()> {
+    if fs::symlink_metadata(worktree).is_err() {
+        return Ok(());
+    }
+    ensure_managed_worktree_path(orchestrator, worktree)?;
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(&orchestrator.workspace)
+        .args(["worktree", "remove", "--force"])
+        .arg(worktree)
+        .output()
+        .context("failed to remove existing isolated adapter worktree")?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stderr_lower = stderr.to_ascii_lowercase();
+    if stderr_lower.contains("not a working tree") {
+        remove_managed_path(worktree)
+            .with_context(|| format!("failed to remove stale {}", worktree.display()))?;
+        return Ok(());
+    }
+    anyhow::bail!(
+        "git worktree remove failed with status {}: {}",
+        output.status,
+        stderr.trim()
+    );
+}
+
+fn ensure_managed_worktree_path(orchestrator: &Orchestrator, worktree: &Path) -> Result<()> {
+    let managed_root = orchestrator
+        .workspace
+        .join(".architect-mcp")
+        .join("worktrees");
+    if !worktree.starts_with(&managed_root) {
+        anyhow::bail!(
+            "refusing to reset unmanaged adapter worktree path {}",
+            worktree.display()
+        );
+    }
+    Ok(())
+}
+
+fn remove_managed_path(path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(path)?;
+    if metadata.is_dir() && !metadata.file_type().is_symlink() {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
+    Ok(())
 }
 
 fn ensure_git_repo(workspace: &std::path::Path) -> Result<()> {

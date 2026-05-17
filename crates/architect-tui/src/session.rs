@@ -41,6 +41,13 @@ fn default_approval_status() -> ApprovalStatus {
     ApprovalStatus::Pending
 }
 
+const ADAPTER_RUN_GATES: &[&str] = &[
+    "review_implementation_against_contract",
+    "review_repo_structure",
+    "review_agent_final_response",
+    "review_agent_session",
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TuiSession {
@@ -159,6 +166,22 @@ impl TuiSession {
             self.adapter_run_issues.push(issue);
         }
         self.adapter_crashed = true;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn clear_adapter_run_evidence(&mut self) {
+        self.worktree = None;
+        self.diff_stat = None;
+        self.changed_files.clear();
+        self.verification.clear();
+        self.final_response = None;
+        self.adapter_crashed = false;
+        self.adapter_run_issues.clear();
+        self.approval_status = ApprovalStatus::Pending;
+        self.approval_reason = None;
+        for gate in ADAPTER_RUN_GATES {
+            self.gates.remove(*gate);
+        }
         self.updated_at = unix_timestamp();
     }
 

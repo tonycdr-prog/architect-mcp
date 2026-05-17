@@ -11,7 +11,7 @@ impl InteractiveWorkflowEngine {
         let phase = self.active()?.phase.clone();
         let has_worktree = self.active()?.worktree.is_some();
         match (phase, has_worktree) {
-            (SessionPhase::FilePlanReviewed, false) => {
+            (SessionPhase::FilePlanReviewed, _) => {
                 let session = self.update_active(|session| session.approve_execution(reason))?;
                 Ok(update(
                     vec![format!("adapter execution approved: {reason}")],
