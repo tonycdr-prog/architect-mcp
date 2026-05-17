@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::Result;
@@ -18,6 +19,7 @@ use crate::launch_readiness_public_summary::build_public_summary as build_launch
 pub struct EvidenceIndexOptions {
     pub json: bool,
     pub markdown: bool,
+    pub markdown_output: Option<PathBuf>,
     pub repo: Option<String>,
     pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
@@ -35,11 +37,23 @@ pub async fn run_evidence_index(
     options: EvidenceIndexOptions,
 ) -> Result<()> {
     validate_output_mode(options.json, options.markdown)?;
-    let report = build_evidence_index_report(workspace, config, &options).await;
+    let report = build_evidence_index_report(workspace.clone(), config, &options).await;
+    let markdown = if options.markdown || options.markdown_output.is_some() {
+        Some(render_markdown(&report))
+    } else {
+        None
+    };
+    if let Some(markdown_output) = &options.markdown_output {
+        write_markdown_output(
+            &workspace,
+            markdown_output,
+            markdown.as_deref().unwrap_or(""),
+        )?;
+    }
     if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else if options.markdown {
-        println!("{}", render_markdown(&report));
+        println!("{}", markdown.as_deref().unwrap_or(""));
     } else {
         print_text_report(&report);
     }
@@ -47,6 +61,20 @@ pub async fn run_evidence_index(
         anyhow::bail!("evidence index result is no-go");
     }
     Ok(())
+}
+
+pub(crate) fn write_markdown_output(
+    workspace: &Path,
+    target: &Path,
+    markdown: &str,
+) -> Result<PathBuf> {
+    let output = workspace_safe_output_path(workspace, target)?;
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)?;
+        ensure_parent_stays_in_workspace(workspace, parent)?;
+    }
+    fs::write(&output, markdown)?;
+    Ok(output)
 }
 
 pub(crate) fn validate_output_mode(json: bool, markdown: bool) -> Result<()> {
@@ -116,4 +144,37 @@ fn print_text_report(report: &EvidenceIndexReport) {
             println!("- {action}");
         }
     }
+}
+
+fn workspace_safe_output_path(workspace: &Path, target: &Path) -> Result<PathBuf> {
+    if target.as_os_str().is_empty() {
+        anyhow::bail!("markdown output path must not be empty");
+    }
+    if target.is_absolute() {
+        anyhow::bail!("markdown output path must be relative to the workspace");
+    }
+
+    let mut safe = PathBuf::new();
+    for component in target.components() {
+        match component {
+            Component::Normal(part) => safe.push(part),
+            Component::CurDir => {}
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                anyhow::bail!("markdown output path must stay inside the workspace");
+            }
+        }
+    }
+    if safe.as_os_str().is_empty() {
+        anyhow::bail!("markdown output path must name a file");
+    }
+    Ok(workspace.join(safe))
+}
+
+fn ensure_parent_stays_in_workspace(workspace: &Path, parent: &Path) -> Result<()> {
+    let workspace = workspace.canonicalize()?;
+    let parent = parent.canonicalize()?;
+    if !parent.starts_with(&workspace) {
+        anyhow::bail!("markdown output parent must stay inside the workspace");
+    }
+    Ok(())
 }
