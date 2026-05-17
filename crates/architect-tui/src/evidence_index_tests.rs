@@ -1,3 +1,5 @@
+use crate::evidence_index::validate_output_mode;
+use crate::evidence_index_markdown::render_markdown;
 use crate::evidence_index_report::build_evidence_index_report_from_public_summaries_at;
 use crate::governance_audit_public_summary::{
     GovernanceAuditPublicCategory, GovernanceAuditPublicFinding,
@@ -8,9 +10,12 @@ use crate::governance_audit_public_summary::{
 use crate::governance_audit_report::{GovernanceAuditStatus, GovernanceFindingSeverity};
 use crate::launch_judge_report::LaunchJudgeResult;
 use crate::launch_readiness_public_summary::{
-    LaunchReadinessPublicStack, LaunchReadinessPublicStatusCounts, LaunchReadinessPublicSummary,
-    LaunchReadinessPublicTerminalEvidence,
+    LaunchReadinessPublicBlockerIssue, LaunchReadinessPublicStack,
+    LaunchReadinessPublicStatusCounts, LaunchReadinessPublicSummary,
+    LaunchReadinessPublicTerminalEvidence, LaunchReadinessPublicTerminalEvidenceIssue,
+    LaunchReadinessPublicTerminalEvidenceWaiver,
 };
+use crate::launch_stack::LaunchStackItemStatus;
 
 #[test]
 fn evidence_index_combines_launch_and_governance_public_summaries() {
@@ -74,6 +79,58 @@ fn evidence_index_redacts_public_text_and_omits_raw_payloads() {
     assert!(!text.contains("stdout"));
     assert!(!text.contains("stderr"));
     assert!(!text.contains("memory proposal text"));
+}
+
+#[test]
+fn evidence_index_markdown_renders_public_release_handoff() {
+    let mut launch = launch_summary(LaunchJudgeResult::ConditionalGo);
+    launch.launch_stack.blocker_issues = vec![LaunchReadinessPublicBlockerIssue {
+        number: 136,
+        state: "OPEN".to_string(),
+        status: LaunchStackItemStatus::Warning,
+        waived: false,
+    }];
+    launch.terminal_evidence.issue = Some(LaunchReadinessPublicTerminalEvidenceIssue {
+        number: 136,
+        result: LaunchJudgeResult::ConditionalGo,
+        extracted_block_count: 0,
+    });
+    launch.terminal_evidence.issues =
+        vec!["terminal evidence reports must include linux and windows".to_string()];
+    launch.terminal_evidence_waiver = Some(LaunchReadinessPublicTerminalEvidenceWaiver {
+        issue: 136,
+        applied: false,
+        reason: "maintainer has not accepted a waiver".to_string(),
+    });
+
+    let report = build_evidence_index_report_from_public_summaries_at(
+        launch,
+        governance_summary(GovernanceAuditStatus::Passed),
+        1,
+    );
+    let markdown = render_markdown(&report);
+
+    assert!(markdown.contains("# Release Evidence Index"));
+    assert!(markdown.contains("- Result: `conditional_go`"));
+    assert!(markdown.contains("| launch readiness | `conditional_go` |"));
+    assert!(markdown.contains("Terminal evidence issue: #136"));
+    assert!(markdown.contains("Terminal evidence waiver: issue #136"));
+    assert!(markdown.contains("## Next Actions"));
+    assert!(!markdown.contains("commandSummary"));
+    assert!(!markdown.contains("stdout"));
+    assert!(!markdown.contains("stderr"));
+    assert!(!markdown.contains("/Users/example"));
+}
+
+#[test]
+fn evidence_index_rejects_ambiguous_output_modes() {
+    let error = validate_output_mode(true, true).expect_err("ambiguous mode should fail");
+
+    assert!(
+        error
+            .to_string()
+            .contains("choose only one evidence-index output mode")
+    );
 }
 
 fn launch_summary(result: LaunchJudgeResult) -> LaunchReadinessPublicSummary {

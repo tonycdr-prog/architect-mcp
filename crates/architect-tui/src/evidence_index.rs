@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::Result;
 
 use crate::config::TuiConfig;
+use crate::evidence_index_markdown::render_markdown;
 use crate::evidence_index_report::{
     EvidenceIndexReport, build_evidence_index_report_from_public_summaries_at,
 };
@@ -16,6 +17,7 @@ use crate::launch_readiness_public_summary::build_public_summary as build_launch
 #[derive(Debug, Clone)]
 pub struct EvidenceIndexOptions {
     pub json: bool,
+    pub markdown: bool,
     pub repo: Option<String>,
     pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
@@ -32,14 +34,24 @@ pub async fn run_evidence_index(
     config: TuiConfig,
     options: EvidenceIndexOptions,
 ) -> Result<()> {
+    validate_output_mode(options.json, options.markdown)?;
     let report = build_evidence_index_report(workspace, config, &options).await;
     if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
+    } else if options.markdown {
+        println!("{}", render_markdown(&report));
     } else {
         print_text_report(&report);
     }
     if report.result == LaunchJudgeResult::NoGo {
         anyhow::bail!("evidence index result is no-go");
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_output_mode(json: bool, markdown: bool) -> Result<()> {
+    if json && markdown {
+        anyhow::bail!("choose only one evidence-index output mode: --json or --markdown");
     }
     Ok(())
 }
