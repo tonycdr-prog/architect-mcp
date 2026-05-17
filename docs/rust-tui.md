@@ -220,7 +220,16 @@ architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 
 This command combines the read-only governance audit, terminal smoke, release-gate evidence, git worktree state, and external terminal evidence into one `go`, `conditional_go`, or `no_go` report. By default it does not run `npm run release:check`; missing release-gate execution is a `conditional_go` warning with a next action. Use `--run-release-check` when collecting release-sensitive evidence. Use `--skip-mcp` or `--skip-smoke` only when documenting why the judge report is intentionally partial. A `no_go` result exits non-zero; `conditional_go` exits zero so maintainers can inspect incomplete external evidence without breaking static CI.
 
-`--terminal-evidence` accepts a public-safe JSON summary of manual Linux and Windows terminal QA. It is intentionally not a raw log importer: files with `stdout`, `stderr`, raw log fields, absolute local paths, or secret-shaped strings fail closed. Use short summaries and public issue or PR references:
+Linux and Windows testers can generate the public-safe evidence file directly:
+
+```bash
+architect-mcp-tui terminal-evidence --json > terminal-evidence.json
+architect-mcp-tui terminal-evidence --json --platform linux > terminal-evidence.json
+```
+
+`terminal-evidence` runs the terminal smoke internally, maps the smoke result into the launch judge evidence schema, and omits raw JSONL, stdout/stderr logs, local binary paths, cache paths, private repo names, and token-shaped values. It auto-detects Linux and Windows; use `--platform` only when summarizing already-verified external evidence or when a maintainer is exercising the command surface outside a launch platform.
+
+`--terminal-evidence` accepts the generated public-safe JSON summary of manual Linux and Windows terminal QA. It is intentionally not a raw log importer: files with `stdout`, `stderr`, raw log fields, absolute local paths, or secret-shaped strings fail closed. Use short summaries and public issue or PR references:
 
 ```json
 {

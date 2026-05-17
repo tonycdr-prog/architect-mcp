@@ -12,6 +12,7 @@ pub mod arena;
 mod brief;
 #[cfg(test)]
 mod brief_tests;
+pub mod cli;
 pub mod config;
 mod config_template;
 pub mod foundry;
@@ -71,6 +72,9 @@ mod session_tests;
 pub mod smoke;
 mod smoke_report;
 mod smoke_types;
+pub mod terminal_evidence;
+#[cfg(test)]
+mod terminal_evidence_tests;
 pub mod ui;
 mod verification;
 pub mod walkthrough;
