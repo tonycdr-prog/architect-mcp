@@ -63,6 +63,7 @@ describe("architect-mcp-tui npm shim", () => {
         "launch-judge",
         "launch-stack",
         "launch-readiness",
+        "evidence-index",
         "collect-terminal-evidence",
       ],
       runHelp: (binaryPath) => ({
@@ -70,7 +71,7 @@ describe("architect-mcp-tui npm shim", () => {
         output:
           binaryPath === stale
             ? "Commands:\n  run\n  config\n  smoke\n"
-            : "Commands:\n  run\n  config\n  smoke\n  terminal-evidence\n  walkthrough\n  promotion-smoke\n  foundry-smoke\n  governance-audit\n  launch-judge\n  launch-stack\n  launch-readiness\n  collect-terminal-evidence\n",
+            : "Commands:\n  run\n  config\n  smoke\n  terminal-evidence\n  walkthrough\n  promotion-smoke\n  foundry-smoke\n  governance-audit\n  launch-judge\n  launch-stack\n  launch-readiness\n  evidence-index\n  collect-terminal-evidence\n",
         }),
       });
 

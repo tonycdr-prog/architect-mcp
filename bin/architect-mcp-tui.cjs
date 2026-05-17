@@ -20,6 +20,7 @@ const REQUIRED_LOCAL_HELP_COMMANDS = [
   "launch-judge",
   "launch-stack",
   "launch-readiness",
+  "evidence-index",
   "collect-terminal-evidence",
 ];
 

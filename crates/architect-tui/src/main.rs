@@ -3,6 +3,7 @@ use architect_tui::acp::run_acp_stdio;
 use architect_tui::adapter::print_adapter_table;
 use architect_tui::cli::{Cli, Commands};
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
+use architect_tui::evidence_index::{EvidenceIndexOptions, run_evidence_index};
 use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
 use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
 use architect_tui::issue_terminal_evidence::{
@@ -241,6 +242,36 @@ async fn main() -> Result<()> {
                 terminal_evidence_waivers,
             },
         )?,
+        Some(Commands::EvidenceIndex {
+            json,
+            repo,
+            stack_from_pr,
+            prs,
+            blockers,
+            waived_blockers,
+            terminal_evidence_issue,
+            terminal_evidence_waivers,
+            skip_mcp,
+            max_files,
+        }) => {
+            run_evidence_index(
+                workspace,
+                config,
+                EvidenceIndexOptions {
+                    json,
+                    repo,
+                    stack_from_pr,
+                    prs,
+                    blockers,
+                    waived_blockers,
+                    terminal_evidence_issue,
+                    terminal_evidence_waivers,
+                    skip_mcp,
+                    max_files,
+                },
+            )
+            .await?
+        }
         Some(Commands::CollectTerminalEvidence { json, repo, issue }) => {
             run_issue_terminal_evidence(
                 &workspace,
