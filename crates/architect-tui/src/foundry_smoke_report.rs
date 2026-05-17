@@ -46,6 +46,8 @@ pub struct FoundryGithubVerification {
     pub is_private: bool,
     pub draft_pr_url: Option<String>,
     pub draft_pr_number: Option<u64>,
+    pub draft_pr_is_draft: Option<bool>,
+    pub draft_pr_state: Option<String>,
 }
 
 pub(crate) fn failed_report(

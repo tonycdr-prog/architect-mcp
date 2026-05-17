@@ -175,7 +175,7 @@ async fn apply_command(
     }
 }
 
-fn foundry_status(
+pub(crate) fn foundry_status(
     execute: bool,
     staged_repo: Option<&Path>,
     execution_status: Option<&str>,
@@ -193,7 +193,7 @@ fn foundry_status(
     if staged_repo.is_some()
         && execute
         && execution_status == Some("passed")
-        && github.is_some_and(|verification| verification.is_private)
+        && github.is_some_and(foundry_github_verification_passed)
         && error.is_none()
     {
         return FoundrySmokeStatus::Passed;
@@ -231,7 +231,22 @@ fn verify_github_target(target: &str) -> Result<FoundryGithubVerification> {
         draft_pr_number: pr
             .and_then(|value| value.get("number"))
             .and_then(Value::as_u64),
+        draft_pr_is_draft: pr
+            .and_then(|value| value.get("isDraft"))
+            .and_then(Value::as_bool),
+        draft_pr_state: pr
+            .and_then(|value| value.get("state"))
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
     })
+}
+
+fn foundry_github_verification_passed(verification: &FoundryGithubVerification) -> bool {
+    verification.is_private
+        && verification.draft_pr_url.is_some()
+        && verification.draft_pr_number.is_some()
+        && verification.draft_pr_is_draft == Some(true)
+        && verification.draft_pr_state.as_deref() == Some("OPEN")
 }
 
 fn ensure_repo_absent(target: &str) -> Result<()> {
@@ -277,11 +292,6 @@ fn create_foundry_workspace() -> Result<PathBuf> {
 }
 
 fn default_repo_name() -> String {
-    let suffix = Uuid::new_v4()
-        .simple()
-        .to_string()
-        .chars()
-        .take(8)
-        .collect::<String>();
-    format!("architect-mcp-foundry-smoke-{suffix}")
+    let id = Uuid::new_v4().simple().to_string();
+    format!("architect-mcp-foundry-smoke-{}", &id[..8])
 }
