@@ -223,6 +223,7 @@ async fn main() -> Result<()> {
             blockers,
             waived_blockers,
             terminal_evidence_issue,
+            terminal_evidence_waivers,
         }) => run_launch_readiness(
             &workspace,
             LaunchReadinessOptions {
@@ -233,6 +234,7 @@ async fn main() -> Result<()> {
                 blockers,
                 waived_blockers,
                 terminal_evidence_issue,
+                terminal_evidence_waivers,
             },
         )?,
         Some(Commands::CollectTerminalEvidence { json, repo, issue }) => {
