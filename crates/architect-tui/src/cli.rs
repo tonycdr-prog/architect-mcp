@@ -123,6 +123,6 @@ pub enum Commands {
         #[arg(long, default_value_t = 1000)]
         max_files: usize,
         #[arg(long)]
-        terminal_evidence: Option<PathBuf>,
+        terminal_evidence: Vec<PathBuf>,
     },
 }

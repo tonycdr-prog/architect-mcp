@@ -123,6 +123,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
     assert.match(terminalQa, /architect-mcp-tui terminal-evidence --json/);
     assert.match(terminalQa, /launch-judge --json --terminal-evidence terminal-evidence\.json/);
+    assert.match(terminalQa, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(terminalQa, /Do not paste the raw smoke JSON into public issues/);
     assert.match(terminalQaIssue, /Launch judge terminal evidence JSON/);
     assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --json/);
@@ -147,6 +148,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
+    assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
     assert.match(rustTui, /public-safe JSON summary/);
     assert.match(rustTui, /conditional_go/);

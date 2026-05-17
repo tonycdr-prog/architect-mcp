@@ -35,6 +35,12 @@ When Linux or Windows manual evidence is posted publicly, prefer the generated e
 architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 ```
 
+When Linux and Windows reports are generated separately, pass both files to the launch judge:
+
+```bash
+architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+```
+
 If a maintainer must normalize already-posted notes manually, keep the same launch judge terminal evidence schema:
 
 ```json

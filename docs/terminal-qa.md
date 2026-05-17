@@ -149,11 +149,14 @@ Do not run adapter execution in a public repository unless you are intentionally
 
 ## Report Results
 
-For successful Linux or Windows terminal QA, open a Terminal QA report and paste the public-safe output from `architect-mcp-tui terminal-evidence --json`. Maintainers should be able to save the JSON as `terminal-evidence.json` and run:
+For successful Linux or Windows terminal QA, open a Terminal QA report and paste the public-safe output from `architect-mcp-tui terminal-evidence --json`. Maintainers should be able to save each platform report and run:
 
 ```bash
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
+architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 ```
+
+Use the repeated flag form when Linux and Windows evidence arrives as separate issue comments or files. The launch judge merges the reports and validates the combined evidence without requiring hand-edited JSON.
 
 The generated evidence has this shape:
 
