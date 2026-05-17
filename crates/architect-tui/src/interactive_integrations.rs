@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_integrations_support::{
-    apply_args, apply_lines, ensure_install_review_not_failed, ensure_recommended, plan_lines,
+    apply_args, apply_lines, ensure_install_review_passed, ensure_recommended, plan_lines,
     recommendation_lines, recommendation_request, review_lines,
 };
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
@@ -58,9 +58,8 @@ impl InteractiveWorkflowEngine {
 
     pub(crate) async fn integrations_review(&mut self) -> Result<WorkflowUpdate> {
         let plan = self
-            .active()?
-            .mcp_install_plan
-            .clone()
+            .current_mcp_install_plan()
+            .await
             .context("create an MCP install plan before review")?;
         let result = self
             .call_tool(
@@ -81,8 +80,8 @@ impl InteractiveWorkflowEngine {
         &mut self,
         target_path: Option<&str>,
     ) -> Result<WorkflowUpdate> {
-        ensure_install_review_not_failed(self.active()?)?;
-        let plan = self.active()?.mcp_install_plan.clone().unwrap();
+        ensure_install_review_passed(self.active()?)?;
+        let plan = self.current_mcp_install_plan().await?;
         let result = self
             .call_tool(
                 "apply_mcp_install_plan",
@@ -99,7 +98,7 @@ impl InteractiveWorkflowEngine {
     }
 
     pub(crate) fn integrations_approve(&mut self, reason: &str) -> Result<WorkflowUpdate> {
-        ensure_install_review_not_failed(self.active()?)?;
+        ensure_install_review_passed(self.active()?)?;
         let reason = reason.trim();
         if reason.is_empty() {
             anyhow::bail!("integrations approve requires a reason");
@@ -116,11 +115,11 @@ impl InteractiveWorkflowEngine {
         &mut self,
         target_path: Option<&str>,
     ) -> Result<WorkflowUpdate> {
-        ensure_install_review_not_failed(self.active()?)?;
+        ensure_install_review_passed(self.active()?)?;
         if !self.active()?.mcp_install_approved {
             anyhow::bail!("approve MCP install before writing config");
         }
-        let plan = self.active()?.mcp_install_plan.clone().unwrap();
+        let plan = self.current_mcp_install_plan().await?;
         let result = self
             .call_tool(
                 "apply_mcp_install_plan",
@@ -147,5 +146,46 @@ impl InteractiveWorkflowEngine {
             inspector_for(session),
             Some(session.clone()),
         ))
+    }
+
+    async fn current_mcp_install_plan(&mut self) -> Result<Value> {
+        let plan = self
+            .active()?
+            .mcp_install_plan
+            .clone()
+            .context("create an MCP install plan first")?;
+        let server_id = plan
+            .get("serverId")
+            .and_then(Value::as_str)
+            .context("stored MCP install plan is missing serverId")?;
+        let target_client = plan
+            .get("targetClient")
+            .and_then(Value::as_str)
+            .unwrap_or("generic-json");
+        let hosted_mode = plan
+            .get("hostedMode")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let hydrated = self
+            .call_tool(
+                "create_mcp_install_plan",
+                "recreate MCP install plan from stored metadata before review/apply/write",
+                json!({
+                    "request": {
+                        "serverId": server_id,
+                        "targetClient": target_client,
+                        "hostedMode": hosted_mode,
+                    }
+                }),
+            )
+            .await?;
+        let hydrated_package = hydrated.get("packagePin").and_then(Value::as_str);
+        let stored_package = plan.get("packagePin").and_then(Value::as_str);
+        if let (Some(stored), Some(hydrated)) = (stored_package, hydrated_package)
+            && stored != hydrated
+        {
+            anyhow::bail!("stored MCP install plan is stale; rerun integrations plan");
+        }
+        Ok(hydrated)
     }
 }

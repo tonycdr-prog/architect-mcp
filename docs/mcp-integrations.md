@@ -24,7 +24,7 @@ integrations approve <reason>
 integrations write [target-path]
 ```
 
-The TUI stores recommendation, install-plan, and review evidence in the session. A server cannot be planned unless it appears in the latest recommendation response. `integrations apply` is dry-run only. `integrations write` requires a non-failing review plus `integrations approve <reason>` and consumes that approval after a successful write.
+The TUI stores recommendation, install-plan, and review metadata in the session, but it does not persist raw MCP config payloads or credentials. A server cannot be planned unless it appears in the latest recommendation response. `integrations apply` is dry-run only. `integrations write` requires a passing review plus `integrations approve <reason>` and consumes that approval after a successful write.
 
 ## Policy
 

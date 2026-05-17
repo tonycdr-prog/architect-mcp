@@ -117,6 +117,11 @@ async fn integrations_review_and_approval_gate_config_writes() {
             .expect("config")
             .contains("supabase")
     );
+    let blocked = engine
+        .apply_input("integrations write .mcp.json")
+        .await
+        .expect_err("approval consumed after write");
+    assert!(blocked.to_string().contains("approve MCP install"));
 }
 
 #[tokio::test]
@@ -159,10 +164,77 @@ async fn integrations_fail_closed_for_unknown_and_failed_install_reviews() {
     );
 
     let blocked = engine
+        .apply_input("integrations apply .mcp.json")
+        .await
+        .expect_err("failed review blocks apply");
+    assert!(blocked.to_string().contains("review failed"));
+
+    let blocked = engine
         .apply_input("integrations approve unsafe plan")
         .await
         .expect_err("failed review blocks approval");
     assert!(blocked.to_string().contains("review failed"));
+
+    let blocked = engine
+        .apply_input("integrations write .mcp.json")
+        .await
+        .expect_err("failed review blocks write");
+    assert!(blocked.to_string().contains("review failed"));
+}
+
+#[tokio::test]
+async fn changing_answers_clears_stale_integration_state() {
+    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input(
+            "new app ready app with database=supabase users flows stack risks verification",
+        )
+        .await
+        .expect("new app");
+    engine
+        .apply_input("integrations recommend")
+        .await
+        .expect("recommend");
+    engine
+        .apply_input("integrations plan supabase target=codex")
+        .await
+        .expect("plan");
+    engine
+        .apply_input("integrations review")
+        .await
+        .expect("review");
+    engine
+        .apply_input("integrations apply .mcp.json")
+        .await
+        .expect("dry run");
+    engine
+        .apply_input("integrations approve reviewed pinned Supabase plan")
+        .await
+        .expect("approve");
+
+    let answer = engine
+        .apply_input("answer users=operators with stricter review workflow")
+        .await
+        .expect("answer");
+    let session = answer.session.expect("session");
+    assert!(session.mcp_recommendation.is_none());
+    assert!(session.mcp_install_plan.is_none());
+    assert!(session.mcp_install_review.is_none());
+    assert!(!session.mcp_install_approved);
+    assert!(!session.gates.contains_key("recommend_mcp_servers"));
+    assert!(!session.gates.contains_key("create_mcp_install_plan"));
+    assert!(!session.gates.contains_key("review_mcp_install_plan"));
+    assert!(!session.gates.contains_key("apply_mcp_install_plan"));
+
+    let blocked = engine
+        .apply_input("integrations plan supabase target=codex")
+        .await
+        .expect_err("stale recommendation cleared");
+    assert!(blocked.to_string().contains("run integrations recommend"));
 }
 
 fn fake_mcp_orchestrator() -> Option<(Orchestrator, tempfile::TempDir)> {

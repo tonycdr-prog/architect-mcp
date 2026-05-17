@@ -170,7 +170,7 @@ integrations approve <reason>
 integrations write [target-path]
 ```
 
-`integrations recommend` calls the live `recommend_mcp_servers` tool with the current brief. Generic database needs ask for a provider before Supabase can be planned. `integrations plan` is blocked unless the server was recommended by the latest recommendation result. `integrations review` must run before apply or approval. `integrations apply` is dry-run only and does not write files. `integrations write` calls `apply_mcp_install_plan` with `writeFiles=true` only after `integrations approve <reason>`, and the write approval is consumed after a successful write.
+`integrations recommend` calls the live `recommend_mcp_servers` tool with the current brief and current clarified answers instead of shortcutting from the original prompt text. Generic database needs ask for a provider before Supabase can be planned. `integrations plan` is blocked unless the server was recommended by the latest recommendation result. `integrations review` must pass before apply, approval, or write. `integrations apply` is dry-run only and does not write files. `integrations write` calls `apply_mcp_install_plan` with `writeFiles=true` only after `integrations approve <reason>`, and the write approval is consumed after a successful write. Session persistence keeps recommendation/plan/review metadata, not raw MCP config payloads or credentials.
 
 ## Config
 
