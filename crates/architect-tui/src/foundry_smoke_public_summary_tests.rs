@@ -73,6 +73,40 @@ fn public_summary_redacts_errors_and_counts_failed_commands() {
     assert!(!json.contains("https://github.com/owner/private-proof-repo/pull/1"));
 }
 
+#[test]
+fn public_summary_omits_raw_command_output_and_mcp_payload_details() {
+    let mut report = sample_report(FoundrySmokeStatus::Failed, "live");
+    report.error = Some(
+        "gh repo create owner/private-proof-repo failed: stderr tail: {\"jsonrpc\":\"2.0\",\"method\":\"tools/call\"} transcript: stdout from /Users/example/workspace/staged".to_string(),
+    );
+
+    let summary = build_foundry_smoke_public_summary(&report);
+    let json = serde_json::to_string(&summary).expect("serialize summary");
+
+    assert!(
+        summary
+            .findings
+            .iter()
+            .any(|finding| finding.contains("raw command output omitted"))
+    );
+    assert!(
+        summary
+            .findings
+            .iter()
+            .all(|finding| !finding.to_ascii_lowercase().contains("stdout"))
+    );
+    assert!(
+        summary
+            .findings
+            .iter()
+            .all(|finding| !finding.to_ascii_lowercase().contains("stderr"))
+    );
+    assert!(!json.contains("gh repo create"));
+    assert!(!json.contains("tools/call"));
+    assert!(!json.contains("\"jsonrpc\""));
+    assert!(!json.contains("/Users/example/workspace/staged"));
+}
+
 fn sample_report(status: FoundrySmokeStatus, mode: &str) -> FoundrySmokeReport {
     FoundrySmokeReport {
         schema_version: 1,

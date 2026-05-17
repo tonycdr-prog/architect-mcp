@@ -80,7 +80,7 @@ pub(crate) fn build_foundry_smoke_public_summary(
     };
     let mut findings = Vec::new();
     if let Some(error) = &report.error {
-        findings.push(public_report_text(report, error, 240));
+        findings.push(public_error_text(report, error, 240));
     }
     if report.mode == "live" && github.is_none() {
         findings.push("live foundry smoke did not verify private GitHub repo evidence".to_string());
@@ -141,6 +141,27 @@ fn public_report_text(report: &FoundrySmokeReport, value: &str, max_len: usize) 
         }
     }
     public_text(&text, max_len)
+}
+
+fn public_error_text(report: &FoundrySmokeReport, value: &str, max_len: usize) -> String {
+    let text = public_report_text(report, value, max_len);
+    let lower = text.to_ascii_lowercase();
+    if lower.contains("stdout") || lower.contains("stderr") || lower.contains("transcript") {
+        return "foundry smoke failed; raw command output omitted".to_string();
+    }
+    if lower.contains("\"jsonrpc\"") || lower.contains("\"method\"") || lower.contains("tools/call")
+    {
+        return "foundry smoke failed during MCP exchange; raw payload omitted".to_string();
+    }
+    if lower.contains("gh repo ")
+        || lower.contains("gh pr ")
+        || lower.contains("foundry create")
+        || lower.contains("foundry stage")
+        || lower.contains("foundry plan")
+    {
+        return "foundry smoke failed; raw command text omitted".to_string();
+    }
+    text
 }
 
 fn report_specific_values(report: &FoundrySmokeReport) -> Vec<String> {
