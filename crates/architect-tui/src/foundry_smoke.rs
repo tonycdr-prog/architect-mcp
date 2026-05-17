@@ -14,6 +14,7 @@ pub use crate::foundry_smoke_report::{
     FoundryGithubVerification, FoundrySmokeCommandReport, FoundrySmokeReport, FoundrySmokeStatus,
 };
 use crate::foundry_smoke_report::{failed_report, print_text_report};
+use crate::foundry_smoke_retention::{FoundrySmokeRetentionDecision, retention_from_options};
 use crate::foundry_smoke_script::foundry_smoke_commands;
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::mcp::ArchitectMcpBridge;
@@ -29,6 +30,8 @@ pub struct FoundrySmokeOptions {
     pub execute: bool,
     pub confirm_private_repo_mutation: bool,
     pub keep_workspace: bool,
+    pub retention_decision: Option<FoundrySmokeRetentionDecision>,
+    pub retention_reason: Option<String>,
 }
 
 pub async fn run_foundry_smoke(
@@ -73,6 +76,11 @@ pub async fn build_foundry_smoke_report(
     if options.execute && !options.confirm_private_repo_mutation {
         anyhow::bail!("live foundry smoke requires --confirm-private-repo-mutation");
     }
+    let (retention, retention_decision) = retention_from_options(
+        options.execute,
+        options.retention_decision,
+        options.retention_reason.as_deref(),
+    )?;
     if options.execute {
         ensure_repo_absent(&target)?;
     }
@@ -133,12 +141,8 @@ pub async fn build_foundry_smoke_report(
         github,
         commands,
         error,
-        retention: if options.execute {
-            "private GitHub repo retained for maintainer evidence; delete manually when no longer needed"
-                .to_string()
-        } else {
-            "no GitHub repo created".to_string()
-        },
+        retention,
+        retention_decision,
     };
 
     if !options.keep_workspace && report.status == FoundrySmokeStatus::Passed && !options.execute {

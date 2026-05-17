@@ -20,6 +20,8 @@ async fn foundry_smoke_dry_run_stages_repo_without_github_execution() {
             execute: false,
             confirm_private_repo_mutation: false,
             keep_workspace: true,
+            retention_decision: None,
+            retention_reason: None,
         },
     )
     .await
@@ -59,6 +61,8 @@ async fn foundry_smoke_live_requires_private_repo_mutation_confirmation() {
             execute: true,
             confirm_private_repo_mutation: false,
             keep_workspace: false,
+            retention_decision: None,
+            retention_reason: None,
         },
     )
     .await

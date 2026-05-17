@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 use crate::config::ConfigCommand;
+use crate::foundry_smoke::FoundrySmokeOptions;
+use crate::foundry_smoke_retention::FoundrySmokeRetentionDecision;
 use crate::smoke::SmokeOptions;
 
 #[derive(Debug, Parser)]
@@ -90,20 +92,8 @@ pub enum Commands {
     },
     /// Run a repo-foundry smoke; live GitHub creation requires explicit confirmation.
     FoundrySmoke {
-        #[arg(long)]
-        json: bool,
-        #[arg(long)]
-        public_summary: bool,
-        #[arg(long)]
-        owner: String,
-        #[arg(long)]
-        repo: Option<String>,
-        #[arg(long)]
-        execute: bool,
-        #[arg(long)]
-        confirm_private_repo_mutation: bool,
-        #[arg(long)]
-        keep_workspace: bool,
+        #[command(flatten)]
+        options: FoundrySmokeCliOptions,
     },
     /// Run a read-only governance and drift audit for the current workspace.
     GovernanceAudit {
@@ -211,4 +201,42 @@ pub enum Commands {
         #[arg(long)]
         issue: u64,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct FoundrySmokeCliOptions {
+    #[arg(long)]
+    pub json: bool,
+    #[arg(long)]
+    pub public_summary: bool,
+    #[arg(long)]
+    pub owner: String,
+    #[arg(long)]
+    pub repo: Option<String>,
+    #[arg(long)]
+    pub execute: bool,
+    #[arg(long)]
+    pub confirm_private_repo_mutation: bool,
+    #[arg(long)]
+    pub keep_workspace: bool,
+    #[arg(long, value_enum)]
+    pub retention_decision: Option<FoundrySmokeRetentionDecision>,
+    #[arg(long)]
+    pub retention_reason: Option<String>,
+}
+
+impl From<FoundrySmokeCliOptions> for FoundrySmokeOptions {
+    fn from(options: FoundrySmokeCliOptions) -> Self {
+        Self {
+            json: options.json,
+            public_summary: options.public_summary,
+            owner: options.owner,
+            repo: options.repo,
+            execute: options.execute,
+            confirm_private_repo_mutation: options.confirm_private_repo_mutation,
+            keep_workspace: options.keep_workspace,
+            retention_decision: options.retention_decision,
+            retention_reason: options.retention_reason,
+        }
+    }
 }

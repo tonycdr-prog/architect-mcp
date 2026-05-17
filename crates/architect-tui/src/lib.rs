@@ -36,6 +36,7 @@ mod foundry_smoke_public_summary;
 #[cfg(test)]
 mod foundry_smoke_public_summary_tests;
 mod foundry_smoke_report;
+mod foundry_smoke_retention;
 mod foundry_smoke_script;
 #[cfg(test)]
 mod foundry_smoke_tests;

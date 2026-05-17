@@ -19,6 +19,7 @@ pub struct FoundrySmokePublicSummary {
     pub github: Option<FoundrySmokeGithubPublicSummary>,
     pub commands: FoundrySmokeCommandPublicSummary,
     pub retention: String,
+    pub retention_decision: Option<FoundrySmokeRetentionDecisionPublicSummary>,
     pub findings: Vec<String>,
     pub next_actions: Vec<String>,
     pub omitted: Vec<String>,
@@ -47,6 +48,14 @@ pub struct FoundrySmokeCommandPublicSummary {
     pub total: usize,
     pub passed: usize,
     pub failed: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FoundrySmokeRetentionDecisionPublicSummary {
+    pub decision: String,
+    pub reason: String,
+    pub deletion_performed: bool,
 }
 
 pub(crate) fn print_foundry_smoke_public_summary(
@@ -105,6 +114,13 @@ pub(crate) fn build_foundry_smoke_public_summary(
         github,
         commands,
         retention: public_report_text(report, &report.retention, 200),
+        retention_decision: report.retention_decision.as_ref().map(|decision| {
+            FoundrySmokeRetentionDecisionPublicSummary {
+                decision: public_report_text(report, &decision.decision, 80),
+                reason: public_report_text(report, &decision.reason, 200),
+                deletion_performed: decision.deletion_performed,
+            }
+        }),
         findings,
         next_actions: next_actions(report),
         omitted: vec![
@@ -130,6 +146,28 @@ fn next_actions(report: &FoundrySmokeReport) -> Vec<String> {
             "review staged repo artifacts locally".to_string(),
             "run live foundry-smoke only with --execute --confirm-private-repo-mutation when a private proof repo is intended".to_string(),
         ];
+    }
+    if let Some(decision) = &report.retention_decision {
+        return match decision.decision.as_str() {
+            "retained_for_evidence" => vec![
+                "keep the private proof repo private while it is needed for maintainer review"
+                    .to_string(),
+                "revisit the retention decision after the launch stack lands".to_string(),
+            ],
+            "delete_later_requested" => vec![
+                "delete the private proof repo manually only after maintainer approval".to_string(),
+                "record cleanup completion separately; foundry-smoke did not delete any repository"
+                    .to_string(),
+            ],
+            "manual_review_needed" => vec![
+                "complete the manual proof-repo retention review before closing the foundry issue"
+                    .to_string(),
+            ],
+            _ => vec![
+                "inspect local foundry-smoke JSON output before sharing public evidence"
+                    .to_string(),
+            ],
+        };
     }
     vec!["decide whether to retain or delete the private proof repo after review".to_string()]
 }
