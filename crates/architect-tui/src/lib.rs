@@ -61,6 +61,10 @@ mod launch_judge_public_summary_tests;
 mod launch_judge_report;
 #[cfg(test)]
 mod launch_judge_tests;
+pub mod launch_stack;
+mod launch_stack_github;
+#[cfg(test)]
+mod launch_stack_tests;
 pub mod mcp;
 mod mcp_client;
 pub mod orchestrator;

@@ -44,6 +44,14 @@ architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-eviden
 
 Use `--public-summary` for PR comments, release notes, and issue follow-up. It keeps the launch decision, source filenames, and platform evidence while omitting workspace paths, raw command tails, smoke internals, terminal-evidence freeform source text, command summaries, notes, cache paths, private repo names, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
 
+When launch readiness depends on a stack of open PRs plus external blocker issues, collect stack state separately:
+
+```bash
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136
+```
+
+`launch-stack` is a read-only GitHub CLI summary for explicit PR and issue numbers. It is `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blocker issues, and `go` only when supplied PRs are clean, non-draft, and green and supplied blocker issues are closed.
+
 If a maintainer must normalize already-posted notes manually, keep the same launch judge terminal evidence schema:
 
 ```json
