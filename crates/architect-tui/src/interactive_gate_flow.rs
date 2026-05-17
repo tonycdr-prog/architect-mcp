@@ -129,6 +129,7 @@ impl InteractiveWorkflowEngine {
             session.phase = SessionPhase::FilePlanReviewed;
             session.clear_execution_approval();
             session.clear_arena_candidates();
+            session.clear_foundry_state();
         })?;
         Ok(update(
             vec!["file plan reviewed".to_string()],

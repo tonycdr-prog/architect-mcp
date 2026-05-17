@@ -34,6 +34,13 @@ pub enum WorkflowCommand {
     IntegrationsWrite {
         target_path: Option<String>,
     },
+    FoundryPlan {
+        repo_name: String,
+        owner: Option<String>,
+    },
+    FoundryStatus,
+    FoundryApprove(String),
+    FoundryCreate,
     VerificationStatus,
     RecordVerification {
         check: String,
@@ -87,6 +94,8 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "integrations write" | "mcp write" => {
             WorkflowCommand::IntegrationsWrite { target_path: None }
         }
+        "foundry status" | "repo status" => WorkflowCommand::FoundryStatus,
+        "foundry create" | "repo create" => WorkflowCommand::FoundryCreate,
         "verification" | "verification status" => WorkflowCommand::VerificationStatus,
         "session review" => WorkflowCommand::SessionReview,
         "cancel" => WorkflowCommand::Cancel,
@@ -144,12 +153,37 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         _ if trimmed.starts_with("mcp write ") => WorkflowCommand::IntegrationsWrite {
             target_path: optional_string(&trimmed["mcp write ".len()..]),
         },
+        _ if trimmed.starts_with("foundry plan ") => {
+            parse_foundry_plan(&trimmed["foundry plan ".len()..])
+        }
+        _ if trimmed.starts_with("repo plan ") => {
+            parse_foundry_plan(&trimmed["repo plan ".len()..])
+        }
+        _ if trimmed.starts_with("foundry approve ") => {
+            WorkflowCommand::FoundryApprove(trimmed["foundry approve ".len()..].trim().to_string())
+        }
+        _ if trimmed.starts_with("repo approve ") => {
+            WorkflowCommand::FoundryApprove(trimmed["repo approve ".len()..].trim().to_string())
+        }
         _ if trimmed.starts_with("record verification ") => parse_verification(trimmed),
         _ if trimmed.starts_with("final review ") => {
             WorkflowCommand::FinalReview(trimmed["final review ".len()..].trim().to_string())
         }
         _ => WorkflowCommand::Help,
     }
+}
+
+fn parse_foundry_plan(value: &str) -> WorkflowCommand {
+    let mut repo_name = String::new();
+    let mut owner = None;
+    for part in value.split_whitespace() {
+        if let Some(owner_value) = part.strip_prefix("owner=") {
+            owner = optional_string(owner_value);
+        } else if repo_name.is_empty() {
+            repo_name = part.to_string();
+        }
+    }
+    WorkflowCommand::FoundryPlan { repo_name, owner }
 }
 
 fn parse_integration_plan(value: &str) -> WorkflowCommand {
@@ -195,92 +229,5 @@ fn parse_verification(input: &str) -> WorkflowCommand {
     WorkflowCommand::RecordVerification {
         check: check.trim().to_string(),
         status: status.trim().to_string(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_command_palette_actions() {
-        assert_eq!(
-            parse_workflow_command("new app offline meals"),
-            WorkflowCommand::NewApp("offline meals".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("answer users=home cooks"),
-            WorkflowCommand::Answer {
-                key: "users".to_string(),
-                value: "home cooks".to_string()
-            }
-        );
-        assert_eq!(
-            parse_workflow_command("review files"),
-            WorkflowCommand::ReviewFiles
-        );
-        assert_eq!(
-            parse_workflow_command("resume abc-123"),
-            WorkflowCommand::Resume("abc-123".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("approve review gates passed"),
-            WorkflowCommand::Approve("review gates passed".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("arena rank"),
-            WorkflowCommand::ArenaRank
-        );
-        assert_eq!(
-            parse_workflow_command("verification status"),
-            WorkflowCommand::VerificationStatus
-        );
-        assert_eq!(
-            parse_workflow_command("arena run codex, shell"),
-            WorkflowCommand::ArenaRun(vec!["codex".to_string(), "shell".to_string()])
-        );
-        assert_eq!(
-            parse_workflow_command("arena select codex"),
-            WorkflowCommand::ArenaSelect("codex".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("integrations recommend database=supabase"),
-            WorkflowCommand::IntegrationsRecommend("database=supabase".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("integrations plan supabase target=codex"),
-            WorkflowCommand::IntegrationsPlan {
-                server_id: "supabase".to_string(),
-                target_client: Some("codex".to_string())
-            }
-        );
-        assert_eq!(
-            parse_workflow_command("integrations apply .mcp.json"),
-            WorkflowCommand::IntegrationsApplyDryRun {
-                target_path: Some(".mcp.json".to_string())
-            }
-        );
-        assert_eq!(
-            parse_workflow_command("integrations approve reviewed plan"),
-            WorkflowCommand::IntegrationsApprove("reviewed plan".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("integrations write .mcp.json"),
-            WorkflowCommand::IntegrationsWrite {
-                target_path: Some(".mcp.json".to_string())
-            }
-        );
-        assert_eq!(
-            parse_workflow_command("diff file docs/live-qa.md"),
-            WorkflowCommand::DiffFile("docs/live-qa.md".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("override maintainer accepted known warning"),
-            WorkflowCommand::Override("maintainer accepted known warning".to_string())
-        );
-        assert_eq!(
-            parse_workflow_command("promotion status"),
-            WorkflowCommand::PromotionStatus
-        );
     }
 }

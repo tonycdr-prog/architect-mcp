@@ -49,6 +49,15 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
                 .unwrap_or("none")
         ),
         format!("mcp install approved: {}", session.mcp_install_approved),
+        format!(
+            "foundry plan: {}",
+            session
+                .foundry_plan
+                .as_ref()
+                .map(|plan| plan.repo_name.as_str())
+                .unwrap_or("none")
+        ),
+        format!("foundry approved: {}", session.foundry_approved),
     ];
     if !session.adapter_run_issues.is_empty() {
         lines.push("adapter issue detail:".to_string());
@@ -86,13 +95,17 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
                 .unwrap_or("unknown")
         ));
     }
+    if let Some(plan) = &session.foundry_plan {
+        lines.push(format!("foundry repo: {}", plan.repo_name));
+        lines.push("foundry visibility: private".to_string());
+    }
     lines
 }
 
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promotion status, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
+            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override [reason], promotion status, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], foundry plan <repo> [owner=name], foundry status, foundry approve <reason>, foundry create, verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,
