@@ -54,9 +54,10 @@ When launch readiness depends on a stack of open PRs plus external blocker issue
 
 ```bash
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason"
 ```
 
-`launch-stack` is a read-only GitHub CLI summary for explicit PR and issue numbers. It is `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blocker issues, and `go` only when supplied PRs are clean, non-draft, and green and supplied blocker issues are closed.
+`launch-stack` is a read-only GitHub CLI summary for explicit PR and issue numbers. It is `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blocker issues, and `go` only when supplied PRs are clean, non-draft, and green and supplied blocker issues are closed or explicitly waived. Waivers must be supplied by the maintainer as `--waive-blocker ISSUE=reason`; the report records `status: waived` and the public reason so a waiver is visible and does not pretend evidence exists.
 
 If a maintainer must normalize already-posted notes manually, keep the same launch judge terminal evidence schema:
 
