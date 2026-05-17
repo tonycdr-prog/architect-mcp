@@ -5,6 +5,9 @@ use architect_tui::cli::{Cli, Commands};
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
 use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
+use architect_tui::issue_terminal_evidence::{
+    IssueTerminalEvidenceOptions, run_issue_terminal_evidence,
+};
 use architect_tui::launch_judge::{LaunchJudgeOptions, run_launch_judge};
 use architect_tui::launch_stack::{LaunchStackOptions, run_launch_stack};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
@@ -207,6 +210,12 @@ async fn main() -> Result<()> {
                 blockers,
             },
         )?,
+        Some(Commands::CollectTerminalEvidence { json, repo, issue }) => {
+            run_issue_terminal_evidence(
+                &workspace,
+                IssueTerminalEvidenceOptions { json, repo, issue },
+            )?
+        }
         None => run_interactive(workspace, config).await?,
     }
 

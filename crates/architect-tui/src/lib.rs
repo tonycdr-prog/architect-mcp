@@ -52,6 +52,10 @@ mod interactive_integrations_summary;
 mod interactive_integrations_support;
 mod interactive_support;
 mod interactive_update;
+pub mod issue_terminal_evidence;
+mod issue_terminal_evidence_source;
+#[cfg(test)]
+mod issue_terminal_evidence_tests;
 pub mod launch_judge;
 mod launch_judge_evidence;
 mod launch_judge_evidence_safety;

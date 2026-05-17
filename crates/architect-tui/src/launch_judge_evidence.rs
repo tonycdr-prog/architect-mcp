@@ -12,9 +12,9 @@ use crate::launch_judge_report::{
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct TerminalEvidenceEnvelope {
-    schema_version: Option<u8>,
-    reports: Vec<LaunchJudgeTerminalEvidenceReport>,
+pub(crate) struct TerminalEvidenceEnvelope {
+    pub(crate) schema_version: Option<u8>,
+    pub(crate) reports: Vec<LaunchJudgeTerminalEvidenceReport>,
 }
 
 pub(crate) fn read_terminal_evidence(
@@ -45,15 +45,9 @@ pub(crate) fn read_terminal_evidence(
         .map(|path| public_file_name(path))
         .collect::<Vec<_>>()
         .join(", ");
-    let mut summary = LaunchJudgeTerminalEvidenceSummary {
-        supplied: true,
-        source_path: Some(source_path),
-        reports: Vec::new(),
-        issues: Vec::new(),
-    };
-
     let mut reports = Vec::new();
     let mut hard_failure = false;
+    let mut issues = Vec::new();
     for path in paths {
         let file_name = public_file_name(path);
         match read_terminal_evidence_file(path, &file_name) {
@@ -61,21 +55,78 @@ pub(crate) fn read_terminal_evidence(
                 if let Some(version) = envelope.schema_version
                     && version != 1
                 {
-                    summary.issues.push(format!(
+                    issues.push(format!(
                         "{file_name}: terminal evidence schemaVersion must be 1"
                     ));
                 }
                 reports.append(&mut envelope.reports);
             }
-            Err(mut issues) => {
+            Err(mut file_issues) => {
                 hard_failure = true;
-                summary.issues.append(&mut issues);
+                issues.append(&mut file_issues);
             }
         }
     }
 
-    normalize_and_validate_reports(&mut reports, &mut summary.issues);
+    build_terminal_evidence_summary(Some(source_path), reports, issues, hard_failure)
+}
+
+fn read_terminal_evidence_file(
+    path: &Path,
+    file_name: &str,
+) -> Result<TerminalEvidenceEnvelope, Vec<String>> {
+    let text = std::fs::read_to_string(path).map_err(|error| {
+        vec![format!(
+            "{file_name}: terminal evidence file could not be read: {error}"
+        )]
+    })?;
+
+    let value: Value = serde_json::from_str(&text).map_err(|error| {
+        vec![format!(
+            "{file_name}: terminal evidence JSON could not be parsed: {error}"
+        )]
+    })?;
+
+    parse_terminal_evidence_value(value, file_name)
+}
+
+pub(crate) fn parse_terminal_evidence_value(
+    value: Value,
+    source_name: &str,
+) -> Result<TerminalEvidenceEnvelope, Vec<String>> {
+    let mut issues = Vec::new();
+    collect_unsafe_content(&value, "$", &mut issues);
+    if !issues.is_empty() {
+        return Err(issues
+            .into_iter()
+            .map(|issue| format!("{source_name}: {issue}"))
+            .collect());
+    }
+
+    serde_json::from_value(value).map_err(|error| {
+        vec![format!(
+            "{source_name}: terminal evidence schema is invalid: {error}"
+        )]
+    })
+}
+
+pub(crate) fn build_terminal_evidence_summary(
+    source_path: Option<String>,
+    mut reports: Vec<LaunchJudgeTerminalEvidenceReport>,
+    mut issues: Vec<String>,
+    hard_failure: bool,
+) -> (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck) {
+    let supplied = !reports.is_empty() || source_path.is_some();
+    let mut summary = LaunchJudgeTerminalEvidenceSummary {
+        supplied,
+        source_path,
+        reports: Vec::new(),
+        issues: Vec::new(),
+    };
+
+    normalize_and_validate_reports(&mut reports, &mut issues);
     summary.reports = reports;
+    summary.issues = issues;
 
     if hard_failure {
         return failed(summary, "terminal evidence file could not be validated");
@@ -106,38 +157,6 @@ pub(crate) fn read_terminal_evidence(
             None,
         ),
     )
-}
-
-fn read_terminal_evidence_file(
-    path: &Path,
-    file_name: &str,
-) -> Result<TerminalEvidenceEnvelope, Vec<String>> {
-    let text = std::fs::read_to_string(path).map_err(|error| {
-        vec![format!(
-            "{file_name}: terminal evidence file could not be read: {error}"
-        )]
-    })?;
-
-    let value: Value = serde_json::from_str(&text).map_err(|error| {
-        vec![format!(
-            "{file_name}: terminal evidence JSON could not be parsed: {error}"
-        )]
-    })?;
-
-    let mut issues = Vec::new();
-    collect_unsafe_content(&value, "$", &mut issues);
-    if !issues.is_empty() {
-        return Err(issues
-            .into_iter()
-            .map(|issue| format!("{file_name}: {issue}"))
-            .collect());
-    }
-
-    serde_json::from_value(value).map_err(|error| {
-        vec![format!(
-            "{file_name}: terminal evidence schema is invalid: {error}"
-        )]
-    })
 }
 
 fn public_file_name(path: &Path) -> String {

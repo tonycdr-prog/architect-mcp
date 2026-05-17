@@ -62,15 +62,16 @@ describe("architect-mcp-tui npm shim", () => {
         "governance-audit",
         "launch-judge",
         "launch-stack",
+        "collect-terminal-evidence",
       ],
       runHelp: (binaryPath) => ({
         ok: true,
         output:
           binaryPath === stale
             ? "Commands:\n  run\n  config\n  smoke\n"
-            : "Commands:\n  run\n  config\n  smoke\n  terminal-evidence\n  walkthrough\n  promotion-smoke\n  foundry-smoke\n  governance-audit\n  launch-judge\n  launch-stack\n",
-      }),
-    });
+            : "Commands:\n  run\n  config\n  smoke\n  terminal-evidence\n  walkthrough\n  promotion-smoke\n  foundry-smoke\n  governance-audit\n  launch-judge\n  launch-stack\n  collect-terminal-evidence\n",
+        }),
+      });
 
     assert.equal(resolved, current);
   });

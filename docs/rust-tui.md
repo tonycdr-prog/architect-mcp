@@ -243,6 +243,12 @@ architect-mcp-tui terminal-evidence --json --platform linux > terminal-evidence.
 
 `--terminal-evidence` accepts generated public-safe JSON summary files for manual Linux and Windows terminal QA. Pass it more than once when Linux and Windows reports were generated on separate machines; the launch judge merges the reports and validates the combined evidence. It is intentionally not a raw log importer: files with `stdout`, `stderr`, raw log fields, absolute local paths, or secret-shaped strings fail closed. Use short summaries and public issue or PR references:
 
+```bash
+architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect-mcp --issue 136
+```
+
+`collect-terminal-evidence` is a read-only helper for public GitHub issue reports. It extracts fenced terminal-evidence JSON, rejects unsafe blocks, reports missing or duplicated platforms, and prints a merged evidence envelope that can be saved for `launch-judge --terminal-evidence`.
+
 ```json
 {
   "schemaVersion": 1,
