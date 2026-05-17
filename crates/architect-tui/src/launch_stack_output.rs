@@ -16,7 +16,7 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
     }
     for pr in &report.pull_requests {
         println!(
-            "- PR #{}: {:?} draft={} review={} merge={} checks passed={} pending={} failed={}",
+            "- PR #{}: {:?} draft={} review={} merge={} checks passed={} pending={} failed={} missing_required={}",
             pr.number,
             pr.status,
             pr.is_draft,
@@ -24,8 +24,15 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
             pr.merge_state_status,
             pr.checks.passed,
             pr.checks.pending,
-            pr.checks.failed
+            pr.checks.failed,
+            pr.checks.missing_required_names.len()
         );
+        if !pr.checks.missing_required_names.is_empty() {
+            println!(
+                "  missing required checks: {}",
+                pr.checks.missing_required_names.join(", ")
+            );
+        }
     }
     for issue in &report.blocker_issues {
         print!(

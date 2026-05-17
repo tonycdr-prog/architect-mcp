@@ -67,6 +67,7 @@ When launch readiness depends on a stack of open PRs plus external blocker issue
 ```bash
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --required-check verify
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason"
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
@@ -75,7 +76,7 @@ architect-mcp-tui evidence-index --markdown --repo tonycdr-prog/architect-mcp --
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 
-`launch-stack` is a read-only GitHub CLI summary for PR and issue numbers. It can use explicit `--pr` flags or discover a stacked chain with `--stack-from-pr <number>`, ordered from the base PR to the head PR. It is `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blocker issues, and `go` only when supplied PRs are clean, non-draft, and green and supplied blocker issues are closed or explicitly waived. Waivers must be supplied by the maintainer as `--waive-blocker ISSUE=reason`; the report records `status: waived` and the public reason so a waiver is visible and does not pretend evidence exists.
+`launch-stack` is a read-only GitHub CLI summary for PR and issue numbers. It can use explicit `--pr` flags or discover a stacked chain with `--stack-from-pr <number>`, ordered from the base PR to the head PR. Maintainers can repeat `--required-check <name>` when a specific CI job must exist on every listed PR; absent required checks are `no_go`. It is `no_go` for failed checks, missing required checks, dirty/unknown merge states, or requested PR changes, `conditional_go` for draft PRs, required review, pending checks, temporarily unstable merge states caused by pending checks, or open blocker issues, and `go` only when supplied PRs are clean, non-draft, review-compatible, green, contain every required check, and supplied blocker issues are closed or explicitly waived. Waivers must be supplied by the maintainer as `--waive-blocker ISSUE=reason`; the report records `status: waived` and the public reason so a waiver is visible and does not pretend evidence exists.
 
 If a maintainer must normalize already-posted notes manually, keep the same launch judge terminal evidence schema:
 

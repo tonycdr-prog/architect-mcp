@@ -21,6 +21,7 @@ pub struct LaunchReadinessOptions {
     pub prs: Vec<u64>,
     pub blockers: Vec<u64>,
     pub waived_blockers: Vec<String>,
+    pub required_checks: Vec<String>,
     pub terminal_evidence_issue: Option<u64>,
     pub terminal_evidence_waivers: Vec<String>,
 }
@@ -79,6 +80,7 @@ pub fn build_launch_readiness_report(
             prs: options.prs.clone(),
             blockers: options.blockers.clone(),
             waived_blockers: options.waived_blockers.clone(),
+            required_checks: options.required_checks.clone(),
         },
     );
     let terminal_evidence = options.terminal_evidence_issue.map(|issue| {

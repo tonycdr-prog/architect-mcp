@@ -280,6 +280,8 @@ fn check_summary_classifies_pending_failed_and_successful_checks() {
     assert_eq!(summary.passed, 1);
     assert_eq!(summary.pending, 1);
     assert_eq!(summary.failed, 1);
+    assert_eq!(summary.names, vec!["verify", "live-qa", "install-smoke"]);
     assert_eq!(summary.pending_names, vec!["live-qa"]);
     assert_eq!(summary.failed_names, vec!["install-smoke"]);
+    assert!(summary.missing_required_names.is_empty());
 }
