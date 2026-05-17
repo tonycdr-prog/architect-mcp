@@ -6,6 +6,7 @@ use serde_json::Value;
 use crate::launch_stack::{
     LaunchStackCheckSummary, LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest,
 };
+use crate::launch_stack_pr_status::{pr_next_action, pr_status};
 
 pub(crate) fn fetch_pr(
     workspace: &Path,
@@ -17,7 +18,7 @@ pub(crate) fn fetch_pr(
         "view".to_string(),
         number.to_string(),
         "--json".to_string(),
-        "number,title,url,isDraft,mergeStateStatus,statusCheckRollup".to_string(),
+        "number,title,url,isDraft,reviewDecision,mergeStateStatus,statusCheckRollup".to_string(),
     ];
     append_repo_args(&mut args, repo);
     let value = run_gh_json(workspace, &args).map_err(|error| format!("PR #{number}: {error}"))?;
@@ -56,9 +57,27 @@ pub(crate) fn pr_from_value(fallback_number: u64, value: &Value) -> LaunchStackP
         .and_then(Value::as_str)
         .unwrap_or("UNKNOWN")
         .to_string();
+    let review_decision = value
+        .get("reviewDecision")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|decision| !decision.is_empty())
+        .map(|decision| public_text(&decision.to_ascii_uppercase(), 80));
     let checks = summarize_checks(value.get("statusCheckRollup"));
-    let status = pr_status(is_draft, &merge_state_status, &checks);
-    let next_action = pr_next_action(number, is_draft, &merge_state_status, &checks, &status);
+    let status = pr_status(
+        is_draft,
+        review_decision.as_deref(),
+        &merge_state_status,
+        &checks,
+    );
+    let next_action = pr_next_action(
+        number,
+        is_draft,
+        review_decision.as_deref(),
+        &merge_state_status,
+        &checks,
+        &status,
+    );
     LaunchStackPullRequest {
         number,
         title: public_text(
@@ -67,6 +86,7 @@ pub(crate) fn pr_from_value(fallback_number: u64, value: &Value) -> LaunchStackP
         ),
         url: public_text(value.get("url").and_then(Value::as_str).unwrap_or(""), 240),
         is_draft,
+        review_decision,
         merge_state_status: public_text(&merge_state_status, 80),
         checks,
         status,
@@ -209,54 +229,6 @@ pub(crate) fn run_gh_json(workspace: &Path, args: &[String]) -> Result<Value, St
     }
     serde_json::from_slice(&output.stdout)
         .map_err(|error| format!("gh JSON could not be parsed: {error}"))
-}
-
-fn pr_status(
-    is_draft: bool,
-    merge_state_status: &str,
-    checks: &LaunchStackCheckSummary,
-) -> LaunchStackItemStatus {
-    if checks.failed > 0 || is_hard_merge_block(merge_state_status) {
-        LaunchStackItemStatus::Failed
-    } else if is_draft || checks.pending > 0 || checks.total == 0 || merge_state_status != "CLEAN" {
-        LaunchStackItemStatus::Warning
-    } else {
-        LaunchStackItemStatus::Passed
-    }
-}
-
-fn pr_next_action(
-    number: u64,
-    is_draft: bool,
-    merge_state_status: &str,
-    checks: &LaunchStackCheckSummary,
-    status: &LaunchStackItemStatus,
-) -> Option<String> {
-    match status {
-        LaunchStackItemStatus::Passed | LaunchStackItemStatus::Waived => None,
-        LaunchStackItemStatus::Failed if checks.failed > 0 => Some(format!(
-            "fix failing checks on PR #{number} before launch stack can be go"
-        )),
-        LaunchStackItemStatus::Failed => Some(format!(
-            "fix PR #{number} merge state before launch stack can be go"
-        )),
-        LaunchStackItemStatus::Warning if is_draft => Some(format!(
-            "mark PR #{number} ready when it is reviewable and still green"
-        )),
-        LaunchStackItemStatus::Warning if checks.pending > 0 => Some(format!(
-            "wait for PR #{number} checks to finish before final launch go"
-        )),
-        LaunchStackItemStatus::Warning if merge_state_status != "CLEAN" => Some(format!(
-            "resolve PR #{number} merge state before final launch go"
-        )),
-        LaunchStackItemStatus::Warning => Some(format!(
-            "confirm PR #{number} has required checks before final launch go"
-        )),
-    }
-}
-
-fn is_hard_merge_block(merge_state_status: &str) -> bool {
-    matches!(merge_state_status, "DIRTY" | "UNKNOWN")
 }
 
 fn redact_token(token: &str) -> String {

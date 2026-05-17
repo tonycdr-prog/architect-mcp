@@ -127,6 +127,53 @@ fn merge_plan_marks_unready_prs_as_hold_with_next_action() {
 }
 
 #[test]
+fn merge_plan_shows_review_decision_holds() {
+    let changes_requested = pr_from_value(
+        10,
+        &json!({
+            "number": 10,
+            "title": "needs requested changes",
+            "url": "https://github.com/example/repo/pull/10",
+            "isDraft": false,
+            "reviewDecision": "CHANGES_REQUESTED",
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+    );
+    let review_required = pr_from_value(
+        11,
+        &json!({
+            "number": 11,
+            "title": "needs approval",
+            "url": "https://github.com/example/repo/pull/11",
+            "isDraft": false,
+            "reviewDecision": "REVIEW_REQUIRED",
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+    );
+    let report = build_report_from_items(
+        None,
+        vec![changes_requested, review_required],
+        Vec::new(),
+        Vec::new(),
+    );
+
+    let text = render_launch_stack_merge_plan(&report).join("\n");
+
+    assert!(text.contains("PR #10 [hold] needs requested changes"));
+    assert!(text.contains("review=CHANGES_REQUESTED"));
+    assert!(text.contains("resolve requested changes on PR #10"));
+    assert!(text.contains("PR #11 [hold] needs approval"));
+    assert!(text.contains("review=REVIEW_REQUIRED"));
+    assert!(text.contains("complete required review on PR #11"));
+}
+
+#[test]
 fn merge_plan_keeps_public_safe_text() {
     let pr = pr_from_value(
         10,

@@ -16,10 +16,11 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
     }
     for pr in &report.pull_requests {
         println!(
-            "- PR #{}: {:?} draft={} merge={} checks passed={} pending={} failed={}",
+            "- PR #{}: {:?} draft={} review={} merge={} checks passed={} pending={} failed={}",
             pr.number,
             pr.status,
             pr.is_draft,
+            pr.review_decision.as_deref().unwrap_or("none"),
             pr.merge_state_status,
             pr.checks.passed,
             pr.checks.pending,
