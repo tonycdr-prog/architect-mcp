@@ -202,6 +202,14 @@ foundry create --execute
 
 `architect-mcp-tui foundry-smoke --owner <github-owner> --json` is the repeatable dry-run QA path for the repo-foundry flow. Live GitHub creation is intentionally noisier: `--execute --confirm-private-repo-mutation` must both be present, and the command fails closed if the target repository already exists.
 
+Governance audit:
+
+```bash
+architect-mcp-tui governance-audit --json
+```
+
+This command is read-only. It checks the current workspace for agent instructions, architecture/build-plan docs, package scripts, lockfiles, CI and release gates, environment templates, memory-policy safety, and secret-shaped local config. It separates deterministic release gates from smoke evidence, proposes only memory-safe durable context, and calls `review_local_workspace` in `mode=audit` when architect-mcp is available. Use `--skip-mcp` only when collecting static evidence without a live MCP process.
+
 ## Config
 
 Repo config lives at:

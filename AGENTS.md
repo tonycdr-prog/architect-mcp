@@ -47,6 +47,12 @@ This repository uses architect-mcp as a local-first standards, architecture, and
 - Do not claim a root cause without evidence from code, test output, or tool output.
 - Call out assumptions, remaining gaps, and any intentionally deferred work.
 
+## Memory MCP Policy
+- Use memory only for durable context that will help future work: stable project preferences, architectural decisions, recurring workflows, approved tool choices, and long-lived constraints.
+- Do not store secrets, credentials, private customer data, raw conversation logs, transient task details, speculative guesses, sensitive security findings, or full chat transcripts.
+- Before writing memory, summarize the proposed entry and make sure it is useful, scoped, and safe. Prefer short entries with project scope, source context, date, and a review note when the information may age.
+- Treat memory as advisory. Verify it against the current issue, PR, repo state, and user instruction before acting.
+
 ## Security And Dependency Hygiene
 - Follow `SECURITY.md` for vulnerability reports; do not put secrets or exploit details in public issues.
 - Dependabot PRs are allowed for npm and GitHub Actions, but agents must review changelogs, compatibility risk, and CI results before merging.
