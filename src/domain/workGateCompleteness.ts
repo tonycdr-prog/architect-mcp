@@ -33,6 +33,15 @@ type WorkGateFinding = {
   recommendation: string;
 };
 
+type WorkGateClassification =
+  | "missing"
+  | "partial"
+  | "stale"
+  | "out_of_order"
+  | "complete"
+  | "unknown_gate"
+  | "incomplete";
+
 const DEFAULT_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export function auditWorkGateCompleteness(input: WorkGateCompletenessInput = {}) {
@@ -45,11 +54,11 @@ export function auditWorkGateCompleteness(input: WorkGateCompletenessInput = {})
   const unknownGates = records
     .map((record) => record.gate)
     .filter((gate) => !isWorkGateName(gate));
-  for (const gate of [...new Set(unknownGates)]) {
+  if (unknownGates.length > 0) {
     findings.push({
       code: "WG005_UNKNOWN_GATE",
       severity: "error",
-      message: `Unknown work-gate evidence record: ${gate}.`,
+      message: `Unknown work-gate evidence records supplied (${new Set(unknownGates).size}).`,
       recommendation: "Use only registered work-gate names so reviewers do not mistake arbitrary labels for gate evidence."
     });
   }
@@ -122,15 +131,15 @@ export function auditWorkGateCompleteness(input: WorkGateCompletenessInput = {})
   const errors = findings.filter((finding) => finding.severity === "error").length;
   const warnings = findings.length - errors;
   const status = errors > 0 ? "fail" : warnings > 0 ? "warn" : "pass";
-  const classification = classify(records.length, missing.length, findings, status);
+  const classification = classify(requiredGates.length - missing.length, requiredGates.length, findings, status);
   const gateResults = requiredGates.map((gate) => {
     const record = recordsByGate.get(gate);
     return {
       gate,
       present: Boolean(record),
       status: record?.status ?? "missing",
-      recordedAt: record?.recordedAt,
-      runId: record?.runId
+      recordedAt: record?.recordedAt ? "[redacted]" : undefined,
+      runId: record?.runId ? "[redacted]" : undefined
     };
   });
 
@@ -178,11 +187,11 @@ function isOrdered(gates: WorkGateName[], requiredGates: WorkGateName[]): boolea
   return true;
 }
 
-function classify(recordCount: number, missingCount: number, findings: WorkGateFinding[], status: string): string {
-  if (recordCount === 0) return "no_evidence";
+function classify(presentCount: number, requiredCount: number, findings: WorkGateFinding[], status: string): WorkGateClassification {
   if (findings.some((finding) => finding.code === "WG005_UNKNOWN_GATE")) return "unknown_gate";
   if (findings.some((finding) => finding.code === "WG006_OUT_OF_ORDER")) return "out_of_order";
   if (findings.some((finding) => finding.code === "WG004_STALE_EVIDENCE")) return "stale";
-  if (missingCount > 0) return "partial";
+  if (presentCount === 0 && requiredCount > 0) return "missing";
+  if (presentCount < requiredCount) return "partial";
   return status === "pass" ? "complete" : "incomplete";
 }

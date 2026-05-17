@@ -9,7 +9,7 @@ describe("auditWorkGateCompleteness", () => {
     const report = auditWorkGateCompleteness({ records: [] });
 
     assert.equal(report.status, "fail");
-    assert.equal(report.classification, "no_evidence");
+    assert.equal(report.classification, "missing");
     assert.equal(report.readOnly, true);
     assert.equal(report.summary.present, 0);
     assert.equal(report.findings.some((finding) => finding.code === "WG001_NO_EVIDENCE"), true);
@@ -55,6 +55,7 @@ describe("auditWorkGateCompleteness", () => {
     assert.equal(report.complete, true);
     assert.equal(report.summary.missing, 0);
     assert.equal(report.publicSummaryMarkdown.includes("read-only detection report"), true);
+    assert.equal(report.gateResults.every((result) => result.recordedAt === "[redacted]" && result.runId === "[redacted]"), true);
   });
 
   it("fails closed for unknown or out-of-order gate evidence", () => {
@@ -70,6 +71,7 @@ describe("auditWorkGateCompleteness", () => {
 
     assert.equal(unknown.status, "fail");
     assert.equal(unknown.classification, "unknown_gate");
+    assert.equal(unknown.findings.some((finding) => finding.message.includes("not_a_gate")), false);
     assert.equal(outOfOrder.status, "fail");
     assert.equal(outOfOrder.classification, "out_of_order");
   });

@@ -64,7 +64,7 @@ Reproduce safely:
 2. Run no MCP work-gate calls before the edit.
 3. Confirm that only git diff, CI, human review, or a later audit can catch the missing gate evidence.
 
-Current direct-client hardening: [#245 - Add non-TUI work-gate completeness audit](https://github.com/tonycdr-prog/architect-mcp/issues/245) adds `audit_work_gate_completeness`, a read-only report that distinguishes no evidence, partial evidence, stale evidence, out-of-order evidence, and complete ordered evidence. It detects missing work-gate records; it is not a filesystem sandbox and does not force a client to call every tool.
+Current direct-client hardening: [#245 - Add non-TUI work-gate completeness audit](https://github.com/tonycdr-prog/architect-mcp/issues/245) adds `audit_work_gate_completeness`, a read-only report that distinguishes missing, partial, stale, out-of-order, and complete ordered evidence. It detects missing work-gate records, fails closed on unknown gate names, and does not reflect raw payload values; it is not a filesystem sandbox and does not force a client to call every tool.
 
 ### `fabricated-verification-claim`
 
