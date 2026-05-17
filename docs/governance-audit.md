@@ -38,12 +38,13 @@ architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --blocker 136
-architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --pr 150 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 ```
 
 `launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and external terminal evidence. It reports `go`, `conditional_go`, or `no_go`. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or missing Linux/Windows terminal evidence keep the result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, unsafe terminal evidence, failed external terminal QA, or a dirty git state with `--require-clean-git` produce `no_go`.
 
-`launch-stack` is the companion check for explicit PR stacks and external blocker issues. It uses GitHub CLI read-only lookups and reports `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blockers, and `go` only when the supplied PRs are clean, non-draft, and green and supplied blockers are closed.
+`launch-stack` is the companion check for explicit or discovered PR stacks and external blocker issues. It uses GitHub CLI read-only lookups and reports `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blockers, and `go` only when the supplied PRs are clean, non-draft, and green and supplied blockers are closed. Use `--stack-from-pr <number>` to follow a stacked PR chain from the head PR back to the first non-PR base branch.
 
 `launch-readiness` is the maintainer rollup when both PR-stack state and public terminal-evidence issue state matter. It reuses the same read-only GitHub CLI lookups, reports a combined decision, and keeps explicit blocker waivers distinct from real terminal evidence.
 

@@ -1,0 +1,48 @@
+use crate::launch_stack::LaunchStackReport;
+
+pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
+    println!("architect-mcp-tui launch stack: {:?}", report.result);
+    if let Some(discovery) = &report.stack_discovery {
+        let prs = discovery
+            .pull_requests
+            .iter()
+            .map(|number| format!("#{number}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        println!(
+            "- discovered from PR #{}: {} (stopped at {})",
+            discovery.from_pr, prs, discovery.stopped_at_base
+        );
+    }
+    for pr in &report.pull_requests {
+        println!(
+            "- PR #{}: {:?} draft={} merge={} checks passed={} pending={} failed={}",
+            pr.number,
+            pr.status,
+            pr.is_draft,
+            pr.merge_state_status,
+            pr.checks.passed,
+            pr.checks.pending,
+            pr.checks.failed
+        );
+    }
+    for issue in &report.blocker_issues {
+        print!(
+            "- issue #{}: {:?} state={}",
+            issue.number, issue.status, issue.state
+        );
+        if let Some(reason) = &issue.waiver_reason {
+            print!(" waiver=\"{reason}\"");
+        }
+        println!();
+    }
+    for finding in &report.findings {
+        println!("- finding: {finding}");
+    }
+    if !report.next_actions.is_empty() {
+        println!("next actions:");
+        for action in &report.next_actions {
+            println!("- {action}");
+        }
+    }
+}

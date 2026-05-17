@@ -179,14 +179,14 @@ pub(crate) fn public_text(value: &str, max_len: usize) -> String {
     text
 }
 
-fn append_repo_args(args: &mut Vec<String>, repo: Option<&str>) {
+pub(crate) fn append_repo_args(args: &mut Vec<String>, repo: Option<&str>) {
     if let Some(repo) = repo.filter(|repo| !repo.trim().is_empty()) {
         args.push("--repo".to_string());
         args.push(repo.to_string());
     }
 }
 
-fn run_gh_json(workspace: &Path, args: &[String]) -> Result<Value, String> {
+pub(crate) fn run_gh_json(workspace: &Path, args: &[String]) -> Result<Value, String> {
     let output = Command::new("gh")
         .args(args)
         .current_dir(workspace)

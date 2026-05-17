@@ -5,12 +5,15 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::launch_judge_report::LaunchJudgeResult;
+use crate::launch_stack_discovery::{LaunchStackDiscovery, resolve_launch_stack_pr_numbers};
 use crate::launch_stack_github::{fetch_issue, fetch_pr, public_text};
+use crate::launch_stack_output::print_launch_stack_text_report;
 
 #[derive(Debug, Clone)]
 pub struct LaunchStackOptions {
     pub json: bool,
     pub repo: Option<String>,
+    pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
     pub blockers: Vec<u64>,
     pub waived_blockers: Vec<String>,
@@ -22,6 +25,7 @@ pub struct LaunchStackReport {
     pub schema_version: u8,
     pub result: LaunchJudgeResult,
     pub repository: Option<String>,
+    pub stack_discovery: Option<LaunchStackDiscovery>,
     pub pull_requests: Vec<LaunchStackPullRequest>,
     pub blocker_issues: Vec<LaunchStackIssue>,
     pub findings: Vec<String>,
@@ -78,7 +82,7 @@ pub fn run_launch_stack(workspace: &Path, options: LaunchStackOptions) -> Result
     if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        print_text_report(&report);
+        print_launch_stack_text_report(&report);
     }
     if report.result == LaunchJudgeResult::NoGo {
         anyhow::bail!("launch stack result is no-go");
@@ -96,12 +100,19 @@ pub fn build_launch_stack_report(
     let (waivers, waiver_findings) = parse_waivers(&options.waived_blockers);
     findings.extend(waiver_findings);
 
-    if options.prs.is_empty() && options.blockers.is_empty() {
+    if options.stack_from_pr.is_none() && options.prs.is_empty() && options.blockers.is_empty() {
         findings.push("no PRs or blocker issues were supplied for launch-stack".to_string());
     }
 
-    for number in &options.prs {
-        match fetch_pr(workspace, options.repo.as_deref(), *number) {
+    let (pr_numbers, stack_discovery, discovery_findings) = resolve_launch_stack_pr_numbers(
+        workspace,
+        options.repo.as_deref(),
+        options.stack_from_pr,
+        &options.prs,
+    );
+    findings.extend(discovery_findings);
+    for number in pr_numbers {
+        match fetch_pr(workspace, options.repo.as_deref(), number) {
             Ok(pr) => prs.push(pr),
             Err(error) => findings.push(error),
         }
@@ -122,7 +133,14 @@ pub fn build_launch_stack_report(
         }
     }
 
-    build_report_from_items_with_waivers(options.repo.clone(), prs, blockers, findings, waivers)
+    build_report_from_items_with_waivers_and_discovery(
+        options.repo.clone(),
+        prs,
+        blockers,
+        findings,
+        waivers,
+        stack_discovery,
+    )
 }
 
 #[cfg(test)]
@@ -141,12 +159,31 @@ pub(crate) fn build_report_from_items(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn build_report_from_items_with_waivers(
+    repository: Option<String>,
+    pull_requests: Vec<LaunchStackPullRequest>,
+    blocker_issues: Vec<LaunchStackIssue>,
+    findings: Vec<String>,
+    waivers: BTreeMap<u64, String>,
+) -> LaunchStackReport {
+    build_report_from_items_with_waivers_and_discovery(
+        repository,
+        pull_requests,
+        blocker_issues,
+        findings,
+        waivers,
+        None,
+    )
+}
+
+fn build_report_from_items_with_waivers_and_discovery(
     repository: Option<String>,
     pull_requests: Vec<LaunchStackPullRequest>,
     mut blocker_issues: Vec<LaunchStackIssue>,
     findings: Vec<String>,
     waivers: BTreeMap<u64, String>,
+    stack_discovery: Option<LaunchStackDiscovery>,
 ) -> LaunchStackReport {
     apply_waivers(&mut blocker_issues, &waivers);
     let mut next_actions: Vec<String> = Vec::new();
@@ -190,6 +227,7 @@ pub(crate) fn build_report_from_items_with_waivers(
         schema_version: 1,
         result,
         repository: repository.map(|repo| public_text(&repo, 160)),
+        stack_discovery,
         pull_requests,
         blocker_issues,
         findings: findings
@@ -247,39 +285,4 @@ fn parse_waiver(raw: &str) -> Result<(u64, String), String> {
         ));
     }
     Ok((number, reason))
-}
-
-fn print_text_report(report: &LaunchStackReport) {
-    println!("architect-mcp-tui launch stack: {:?}", report.result);
-    for pr in &report.pull_requests {
-        println!(
-            "- PR #{}: {:?} draft={} merge={} checks passed={} pending={} failed={}",
-            pr.number,
-            pr.status,
-            pr.is_draft,
-            pr.merge_state_status,
-            pr.checks.passed,
-            pr.checks.pending,
-            pr.checks.failed
-        );
-    }
-    for issue in &report.blocker_issues {
-        print!(
-            "- issue #{}: {:?} state={}",
-            issue.number, issue.status, issue.state
-        );
-        if let Some(reason) = &issue.waiver_reason {
-            print!(" waiver=\"{reason}\"");
-        }
-        println!();
-    }
-    for finding in &report.findings {
-        println!("- finding: {finding}");
-    }
-    if !report.next_actions.is_empty() {
-        println!("next actions:");
-        for action in &report.next_actions {
-            println!("- {action}");
-        }
-    }
 }
