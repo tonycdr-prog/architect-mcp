@@ -44,6 +44,7 @@ impl InteractiveWorkflowEngine {
             WorkflowCommand::DiffFile(path) => self.diff_file(&path),
             WorkflowCommand::ArenaRun(adapters) => self.arena_run(adapters).await,
             WorkflowCommand::ArenaRank => self.arena_rank(),
+            WorkflowCommand::ArenaSelect(adapter) => self.arena_select(&adapter),
             WorkflowCommand::VerificationStatus => self.verification_status(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)

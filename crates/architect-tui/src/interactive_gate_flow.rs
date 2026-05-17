@@ -128,6 +128,7 @@ impl InteractiveWorkflowEngine {
             session.set_gate("review_proposed_file_plan", result);
             session.phase = SessionPhase::FilePlanReviewed;
             session.clear_execution_approval();
+            session.clear_arena_candidates();
         })?;
         Ok(update(
             vec!["file plan reviewed".to_string()],

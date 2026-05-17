@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -35,12 +37,18 @@ pub struct RankedArenaCandidate {
 pub struct ArenaCandidateRecord {
     pub adapter: String,
     pub worktree: Option<String>,
+    #[serde(default)]
+    pub diff_stat: Option<String>,
     pub review_status: ArenaReviewStatus,
     pub verification_passed: bool,
     pub diff_size: u64,
     pub contract_drift: bool,
     pub crashed: bool,
+    #[serde(default)]
+    pub adapter_run_issues: Vec<String>,
     pub changed_files: Vec<Value>,
+    #[serde(default)]
+    pub review_gates: BTreeMap<String, Value>,
     pub summary: Vec<String>,
 }
 
@@ -182,18 +190,24 @@ mod tests {
                 diff_size: 12,
                 contract_drift: false,
                 crashed: false,
+                diff_stat: None,
+                adapter_run_issues: Vec::new(),
                 changed_files: Vec::new(),
+                review_gates: BTreeMap::new(),
                 summary: Vec::new(),
             },
             ArenaCandidateRecord {
                 adapter: "shell".to_string(),
                 worktree: Some(".architect-mcp/worktrees/session/shell".to_string()),
+                diff_stat: None,
                 review_status: ArenaReviewStatus::Fail,
                 verification_passed: false,
                 diff_size: 0,
                 contract_drift: true,
                 crashed: false,
+                adapter_run_issues: Vec::new(),
                 changed_files: Vec::new(),
+                review_gates: BTreeMap::new(),
                 summary: Vec::new(),
             },
         ]);

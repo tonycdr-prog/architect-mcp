@@ -1,21 +1,30 @@
 use anyhow::{Context, Result};
-use serde_json::Value;
+use std::path::PathBuf;
 
-use crate::arena::{
-    ArenaCandidateInput, ArenaCandidateRecord, ArenaReviewStatus, rank_arena_candidates,
-    rank_arena_records,
-};
+use crate::arena::{rank_arena_candidates, rank_arena_records};
 use crate::headless::HeadlessRunOptions;
 use crate::interactive::InteractiveWorkflowEngine;
+use crate::interactive_arena_evidence::{
+    arena_input_for, candidate_line, candidate_record_from_events, file_list,
+};
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
-use crate::session::{SessionPhase, TuiSession};
+use crate::session::SessionPhase;
 
 impl InteractiveWorkflowEngine {
     pub(crate) async fn arena_run(&mut self, adapters: Vec<String>) -> Result<WorkflowUpdate> {
-        if adapters.is_empty() {
-            anyhow::bail!("arena run requires at least one adapter");
+        if adapters.len() < 2 {
+            anyhow::bail!("arena run requires at least two adapters");
         }
         let session = self.active()?.clone();
+        if !session.gates.contains_key("review_proposed_file_plan") {
+            anyhow::bail!("review files before arena run");
+        }
+        if session.phase != SessionPhase::FilePlanReviewed {
+            anyhow::bail!("arena run is only available after review files");
+        }
+        if !session.execution_approved {
+            anyhow::bail!("approve arena execution before arena run");
+        }
         let pre_edit = session
             .gates
             .get("create_pre_edit_contract")
@@ -59,8 +68,10 @@ impl InteractiveWorkflowEngine {
             records.push(record);
         }
         let session = self.update_active(|session| {
+            session.clear_adapter_run_evidence();
             session.arena_candidates = records;
             session.phase = SessionPhase::ReviewRequired;
+            session.clear_execution_approval();
         })?;
         lines.push("run arena rank to compare candidates before approval".to_string());
         Ok(update(lines, inspector_for(session), Some(session.clone())))
@@ -105,158 +116,62 @@ impl InteractiveWorkflowEngine {
         }
         Ok(update(lines, inspector_for(session), Some(session.clone())))
     }
-}
 
-fn candidate_record_from_events(adapter: &str, events: &str) -> ArenaCandidateRecord {
-    let mut temp = TuiSession::new("arena candidate", adapter);
-    crate::interactive_support::apply_run_evidence(&mut temp, events);
-    let mut summary = Vec::new();
-    for line in events.lines() {
-        let Ok(event) = serde_json::from_str::<Value>(line) else {
-            continue;
-        };
-        match event.get("type").and_then(Value::as_str) {
-            Some("approval_required") => {
-                if let Some(reason) = event.get("reason").and_then(Value::as_str) {
-                    summary.push(format!("approval required: {reason}"));
-                }
-            }
-            Some("agent_event") => {
-                if let Some(kind) = event
-                    .get("event")
-                    .and_then(|event| event.get("type"))
-                    .and_then(Value::as_str)
-                {
-                    summary.push(format!("agent event: {kind}"));
-                }
-            }
-            _ => {}
+    pub(crate) fn arena_select(&mut self, adapter: &str) -> Result<WorkflowUpdate> {
+        let adapter = adapter.trim();
+        if adapter.is_empty() {
+            anyhow::bail!("arena select requires an adapter name");
         }
-    }
-    ArenaCandidateRecord {
-        adapter: adapter.to_string(),
-        worktree: temp
+        let candidate = self
+            .active()?
+            .arena_candidates
+            .iter()
+            .find(|candidate| candidate.adapter == adapter)
+            .cloned()
+            .with_context(|| format!("arena candidate '{adapter}' was not recorded"))?;
+        if candidate.crashed || !candidate.adapter_run_issues.is_empty() {
+            let issues = if candidate.adapter_run_issues.is_empty() {
+                "adapter crashed or timed out".to_string()
+            } else {
+                candidate.adapter_run_issues.join("; ")
+            };
+            anyhow::bail!("arena candidate '{adapter}' has blocking issues: {issues}");
+        }
+        let worktree = candidate
             .worktree
-            .as_ref()
-            .map(|path| path.display().to_string()),
-        review_status: review_status(&temp),
-        verification_passed: verification_passed(&temp),
-        diff_size: changed_line_count(&temp),
-        contract_drift: contract_drift(&temp),
-        crashed: temp.adapter_crashed,
-        changed_files: temp.changed_files,
-        summary,
-    }
-}
-
-fn candidate_line(candidate: &ArenaCandidateRecord) -> String {
-    format!(
-        "candidate {}: review={:?} files={} worktree={}",
-        candidate.adapter,
-        candidate.review_status,
-        file_list(candidate),
-        candidate.worktree.as_deref().unwrap_or("not recorded")
-    )
-}
-
-fn file_list(candidate: &ArenaCandidateRecord) -> String {
-    let files = candidate
-        .changed_files
-        .iter()
-        .filter_map(|file| file.get("path").and_then(Value::as_str))
-        .collect::<Vec<_>>();
-    if files.is_empty() {
-        "none".to_string()
-    } else {
-        files.join(",")
-    }
-}
-
-fn arena_input_for(session: &TuiSession, adapter: &str) -> ArenaCandidateInput {
-    if adapter != session.adapter {
-        return ArenaCandidateInput {
-            adapter: adapter.to_string(),
-            review_status: ArenaReviewStatus::Unknown,
-            verification_passed: false,
-            diff_size: 0,
-            contract_drift: false,
-            crashed: false,
-        };
-    }
-    ArenaCandidateInput {
-        adapter: adapter.to_string(),
-        review_status: review_status(session),
-        verification_passed: verification_passed(session),
-        diff_size: changed_line_count(session),
-        contract_drift: contract_drift(session),
-        crashed: session.adapter_crashed,
-    }
-}
-
-fn review_status(session: &TuiSession) -> ArenaReviewStatus {
-    let Some(review) = session.gates.get("review_implementation_against_contract") else {
-        return ArenaReviewStatus::Unknown;
-    };
-    let text = review.to_string().to_lowercase();
-    if text.contains("fail") || text.contains("blocker") {
-        ArenaReviewStatus::Fail
-    } else if text.contains("warn") || text.contains("risk") {
-        ArenaReviewStatus::Warn
-    } else {
-        ArenaReviewStatus::Pass
-    }
-}
-
-fn verification_passed(session: &TuiSession) -> bool {
-    !session.verification.is_empty()
-        && session
-            .verification
-            .values()
-            .all(|status| matches!(status.as_str(), "pass" | "passed" | "ok" | "green"))
-}
-
-fn changed_line_count(session: &TuiSession) -> u64 {
-    session
-        .changed_files
-        .iter()
-        .filter_map(|file| file.get("lines").and_then(Value::as_u64))
-        .sum()
-}
-
-fn contract_drift(session: &TuiSession) -> bool {
-    session
-        .gates
-        .get("review_implementation_against_contract")
-        .map(|review| review.to_string().to_lowercase().contains("drift"))
-        .unwrap_or(false)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn candidate_record_extracts_diff_and_crash_evidence() {
-        let events = [
-            json!({
-                "type": "diff_evidence",
-                "worktree": ".architect-mcp/worktrees/session/shell",
-                "changed_files": [{ "path": "docs/live-qa.md", "lines": 8 }],
-                "diff_stat": "docs/live-qa.md | 8 ++++++++"
-            })
-            .to_string(),
-            json!({
-                "type": "agent_event",
-                "event": { "type": "crashed", "message": "boom" }
-            })
-            .to_string(),
-        ]
-        .join("\n");
-        let candidate = candidate_record_from_events("shell", &events);
-        assert_eq!(candidate.adapter, "shell");
-        assert_eq!(candidate.diff_size, 8);
-        assert!(candidate.crashed);
-        assert_eq!(candidate.changed_files[0]["path"], "docs/live-qa.md");
+            .clone()
+            .context("arena candidate worktree evidence missing")?;
+        if candidate.changed_files.is_empty() {
+            anyhow::bail!("arena candidate '{adapter}' has no changed-file evidence");
+        }
+        let selected_files = file_list(&candidate);
+        let session = self.update_active(|session| {
+            session.clear_adapter_run_evidence();
+            session.adapter = candidate.adapter.clone();
+            session.worktree = Some(PathBuf::from(worktree));
+            session.diff_stat = candidate.diff_stat.clone();
+            session.changed_files = candidate.changed_files.clone();
+            session.adapter_crashed = candidate.crashed;
+            session.adapter_run_issues = candidate.adapter_run_issues.clone();
+            for gate in [
+                "review_implementation_against_contract",
+                "review_repo_structure",
+            ] {
+                if let Some(result) = candidate.review_gates.get(gate) {
+                    session.set_gate(gate, result.clone());
+                }
+            }
+            session.phase = SessionPhase::ReviewRequired;
+            session.clear_execution_approval();
+        })?;
+        Ok(update(
+            vec![
+                format!("arena candidate selected: {adapter}"),
+                format!("selected files: {selected_files}"),
+                "record verification, run final/session review, then approve promote before promotion".to_string(),
+            ],
+            inspector_for(session),
+            Some(session.clone()),
+        ))
     }
 }
