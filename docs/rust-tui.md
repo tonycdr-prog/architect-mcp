@@ -208,7 +208,7 @@ Governance audit:
 architect-mcp-tui governance-audit --json
 ```
 
-This command is read-only. It checks the current workspace for agent instructions, architecture/build-plan docs, package scripts, lockfiles, CI and release gates, environment templates, memory-policy safety, and secret-shaped local config. It separates deterministic release gates from smoke evidence, proposes only memory-safe durable context, and calls `review_local_workspace` in `mode=audit` when architect-mcp is available. Use `--skip-mcp` only when collecting static evidence without a live MCP process.
+This command is read-only. It checks the current workspace for agent instructions, architecture/build-plan docs, package scripts, lockfiles, CI and release gates, environment templates, memory-policy safety, and secret-shaped local config. It separates deterministic release gates from smoke evidence, proposes only memory-safe durable context, and calls `review_local_workspace` in `mode=audit` when architect-mcp is available. Use `--skip-mcp` only when collecting static evidence without a live MCP process. See [Governance Audit](./governance-audit.md) for the recurring workflow and public-safe issue evidence form.
 
 ## Config
 

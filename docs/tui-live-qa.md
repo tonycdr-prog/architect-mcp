@@ -2,7 +2,7 @@
 
 Use this page for release-candidate validation that cannot be proven by unit tests alone. Do not publish a TUI release until the clean release gate passes and the platform smoke matrix is green or explicitly waived.
 
-For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md).
+For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
 
 ## Automated Matrix
 

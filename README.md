@@ -122,6 +122,7 @@ See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config
 - [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)
 - [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui)
 - [Terminal QA](https://tonycdr-prog.github.io/architect-mcp/terminal-qa)
+- [Governance Audit](https://tonycdr-prog.github.io/architect-mcp/governance-audit)
 - [Stack Packs](https://tonycdr-prog.github.io/architect-mcp/stack-packs)
 - [Release Readiness](https://tonycdr-prog.github.io/architect-mcp/release-readiness)
 - [Read-Only Smoke Matrix](https://tonycdr-prog.github.io/architect-mcp/read-only-smoke-matrix)

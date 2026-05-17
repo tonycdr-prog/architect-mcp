@@ -1,0 +1,71 @@
+name: Governance audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  governance-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.94.0 --profile minimal
+          rustup default 1.94.0
+      - name: Build source TUI
+        run: npm run build && cargo build --workspace --bin architect-mcp-tui
+      - name: Run governance audit
+        run: node bin/architect-mcp-tui.cjs governance-audit --json > governance-audit.json
+      - name: Summarize public-safe evidence
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("governance-audit.json", "utf8"));
+          const categories = report.categories
+            .filter((category) => category.summary !== "no findings")
+            .map((category) => `- ${category.name}: ${category.status} (${category.summary})`)
+            .join("\n") || "- none";
+          const deterministic = report.deterministicGates
+            .map((gate) => `- ${gate.command}${gate.requiredForRelease ? " (release gate)" : ""}`)
+            .join("\n");
+          const smoke = report.smokeEvidence
+            .map((gate) => `- ${gate.command}`)
+            .join("\n");
+          const mcp = report.mcpReview || {};
+          const summary = [
+            "# Governance audit",
+            "",
+            `Status: ${report.status}`,
+            `Read only: ${report.readOnly}`,
+            `MCP gate: ${mcp.gateStatus || "unknown"}`,
+            `Files reviewed: ${mcp.filesReviewed ?? "unknown"}`,
+            `Errors: ${mcp.errors ?? "unknown"}`,
+            `Warnings: ${mcp.warnings ?? "unknown"}`,
+            "",
+            "## Categories With Findings",
+            categories,
+            "",
+            "## Deterministic Gates",
+            deterministic,
+            "",
+            "## Smoke Evidence",
+            smoke,
+            "",
+            "Do not copy raw local paths, secrets, private repo names, raw file contents, or raw audit JSON into public issues."
+          ].join("\n");
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+          NODE
