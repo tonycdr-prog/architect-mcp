@@ -42,11 +42,14 @@ When Linux and Windows reports are generated separately, pass both files to the 
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect-mcp --issue 136
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --pr 150 --blocker 136 --terminal-evidence-issue 136
 ```
 
 Use `--public-summary` for PR comments, release notes, and issue follow-up. It keeps the launch decision, source filenames, and platform evidence while omitting workspace paths, raw command tails, smoke internals, terminal-evidence freeform source text, command summaries, notes, cache paths, private repo names, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
 
 Use `collect-terminal-evidence` when Linux and Windows evidence is posted as fenced JSON in a GitHub issue. It performs a read-only GitHub CLI lookup, extracts public-safe evidence blocks, applies the same launch-judge validation rules, and prints merged evidence for local release judging. It does not replace the underlying terminal QA or mutate the issue.
+
+Use `launch-readiness` when maintainers need one public-safe report for both the explicit PR stack and the terminal-evidence issue. It reuses `launch-stack` and `collect-terminal-evidence`, stays read-only, and keeps explicit blocker waivers separate from real Linux/Windows terminal evidence.
 
 Unchanged issue-template placeholders are not acceptable evidence. If a report still contains `REPLACE with ...`, `issue #136 public-safe terminal QA report`, or the default placeholder command summary, the launch judge keeps the external evidence check at `conditional_go` and asks for real platform-specific QA evidence.
 
@@ -55,6 +58,7 @@ When launch readiness depends on a stack of open PRs plus external blocker issue
 ```bash
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason"
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136 --terminal-evidence-issue 136
 ```
 
 `launch-stack` is a read-only GitHub CLI summary for explicit PR and issue numbers. It is `no_go` for failed checks or dirty/unknown merge states, `conditional_go` for draft PRs, pending checks, temporarily unstable merge states caused by pending checks, or open blocker issues, and `go` only when supplied PRs are clean, non-draft, and green and supplied blocker issues are closed or explicitly waived. Waivers must be supplied by the maintainer as `--waive-blocker ISSUE=reason`; the report records `status: waived` and the public reason so a waiver is visible and does not pretend evidence exists.

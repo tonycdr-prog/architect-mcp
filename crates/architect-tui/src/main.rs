@@ -9,6 +9,7 @@ use architect_tui::issue_terminal_evidence::{
     IssueTerminalEvidenceOptions, run_issue_terminal_evidence,
 };
 use architect_tui::launch_judge::{LaunchJudgeOptions, run_launch_judge};
+use architect_tui::launch_readiness::{LaunchReadinessOptions, run_launch_readiness};
 use architect_tui::launch_stack::{LaunchStackOptions, run_launch_stack};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
 use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
@@ -210,6 +211,24 @@ async fn main() -> Result<()> {
                 prs,
                 blockers,
                 waived_blockers,
+            },
+        )?,
+        Some(Commands::LaunchReadiness {
+            json,
+            repo,
+            prs,
+            blockers,
+            waived_blockers,
+            terminal_evidence_issue,
+        }) => run_launch_readiness(
+            &workspace,
+            LaunchReadinessOptions {
+                json,
+                repo,
+                prs,
+                blockers,
+                waived_blockers,
+                terminal_evidence_issue,
             },
         )?,
         Some(Commands::CollectTerminalEvidence { json, repo, issue }) => {
