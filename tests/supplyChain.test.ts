@@ -106,6 +106,7 @@ describe("supply-chain and release hygiene", () => {
     const releaseReadiness = readFileSync("docs/release-readiness.md", "utf8");
     const tuiLiveQa = readFileSync("docs/tui-live-qa.md", "utf8");
     const terminalQa = readFileSync("docs/terminal-qa.md", "utf8");
+    const threatModel = readFileSync("docs/prompt-injection-threat-model.md", "utf8");
     const terminalQaIssue = readFileSync(".github/ISSUE_TEMPLATE/terminal-qa-report.yml", "utf8");
     const readme = readFileSync("README.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
@@ -115,8 +116,14 @@ describe("supply-chain and release hygiene", () => {
     assert.match(newAppGuide, /review_proposed_file_plan/);
     assert.match(newAppGuide, /diff_evidence/);
     assert.match(newAppGuide, /AGENTS\.md/);
+    assert.match(threatModel, /MCP tools are report-only/);
+    assert.match(threatModel, /direct-mutation-without-gates/);
+    assert.match(threatModel, /fabricated-verification-claim/);
+    assert.match(threatModel, /selective-tool-call/);
     assert.match(readme, /new-app-work-gate/);
+    assert.match(readme, /prompt-injection-threat-model/);
     assert.match(llms, /docs\/new-app-work-gate\.md/);
+    assert.match(llms, /docs\/prompt-injection-threat-model\.md/);
     assert.match(releaseReadiness, /Trusted Publishing Migration/);
     assert.match(releaseReadiness, /Token Rotation/);
     assert.match(releaseReadiness, /npm run release:check/);
@@ -241,7 +248,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#241 - Ship Linux ARM64 TUI release assets\]/);
+    assert.match(goal, /Active slice: \[#242 - Threat-model prompt injection and gate-bypass paths\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -263,6 +270,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#236\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/236\)/);
     assert.match(goal, /\[#239\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/239\)/);
     assert.match(goal, /\[#241\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/241\)/);
+    assert.match(goal, /\[#242\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/242\)/);
+    assert.match(goal, /\[#244\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/244\)/);
+    assert.match(goal, /\[#245\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/245\)/);
+    assert.match(goal, /\[#246\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/246\)/);
+    assert.match(goal, /\[#247\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/247\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -279,12 +291,14 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /public required-check evidence handoffs/);
     assert.match(goal, /published-package hosted smoke coverage/);
     assert.match(goal, /Linux ARM64 TUI release assets/);
+    assert.match(goal, /prompt-injection\/gate-bypass threat-model coverage/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
     assert.match(goal, /#234 in PR #235/);
     assert.match(goal, /#236 in PR #238/);
     assert.match(goal, /#239 in PR #240/);
+    assert.match(goal, /#241 in PR #243/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

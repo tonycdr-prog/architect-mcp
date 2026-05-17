@@ -31,6 +31,8 @@ features:
     details: Stack packs, governed MCP install plans, governance evals, operating-model evals, repo-quality gates, and productization boundary checks remain available behind the advanced surface.
   - title: Rust TUI platform
     details: Ratatui brings the live work gate into a mouse-aware terminal client with adapter readiness, guarded headless JSONL, approval/promotion commands, arena ranking, and provisional ACP stdio mode.
+  - title: Prompt-injection aware
+    details: Public docs distinguish report-only MCP reviews from TUI, host, human, and CI enforcement, and treat external text as untrusted data.
   - title: Release-gated
     details: The clean-checkout release gate is npm run release:check, which includes Rust checks, typecheck, tests, build, docs build, audit, package dry-run checks, and readiness reports.
 ---
@@ -64,6 +66,7 @@ architect-mcp
 - [MCP Client Setup](/mcp-client-setup)
 - [Core Work Gate](/core-work-gate)
 - [New App Work Gate](/new-app-work-gate)
+- [Prompt Injection Threat Model](/prompt-injection-threat-model)
 - [Hosted Mode](/hosted-mode)
 - [MCP Integrations](/mcp-integrations)
 - [Rust TUI](/rust-tui)
