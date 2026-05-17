@@ -84,9 +84,10 @@ fn evidence_index_redacts_public_text_and_omits_raw_payloads() {
 #[test]
 fn evidence_index_markdown_renders_public_release_handoff() {
     let mut launch = launch_summary(LaunchJudgeResult::ConditionalGo);
+    launch.repository = Some("/Users/example/private/repo npm_SECRET `quoted`".to_string());
     launch.launch_stack.blocker_issues = vec![LaunchReadinessPublicBlockerIssue {
         number: 136,
-        state: "OPEN".to_string(),
+        state: "OPEN`state".to_string(),
         status: LaunchStackItemStatus::Warning,
         waived: false,
     }];
@@ -95,31 +96,42 @@ fn evidence_index_markdown_renders_public_release_handoff() {
         result: LaunchJudgeResult::ConditionalGo,
         extracted_block_count: 0,
     });
+    launch.terminal_evidence.platforms = vec!["linux`runner".to_string()];
     launch.terminal_evidence.issues =
         vec!["terminal evidence reports must include linux and windows".to_string()];
     launch.terminal_evidence_waiver = Some(LaunchReadinessPublicTerminalEvidenceWaiver {
         issue: 136,
         applied: false,
-        reason: "maintainer has not accepted a waiver".to_string(),
+        reason: "maintainer has not accepted a waiver from /Users/example/private with npm_SECRET"
+            .to_string(),
     });
+    let mut governance = governance_summary(GovernanceAuditStatus::Passed);
+    if let Some(review) = &mut governance.mcp_review {
+        review.status = "passed`review".to_string();
+        review.gate_status = Some("pass`gate".to_string());
+    }
 
-    let report = build_evidence_index_report_from_public_summaries_at(
-        launch,
-        governance_summary(GovernanceAuditStatus::Passed),
-        1,
-    );
+    let report = build_evidence_index_report_from_public_summaries_at(launch, governance, 1);
     let markdown = render_markdown(&report);
 
     assert!(markdown.contains("# Release Evidence Index"));
     assert!(markdown.contains("- Result: `conditional_go`"));
+    assert!(
+        markdown.contains("- Repository: `` [redacted-local-path] [redacted-secret] `quoted` ``")
+    );
     assert!(markdown.contains("| launch readiness | `conditional_go` |"));
+    assert!(markdown.contains("- Platforms: `` linux`runner ``"));
+    assert!(markdown.contains("- MCP review: `` passed`review `` gate `` pass`gate ``"));
     assert!(markdown.contains("Terminal evidence issue: #136"));
     assert!(markdown.contains("Terminal evidence waiver: issue #136"));
+    assert!(markdown.contains("[redacted-local-path]"));
+    assert!(markdown.contains("[redacted-secret]"));
     assert!(markdown.contains("## Next Actions"));
     assert!(!markdown.contains("commandSummary"));
     assert!(!markdown.contains("stdout"));
     assert!(!markdown.contains("stderr"));
     assert!(!markdown.contains("/Users/example"));
+    assert!(!markdown.contains("npm_SECRET"));
 }
 
 #[test]
