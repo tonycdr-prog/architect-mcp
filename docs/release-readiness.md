@@ -47,13 +47,15 @@ Repo-only TypeScript readiness scripts and docs development scripts are stripped
 Publishing is handled by `.github/workflows/npm-publish.yml` when a GitHub release is published from a `v*` tag. The workflow:
 
 - Uses pinned GitHub Actions.
+- Runs in the `npm-publish` GitHub environment so maintainers can add required reviewers, tag restrictions, and environment-scoped secrets.
+- Serializes publishes per tag with workflow concurrency so a duplicate release event cannot race another publish for the same ref.
 - Installs with Node 24, upgrades npm to `^11.5.1` for provenance-capable publishing, and runs `npm ci`.
 - Installs the pinned Rust 1.94.0 toolchain.
 - Runs `npm run release:check`.
 - Packs the package and installs the tarball in a temporary project.
 - Publishes with `npm publish --access public --provenance`.
 
-The repository must define `NPM_TOKEN` with permission to publish `@tonycdr-prog/architect-mcp`. For 2FA-protected npm accounts, use a granular token that can publish the package and bypass 2FA for automation. The workflow also uses GitHub Actions OIDC and npm 11.5.1+ for provenance-capable publishing. Do not bypass `npm run release:check`; it remains the clean-checkout release gate.
+Current auth mode is token-backed, OIDC-ready publishing. The workflow requests GitHub Actions OIDC and uses npm 11.5.1+, but `NPM_TOKEN` remains the publish credential until the npm package has a trusted publisher configured. The token must be a granular automation token scoped to `@tonycdr-prog/architect-mcp` with publish rights and the required 2FA automation setting. Do not bypass `npm run release:check`; it remains the clean-checkout release gate.
 
 ### Trusted Publishing Migration
 
@@ -63,12 +65,20 @@ The remaining setup happens in npm package settings, not in this repository:
 
 1. Open `@tonycdr-prog/architect-mcp` on npmjs.com.
 2. In package settings, add a trusted publisher for GitHub Actions.
-3. Use owner `tonycdr-prog`, repository `architect-mcp`, and workflow filename `npm-publish.yml`.
+3. Use owner `tonycdr-prog`, repository `architect-mcp`, workflow filename `npm-publish.yml`, and environment name `npm-publish`.
 4. Run the next release without changing the release gate.
-5. After a successful trusted-publishing release, restrict publishing access to require 2FA and disallow traditional tokens if that policy fits the maintainer account.
-6. Revoke the old automation token.
+5. After a successful trusted-publishing release, remove `NODE_AUTH_TOKEN` from the publish step and delete the `NPM_TOKEN` GitHub secret.
+6. Restrict publishing access to require 2FA and disallow traditional tokens if that policy fits the maintainer account.
+7. Revoke the old automation token.
 
 Until that npm-side configuration is complete, keep `NPM_TOKEN` in GitHub secrets so releases remain publishable. Do not commit tokens, paste token values into issues, or place token material in workflow logs.
+
+Recommended GitHub environment settings for `npm-publish`:
+
+- Required reviewer: repository maintainer.
+- Deployment branch/tag rule: `v*` release tags only.
+- Secrets: keep `NPM_TOKEN` here instead of as a broad repository secret while token-backed publishing remains enabled.
+- After trusted publishing succeeds, remove `NPM_TOKEN` entirely and keep the environment as the human release approval gate.
 
 ### Token Rotation
 

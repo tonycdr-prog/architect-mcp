@@ -60,6 +60,8 @@ describe("supply-chain and release hygiene", () => {
     assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
     assert.match(workflow, /types:\s*\n\s+- published/);
     assert.match(workflow, /id-token:\s+write/);
+    assert.match(workflow, /concurrency:\s*\n\s+group: npm-publish-\$\{\{ github\.ref \}\}/);
+    assert.match(workflow, /environment: npm-publish/);
     assert.match(workflow, /node-version: "24"/);
     assert.match(workflow, /npm install -g npm@\^11\.5\.1/);
     assert.match(workflow, /npm run release:check/);
@@ -115,6 +117,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(llms, /docs\/new-app-work-gate\.md/);
     assert.match(releaseReadiness, /Trusted Publishing Migration/);
     assert.match(releaseReadiness, /Token Rotation/);
+    assert.match(releaseReadiness, /Current auth mode is token-backed, OIDC-ready publishing/);
+    assert.match(releaseReadiness, /environment name `npm-publish`/);
+    assert.match(releaseReadiness, /remove `NODE_AUTH_TOKEN`/);
     assert.match(releaseReadiness, /npm run release:check/);
     assert.match(tuiLiveQa, /Post-Release Evidence/);
     assert.match(tuiLiveQa, /Manual Linux terminal smoke/);
