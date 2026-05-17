@@ -168,7 +168,7 @@ architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect
 
 This command reads issue comments through GitHub CLI, extracts public-safe terminal-evidence JSON blocks, validates them with the same launch-judge safety rules, and prints merged evidence that can be saved and passed to `launch-judge --terminal-evidence`. It is read-only and does not create, edit, or close issues.
 
-`launch-readiness` is the maintainer rollup for the release stack plus the terminal-evidence issue. It is also read-only, reports `go`, `conditional_go`, or `no_go`, and keeps waivers separate from real Linux/Windows terminal evidence.
+`launch-readiness` is the maintainer rollup for the release stack plus the terminal-evidence issue. It is also read-only, reports `go`, `conditional_go`, or `no_go`, and keeps waivers separate from real Linux/Windows terminal evidence. Hosted CI terminal-evidence summaries are baseline signals only and do not satisfy issue #136 manual Windows/Linux terminal QA.
 
 The generated evidence has this shape:
 

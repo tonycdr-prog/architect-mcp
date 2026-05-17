@@ -70,6 +70,36 @@ fn readiness_is_no_go_when_terminal_evidence_is_malformed() {
 }
 
 #[test]
+fn readiness_is_no_go_when_terminal_evidence_is_unsafe() {
+    let stack = clean_stack_report(BTreeMap::new(), "CLOSED");
+    let evidence = build_issue_terminal_evidence_report_from_value(
+        None,
+        136,
+        &json!({
+            "number": 136,
+            "title": "Run post-release TUI terminal QA on Windows and Linux",
+            "url": "https://github.com/example/repo/issues/136",
+            "body": "",
+            "comments": [
+                {
+                    "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"source\":\"issue #136 linux summary at /home/tester/run\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on linux\",\"collectedAt\":\"2026-05-17\"},{\"platform\":\"windows\",\"status\":\"passed\",\"source\":\"issue #136 windows public-safe summary\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed on windows\",\"collectedAt\":\"2026-05-17\"}]}\n```"
+                }
+            ]
+        }),
+    );
+
+    let report = build_launch_readiness_report_from_reports(None, stack, Some(evidence));
+
+    assert_eq!(report.result, LaunchJudgeResult::NoGo);
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|finding| finding.contains("local-path content"))
+    );
+}
+
+#[test]
 fn readiness_go_when_stack_and_linux_windows_terminal_evidence_pass() {
     let stack = clean_stack_report(BTreeMap::new(), "CLOSED");
     let evidence = complete_terminal_evidence();
