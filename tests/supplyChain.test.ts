@@ -280,7 +280,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#232 in PR #233/);
     assert.match(goal, /#234 in PR #235/);
     assert.match(goal, /#236 in PR #238/);
-    assert.match(goal, /#239 stacked next/);
+    assert.match(goal, /#239 in PR #240/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
