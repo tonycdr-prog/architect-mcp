@@ -4,9 +4,11 @@ Use this page when testing `architect-mcp-tui` in a real terminal outside CI. Th
 
 Do not paste secrets, tokens, private repository names, private file contents, or customer data into public issues.
 
-## One-Command Smoke
+## Version-Aware Smoke
 
-The preferred smoke command is:
+For the current public npm release `v0.2.1`, use the compatibility commands below. That release exposes `architect-mcp-tui --help`, `config adapters --json`, and gate-only `run --jsonl`; it does not expose the newer `smoke --json` command.
+
+For source checkouts and release candidates that include the smoke command, the preferred one-command smoke is:
 
 ```bash
 architect-mcp-tui smoke --json
@@ -22,20 +24,14 @@ It produces a secret-safe report with:
 
 Missing Codex login is a warning, not an install failure. A smoke failure usually means help output, binary launch, or live MCP gate execution failed.
 
+When reporting public QA, prefer a short public-safe summary over raw JSON. Include status, platform, package version, whether Codex was installed/authenticated, and whether the gate-only run stopped before adapter execution. Do not paste local cache paths, absolute user paths, private repo names, secrets, or raw environment dumps.
+
 ## macOS And Linux
 
 ```bash
 node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
-architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
-```
-
-If the command exits non-zero, keep `architect-mcp-tui-smoke.json` if it was written and paste the terminal error into the issue.
-
-Manual fallback commands:
-
-```bash
 architect-mcp-tui --help
 architect-mcp-tui config adapters --json
 architect-mcp-tui run \
@@ -50,13 +46,6 @@ architect-mcp-tui run \
 node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
-architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
-if ($LASTEXITCODE -ne 0) { Write-Host "smoke exited with code $LASTEXITCODE" }
-```
-
-Manual fallback commands:
-
-```powershell
 architect-mcp-tui --help
 architect-mcp-tui config adapters --json
 architect-mcp-tui run `
@@ -71,12 +60,6 @@ architect-mcp-tui run `
 node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
-architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
-```
-
-Manual fallback commands:
-
-```bash
 architect-mcp-tui --help
 architect-mcp-tui config adapters --json
 architect-mcp-tui run \
@@ -113,7 +96,8 @@ For successful terminal QA, open a Terminal QA report and paste:
 - Node and npm versions.
 - Package version tested.
 - Commands run.
-- `architect-mcp-tui-smoke.json`.
+- Compatibility command results for `--help`, `config adapters --json`, and gate-only `run --jsonl`.
+- `architect-mcp-tui smoke --json` summary only when the tested version includes that command.
 - Any terminal rendering, resize, mouse, cache, checksum, or JSONL issue.
 
 For install, checksum, cache, download, or binary launch failures, use the Install failure form.

@@ -103,6 +103,8 @@ describe("supply-chain and release hygiene", () => {
     const newAppGuide = readFileSync("docs/new-app-work-gate.md", "utf8");
     const releaseReadiness = readFileSync("docs/release-readiness.md", "utf8");
     const tuiLiveQa = readFileSync("docs/tui-live-qa.md", "utf8");
+    const terminalQa = readFileSync("docs/terminal-qa.md", "utf8");
+    const terminalQaReport = readFileSync(".github/ISSUE_TEMPLATE/terminal-qa-report.yml", "utf8");
     const readme = readFileSync("README.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
@@ -119,6 +121,13 @@ describe("supply-chain and release hygiene", () => {
     assert.match(tuiLiveQa, /Post-Release Evidence/);
     assert.match(tuiLiveQa, /Manual Linux terminal smoke/);
     assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
+    assert.match(tuiLiveQa, /v0\.2\.1` command surface/);
+    assert.match(tuiLiveQa, /Compatibility mode/);
+    assert.match(terminalQa, /For the current public npm release `v0\.2\.1`/);
+    assert.match(terminalQa, /does not expose the newer `smoke --json` command/);
+    assert.match(terminalQa, /public-safe summary/i);
+    assert.match(terminalQaReport, /Public-safe smoke or compatibility summary/);
+    assert.doesNotMatch(terminalQaReport, /render: json/);
   });
 
   it("runs cross-platform TUI live QA smoke with pinned actions", () => {

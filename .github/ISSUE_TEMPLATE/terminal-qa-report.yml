@@ -44,9 +44,9 @@ body:
   - type: textarea
     id: smoke-report
     attributes:
-      label: Smoke report
-      description: Paste the output from architect-mcp-tui smoke --json, or the relevant short output if JSON is not available.
-      render: json
+      label: Public-safe smoke or compatibility summary
+      description: For v0.2.1, summarize --help, config adapters --json, and gate-only run --jsonl. For newer versions with smoke --json, paste a redacted summary instead of raw local paths or environment dumps.
+      render: markdown
     validations:
       required: true
   - type: dropdown

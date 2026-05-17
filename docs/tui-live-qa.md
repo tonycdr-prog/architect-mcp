@@ -23,6 +23,7 @@ Latest recorded release: `v0.2.1`, published on 2026-05-16.
 | npm publish workflow for `v0.2.1` | Ubuntu publish runner | Passed | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25968887248 |
 | TUI install-smoke workflow | Ubuntu, macOS 14, Windows latest | Passed on latest recorded PR run | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25970418642 |
 | TUI live-QA smoke workflow | Ubuntu, macOS 14, Windows latest | Passed on latest recorded PR run | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25969825040 |
+| Public npm `v0.2.1` command surface | npm release package | Compatibility mode | `architect-mcp-tui smoke --json` is not part of `v0.2.1`; real terminal QA for that release should use `--help`, `config adapters --json`, and gate-only `run --jsonl` |
 | Manual macOS source-checkout smoke | macOS local terminal | Record in the release PR or release notes when run | Maintainer evidence required before a TUI production go decision |
 | Manual Linux terminal smoke | Linux local or VM terminal | Pending unless explicitly waived | Hosted workflow evidence is not a substitute for a real terminal smoke |
 | Manual Windows terminal smoke | Windows Terminal or PowerShell | Pending unless explicitly waived | Hosted workflow evidence is not a substitute for a real terminal smoke |
@@ -36,22 +37,23 @@ Before marking a TUI release ready, run at least one live workflow on each targe
 | Platform | Required checks |
 | --- | --- |
 | macOS | `npm run release:check`, `npm run tui:build`, `architect-mcp-tui config adapters --json`, gate-only `run --jsonl`, and one isolated-worktree `--execute` with a safe shell adapter |
-| Linux | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs smoke --json`, and one optional interactive launch |
-| Windows | `npm ci`, `npm run tui:build`, `node bin/architect-mcp-tui.cjs smoke --json`, shim tests, and one optional interactive launch |
+| Linux | public npm `--help`, `config adapters --json`, gate-only `run --jsonl`, and one optional interactive launch; source/release-candidate testing may also run `node bin/architect-mcp-tui.cjs smoke --json` |
+| Windows | public npm `--help`, `config adapters --json`, gate-only `run --jsonl`, shim tests for source checkouts, and one optional interactive launch; source/release-candidate testing may also run `node bin/architect-mcp-tui.cjs smoke --json` |
 
 ## Live Workflow Checklist
 
 Use a fresh private repository or local throwaway git repo. Do not run destructive commands in public repositories.
 
-1. Confirm `architect-mcp-tui config adapters --json` reports Codex auth accurately.
-1. Run `architect-mcp-tui smoke --json` and save the report.
-2. Run a vague prompt in gate-only mode and confirm it stops at `approval_required` after `grill_me`.
-3. Run a ready prompt through `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` without `--execute`; confirm no adapter process starts.
-4. Run a safe shell adapter with `--execute` in an isolated worktree; confirm JSONL remains parseable and includes `diff_evidence`.
-5. Confirm implementation review, repo-structure review, final-response review, and session review events appear before `review_required`.
-6. In the interactive TUI, create a session, run `diff summary`, run `diff file <path>`, run `approve <reason>`, run `promote`, and confirm only the changed files from `.architect-mcp/worktrees/<session>/<adapter>` are copied.
-7. Run `arena run <adapter[,adapter]>`, then `arena rank`, and confirm candidates are ranked without auto-merging.
-8. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
+1. Confirm `architect-mcp-tui --help` lists the expected commands for the package version under test.
+2. Confirm `architect-mcp-tui config adapters --json` reports Codex auth accurately.
+3. For source checkouts or release candidates that include it, run `architect-mcp-tui smoke --json` and save a public-safe summary.
+4. Run a vague prompt in gate-only mode and confirm it stops at `approval_required` after `grill_me`.
+5. Run a ready prompt through `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` without `--execute`; confirm no adapter process starts.
+6. Run a safe shell adapter with `--execute` in an isolated worktree; confirm JSONL remains parseable and includes `diff_evidence`.
+7. Confirm implementation review, repo-structure review, final-response review, and session review events appear before `review_required`.
+8. In the interactive TUI, create a session, run `diff summary`, run `diff file <path>`, run `approve <reason>`, run `promote`, and confirm only the changed files from `.architect-mcp/worktrees/<session>/<adapter>` are copied.
+9. Run `arena run <adapter[,adapter]>`, then `arena rank`, and confirm candidates are ranked without auto-merging.
+10. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
 
 ## Evidence To Record
 
