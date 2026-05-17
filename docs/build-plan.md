@@ -43,3 +43,11 @@
 - Forbidden files: auto-merge flows, GitHub mutation without `--execute --confirm-private-repo-mutation`, automatic repo deletion, public logs containing private proof-repo URLs
 - Checks: cargo fmt --check, cargo test -p architect-tui foundry_smoke_public_summary, cargo test --workspace --test foundry_smoke, npm run release:check
 - Stop after: stop if the public summary exposes workspace paths, private repo targets, raw commands, command transcripts, stdout/stderr tails, or claims a proof repo was deleted automatically.
+
+### 6. Published Package Smoke Evidence
+- Inputs: issue #136 automatable smoke scope, published npm package, hosted Ubuntu and Windows runners
+- Outputs: pinned read-only published-package workflow, public docs boundary, goal ledger update
+- Allowed directories: .github/workflows, tests, docs
+- Forbidden files: interactive terminal automation, adapter execution without `--execute`, auto-closing issue #136
+- Checks: node --import tsx --test tests/supplyChain.test.ts, node --import tsx --test tests/publishedPackageSmokeWorkflow.test.ts, npm run docs:build, npm run release:check
+- Stop after: stop if hosted CI evidence is described as satisfying manual Linux/Windows terminal QA or if the gate-only JSONL smoke can start an adapter.

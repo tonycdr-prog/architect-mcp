@@ -36,6 +36,7 @@
 - Launch-stack readiness must include GitHub PR review decisions; requested changes are `no_go`, required review is `conditional_go`, and clean checks alone are not launch proof.
 - Launch-stack readiness must fail closed when maintainers supply explicit `--required-check` names and any named check is absent from a PR.
 - Public launch-readiness and evidence-index summaries must expose missing required-check evidence by PR number without dumping raw check rollups.
+- Hosted published-package smoke is baseline evidence only; it must validate non-interactive install/help/adapter JSON/gate-only JSONL without claiming to satisfy manual terminal QA.
 - Terminal evidence must record provenance; hosted CI, container, unknown, or missing provenance cannot satisfy final manual Linux/Windows terminal QA.
 - Repo-foundry public summaries must omit local workspace paths, staged repo paths, private proof-repo names/URLs, raw command strings, command transcripts, stdout/stderr tails, raw MCP payloads, and token-shaped values.
 - Repo-foundry retention decisions must be explicit public-safe evidence only; they must not imply repository deletion occurred unless a separate approved cleanup action actually performed it.

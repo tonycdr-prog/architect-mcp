@@ -1,0 +1,83 @@
+name: TUI published package smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-package-smoke:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: "22"
+      - name: Smoke published package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          smoke_dir="$(mktemp -d)"
+          trap 'rm -rf "$smoke_dir"' EXIT
+
+          echo "Node: $(node --version)"
+          echo "npm: $(npm --version)"
+
+          npm init -y --prefix "$smoke_dir" >/dev/null
+          npm install --prefix "$smoke_dir" @tonycdr-prog/architect-mcp@latest
+          npm list --prefix "$smoke_dir" @tonycdr-prog/architect-mcp
+
+          npm exec --prefix "$smoke_dir" -- architect-mcp-tui --help
+
+          npm exec --prefix "$smoke_dir" -- architect-mcp-tui config adapters --json > "$smoke_dir/adapters.json"
+          node - "$smoke_dir/adapters.json" <<'NODE'
+          const fs = require("node:fs");
+          const adaptersPath = process.argv[2];
+          const adapters = JSON.parse(fs.readFileSync(adaptersPath, "utf8"));
+          if (!Array.isArray(adapters)) {
+            throw new Error("adapter health output must be an array");
+          }
+          for (const name of ["codex", "shell"]) {
+            if (!adapters.some((adapter) => adapter && adapter.name === name)) {
+              throw new Error(`missing adapter health entry: ${name}`);
+            }
+          }
+          console.log(`adapter health entries: ${adapters.length}`);
+          NODE
+
+          npm exec --prefix "$smoke_dir" -- architect-mcp-tui run \
+            --prompt "Build a small private notes app with local storage and tests" \
+            --adapter codex \
+            --jsonl > "$smoke_dir/gate.jsonl"
+          node - "$smoke_dir/gate.jsonl" <<'NODE'
+          const fs = require("node:fs");
+          const jsonlPath = process.argv[2];
+          const events = fs.readFileSync(jsonlPath, "utf8")
+            .trim()
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map((line) => JSON.parse(line));
+          if (events.length === 0) {
+            throw new Error("gate-only run emitted no JSONL events");
+          }
+          if (!events.some((event) => event.type === "mcp_call" && event.name === "grill_me")) {
+            throw new Error("gate-only run did not call grill_me");
+          }
+          if (!events.some((event) => event.type === "approval_required")) {
+            throw new Error("gate-only run did not stop for approval");
+          }
+          if (events.some((event) => event.type === "adapter_started" || event.type === "adapter_output")) {
+            throw new Error("gate-only run started an adapter without --execute");
+          }
+          console.log(`gate-only JSONL events: ${events.length}`);
+          NODE
