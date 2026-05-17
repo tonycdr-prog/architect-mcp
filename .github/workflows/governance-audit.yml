@@ -29,6 +29,8 @@ jobs:
       - name: Build source TUI
         run: npm run build && cargo build --workspace --bin architect-mcp-tui
       - name: Run governance audit
+        id: governance_audit
+        continue-on-error: true
         run: node bin/architect-mcp-tui.cjs governance-audit --public-summary > governance-audit-public-summary.json
       - name: Summarize public-safe evidence
         run: |
@@ -72,3 +74,6 @@ jobs:
           ].join("\n");
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
           NODE
+      - name: Fail if governance audit failed
+        if: steps.governance_audit.outcome == 'failure'
+        run: exit 1

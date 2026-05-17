@@ -188,7 +188,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /workflow_dispatch:/);
     assert.match(workflow, /schedule:/);
     assert.match(workflow, /npm run build && cargo build --workspace --bin architect-mcp-tui/);
+    assert.match(workflow, /id: governance_audit/);
+    assert.match(workflow, /continue-on-error: true/);
     assert.match(workflow, /node bin\/architect-mcp-tui\.cjs governance-audit --public-summary > governance-audit-public-summary\.json/);
+    assert.match(workflow, /steps\.governance_audit\.outcome == 'failure'/);
+    assert.match(workflow, /run: exit 1/);
     assert.doesNotMatch(workflow, /governance-audit --json > governance-audit\.json/);
     assert.match(workflow, /GITHUB_STEP_SUMMARY/);
     assert.doesNotMatch(workflow, /upload-artifact/);
