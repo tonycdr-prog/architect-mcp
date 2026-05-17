@@ -218,6 +218,12 @@ fn normalize_and_validate_reports(
                 report.platform
             ));
         }
+        if uses_template_placeholder(report) {
+            issues.push(format!(
+                "terminal evidence for '{}' appears to use a template placeholder; replace it with real platform-specific QA evidence",
+                report.platform
+            ));
+        }
         match report.status {
             LaunchJudgeTerminalEvidenceStatus::Passed => {}
             LaunchJudgeTerminalEvidenceStatus::PassedWithWarnings => issues.push(format!(
@@ -238,6 +244,25 @@ fn normalize_and_validate_reports(
             ));
         }
     }
+}
+
+fn uses_template_placeholder(report: &LaunchJudgeTerminalEvidenceReport) -> bool {
+    [
+        report.source.as_str(),
+        report.command_summary.as_str(),
+        report.notes.as_deref().unwrap_or_default(),
+    ]
+    .iter()
+    .any(|value| looks_like_template_placeholder(value))
+}
+
+fn looks_like_template_placeholder(value: &str) -> bool {
+    let normalized = value.trim().to_ascii_lowercase();
+    normalized.contains("replace with")
+        || normalized == "issue #136 public-safe terminal qa report"
+        || normalized
+            == "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized"
+        || normalized == "summary only, no raw logs"
 }
 
 fn failed(

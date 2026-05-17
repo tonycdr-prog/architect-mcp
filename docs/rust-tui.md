@@ -249,6 +249,8 @@ architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect
 
 `collect-terminal-evidence` is a read-only helper for public GitHub issue reports. It extracts fenced terminal-evidence JSON, rejects unsafe blocks, reports missing or duplicated platforms, and prints a merged evidence envelope that can be saved for `launch-judge --terminal-evidence`.
 
+Template placeholders are treated as incomplete evidence. Reports that still contain `REPLACE with ...`, `issue #136 public-safe terminal QA report`, or the default issue-template command summary keep the launch judge at `conditional_go` until the reporter supplies real platform-specific results.
+
 ```json
 {
   "schemaVersion": 1,

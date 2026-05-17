@@ -48,6 +48,8 @@ Use `--public-summary` for PR comments, release notes, and issue follow-up. It k
 
 Use `collect-terminal-evidence` when Linux and Windows evidence is posted as fenced JSON in a GitHub issue. It performs a read-only GitHub CLI lookup, extracts public-safe evidence blocks, applies the same launch-judge validation rules, and prints merged evidence for local release judging. It does not replace the underlying terminal QA or mutate the issue.
 
+Unchanged issue-template placeholders are not acceptable evidence. If a report still contains `REPLACE with ...`, `issue #136 public-safe terminal QA report`, or the default placeholder command summary, the launch judge keeps the external evidence check at `conditional_go` and asks for real platform-specific QA evidence.
+
 When launch readiness depends on a stack of open PRs plus external blocker issues, collect stack state separately:
 
 ```bash

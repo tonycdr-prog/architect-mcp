@@ -145,6 +145,43 @@ fn multiple_terminal_evidence_files_are_merged() {
 }
 
 #[test]
+fn template_placeholder_terminal_evidence_is_not_go() {
+    let evidence = r##"{
+      "schemaVersion": 1,
+      "reports": [
+        {
+          "platform": "linux",
+          "status": "passed",
+          "source": "REPLACE with public issue or PR link for this real terminal run",
+          "commandSummary": "REPLACE with commands that passed or failed on this real machine",
+          "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
+        },
+        {
+          "platform": "windows",
+          "status": "passed",
+          "source": "issue #136 public-safe terminal QA report",
+          "commandSummary": "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized",
+          "notes": "summary only, no raw logs"
+        }
+      ]
+    }"##;
+
+    let file = write_evidence(evidence);
+    let (summary, check) = read_terminal_evidence(&[file.path().to_path_buf()]);
+
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Warning);
+    assert_eq!(summary.reports.len(), 2);
+    assert!(
+        summary
+            .issues
+            .iter()
+            .filter(|issue| issue.contains("template placeholder"))
+            .count()
+            >= 2
+    );
+}
+
+#[test]
 fn missing_platform_terminal_evidence_stays_conditional() {
     let evidence = r##"{
       "schemaVersion": 1,

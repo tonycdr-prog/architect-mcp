@@ -54,9 +54,9 @@ body:
             {
               "platform": "linux",
               "status": "passed",
-              "source": "issue #136 public-safe terminal QA report",
-              "commandSummary": "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized",
-              "notes": "summary only, no raw logs"
+              "source": "REPLACE with public issue or PR link for this real terminal run",
+              "commandSummary": "REPLACE with commands that passed or failed on this real machine",
+              "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
             }
           ]
         }
