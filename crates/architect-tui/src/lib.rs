@@ -27,6 +27,7 @@ mod interactive_commands;
 mod interactive_diff;
 mod interactive_gate_flow;
 mod interactive_integrations;
+mod interactive_integrations_summary;
 mod interactive_integrations_support;
 mod interactive_support;
 mod interactive_update;

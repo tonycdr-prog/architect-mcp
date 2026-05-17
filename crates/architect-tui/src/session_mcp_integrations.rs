@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::interactive_integrations_support::{
+use crate::interactive_integrations_summary::{
     mcp_install_apply_summary, mcp_install_plan_summary, mcp_install_review_summary,
     mcp_recommendation_summary,
 };
