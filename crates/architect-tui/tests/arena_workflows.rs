@@ -121,6 +121,8 @@ async fn interactive_arena_requires_approval_and_selects_one_candidate_for_manua
             .unwrap_or("")
             .contains(".architect-mcp")
     }));
+    assert!(!_temp.path().join("docs/arena-a.md").exists());
+    assert!(!_temp.path().join("docs/arena-b.md").exists());
 
     let promote_blocked = engine
         .apply_input("promote")
@@ -235,6 +237,48 @@ async fn interactive_arena_blocks_failed_candidate_selection() {
         .await
         .expect("ok candidate selected");
     assert_eq!(update.session.expect("session").adapter, "node-ok");
+}
+
+#[tokio::test]
+async fn interactive_arena_run_requires_isolation_mode() {
+    let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    init_git_repo(_temp.path());
+    let mut node_a = shell_writer_portable("docs/arena-a.md", "candidate a\n");
+    let mut node_b = shell_writer_portable("docs/arena-b.md", "candidate b\n");
+    node_a.available = Some(true);
+    node_b.available = Some(true);
+    let config = orchestrator.config_mut();
+    config.adapters.insert("node-a".to_string(), node_a);
+    config.adapters.insert("node-b".to_string(), node_b);
+    config.agents.default_adapter = "node-a".to_string();
+    config.agents.worktree_isolation = false;
+    config.agents.shared_workspace_requires_confirmation = false;
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app ready app with users flows stack risks verification")
+        .await
+        .expect("new app");
+    engine.apply_input("grill").await.expect("grill");
+    engine.apply_input("contract").await.expect("contract");
+    engine.apply_input("review plan").await.expect("plan");
+    engine.apply_input("review files").await.expect("files");
+    engine
+        .apply_input("approve run arena candidates")
+        .await
+        .expect("approve arena");
+
+    let blocked = engine
+        .apply_input("arena run node-a,node-b")
+        .await
+        .expect_err("arena run must require isolation");
+    assert!(
+        blocked
+            .to_string()
+            .contains("arena run requires isolated worktree execution")
+    );
 }
 
 fn fake_mcp_orchestrator() -> Option<(Orchestrator, tempfile::TempDir)> {

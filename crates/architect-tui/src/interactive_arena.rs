@@ -15,6 +15,9 @@ impl InteractiveWorkflowEngine {
         if adapters.len() < 2 {
             anyhow::bail!("arena run requires at least two adapters");
         }
+        if !self.orchestrator.config.agents.worktree_isolation {
+            anyhow::bail!("arena run requires isolated worktree execution");
+        }
         let session = self.active()?.clone();
         if !session.gates.contains_key("review_proposed_file_plan") {
             anyhow::bail!("review files before arena run");
