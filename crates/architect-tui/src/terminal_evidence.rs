@@ -12,6 +12,7 @@ use crate::smoke::{SmokeOptions, SmokeReport, SmokeStatus, build_smoke_report};
 #[derive(Debug, Clone)]
 pub struct TerminalEvidenceOptions {
     pub json: bool,
+    pub markdown: bool,
     pub prompt: String,
     pub skip_gate: bool,
     pub platform: Option<String>,
@@ -31,9 +32,12 @@ pub async fn run_terminal_evidence(
     config: TuiConfig,
     options: TerminalEvidenceOptions,
 ) -> Result<()> {
+    validate_output_mode(&options)?;
     let report = build_terminal_evidence(workspace, config, &options).await?;
     if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
+    } else if options.markdown {
+        print!("{}", render_markdown(&report)?);
     } else {
         print_text_report(&report);
     }
@@ -84,6 +88,20 @@ pub(crate) fn evidence_from_smoke(
         schema_version: 1,
         reports: vec![report],
     })
+}
+
+pub(crate) fn validate_output_mode(options: &TerminalEvidenceOptions) -> Result<()> {
+    if options.json && options.markdown {
+        anyhow::bail!("choose only one terminal-evidence output mode: --json or --markdown");
+    }
+    Ok(())
+}
+
+pub(crate) fn render_markdown(report: &TerminalEvidenceFile) -> Result<String> {
+    let json = serde_json::to_string_pretty(report)?;
+    Ok(format!(
+        "## architect-mcp TUI terminal evidence\n\nPublic-safe summary only. Keep raw logs local. This command does not create, edit, or close GitHub issues; paste this comment manually into the Terminal QA issue.\n\n```json\n{json}\n```\n"
+    ))
 }
 
 fn platform_from_os(os: &str) -> Result<String> {
@@ -171,6 +189,8 @@ fn sanitize_note(note: &str) -> String {
         .map(|part| {
             if looks_like_local_path(part) {
                 "[redacted-path]"
+            } else if looks_like_secret(part) {
+                "[redacted-secret]"
             } else {
                 part
             }
@@ -195,6 +215,26 @@ fn looks_like_local_path(part: &str) -> bool {
         || lower.contains("/users/")
         || lower.contains("/home/")
         || (lower.len() >= 3 && lower.as_bytes()[1] == b':' && lower.as_bytes()[2] == b'/')
+}
+
+fn looks_like_secret(part: &str) -> bool {
+    let lower = part
+        .trim_matches(|ch: char| {
+            matches!(
+                ch,
+                ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\''
+            )
+        })
+        .to_ascii_lowercase();
+    lower.contains("npm_")
+        || lower.contains("ghp_")
+        || lower.contains("gho_")
+        || lower.contains("ghu_")
+        || lower.contains("ghs_")
+        || lower.contains("ghr_")
+        || lower.contains("github_pat_")
+        || lower.contains("sk-")
+        || lower.contains("xoxb-")
 }
 
 fn pass_fail(ok: bool) -> &'static str {

@@ -121,6 +121,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(tuiLiveQa, /Post-Release Evidence/);
     assert.match(tuiLiveQa, /Manual Linux terminal smoke/);
     assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
+    assert.match(tuiLiveQa, /architect-mcp-tui terminal-evidence --markdown/);
+    assert.match(terminalQa, /architect-mcp-tui terminal-evidence --markdown/);
     assert.match(terminalQa, /architect-mcp-tui terminal-evidence --json/);
     assert.match(terminalQa, /collect-terminal-evidence --json/);
     assert.match(terminalQa, /read-only and does not create, edit, or close issues/);
@@ -130,9 +132,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(terminalQa, /Do not paste the raw smoke JSON into public issues/);
     assert.match(terminalQa, /unchanged template values/);
     assert.match(terminalQa, /placeholder evidence/);
-    assert.match(terminalQaIssue, /Launch judge terminal evidence JSON/);
+    assert.match(terminalQaIssue, /Launch judge terminal evidence Markdown/);
+    assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --markdown/);
     assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --json/);
     assert.match(terminalQaIssue, /Do not paste raw smoke JSON/);
+    assert.match(terminalQaIssue, /```json/);
     assert.match(terminalQaIssue, /REPLACE with public issue or PR link/);
     assert.doesNotMatch(terminalQaIssue, /issue #136 public-safe terminal QA report/);
     assert.doesNotMatch(terminalQaIssue, /Paste the output from architect-mcp-tui smoke --json/);
@@ -168,6 +172,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui collect-terminal-evidence --json/);
     assert.match(rustTui, /extracts fenced terminal-evidence JSON/);
     assert.match(rustTui, /draft PRs, pending checks, temporarily unstable merge states caused by pending checks, and open blocker issues are `conditional_go`/);
+    assert.match(rustTui, /architect-mcp-tui terminal-evidence --markdown/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
