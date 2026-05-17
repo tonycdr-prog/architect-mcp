@@ -83,9 +83,9 @@ If token-backed publishing is still enabled, rotate the token after any suspecte
 
 ## TUI Release Binaries
 
-`.github/workflows/tui-release.yml` builds `architect-mcp-tui` for Linux, macOS, and Windows release assets. Each archive is uploaded with a `.sha256` checksum. The npm shim downloads only matching release assets and verifies the checksum before execution.
+`.github/workflows/tui-release.yml` builds `architect-mcp-tui` for Linux x64, Linux ARM64, macOS x64, macOS ARM64, and Windows x64 release assets. Each archive is uploaded with a `.sha256` checksum. The npm shim downloads only matching release assets and verifies the checksum before execution.
 
-The shim follows HTTPS redirects for GitHub release asset and checksum downloads. `.github/workflows/tui-install-smoke.yml` runs the shim and release-binary build path across Ubuntu, macOS, and Windows on pull requests and manual dispatch. `.github/workflows/tui-live-qa.yml` adds cross-platform TUI workflow smoke coverage. Manual OS evidence is tracked in [TUI Live QA](./tui-live-qa.md).
+The shim follows HTTPS redirects for GitHub release asset and checksum downloads. `.github/workflows/tui-install-smoke.yml` runs the shim and release-binary build path across Ubuntu x64, Ubuntu ARM64, macOS, and Windows on pull requests and manual dispatch. `.github/workflows/tui-live-qa.yml` adds cross-platform TUI workflow smoke coverage. Published-package ARM64 smoke starts after a release containing the Linux ARM64 asset exists; until then, keep hosted published-package smoke on the released x64/Windows asset set. Manual OS evidence is tracked in [TUI Live QA](./tui-live-qa.md).
 
 `.github/workflows/governance-audit.yml` runs the read-only governance audit on manual dispatch and a weekly schedule. It writes a public-safe GitHub step summary rather than uploading raw local audit JSON. Governance reports and redaction rules live in [Governance Audit](./governance-audit.md).
 
