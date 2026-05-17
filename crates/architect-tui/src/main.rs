@@ -4,6 +4,7 @@ use anyhow::Result;
 use architect_tui::acp::run_acp_stdio;
 use architect_tui::adapter::print_adapter_table;
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
+use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
 use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
 use architect_tui::smoke::{SmokeOptions, run_smoke};
@@ -75,6 +76,21 @@ enum Commands {
         keep_workspace: bool,
         #[arg(long, default_value_t = 600)]
         timeout_seconds: u64,
+    },
+    /// Run a repo-foundry smoke; live GitHub creation requires explicit confirmation.
+    FoundrySmoke {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        owner: String,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long)]
+        execute: bool,
+        #[arg(long)]
+        confirm_private_repo_mutation: bool,
+        #[arg(long)]
+        keep_workspace: bool,
     },
 }
 
@@ -165,6 +181,28 @@ async fn main() -> Result<()> {
                     adapter,
                     keep_workspace,
                     timeout_seconds,
+                },
+            )
+            .await?;
+        }
+        Some(Commands::FoundrySmoke {
+            json,
+            owner,
+            repo,
+            execute,
+            confirm_private_repo_mutation,
+            keep_workspace,
+        }) => {
+            run_foundry_smoke(
+                workspace,
+                config,
+                FoundrySmokeOptions {
+                    json,
+                    owner,
+                    repo,
+                    execute,
+                    confirm_private_repo_mutation,
+                    keep_workspace,
                 },
             )
             .await?;

@@ -27,7 +27,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - [Tool Reference](docs/tool-reference.md): full tool-name reference for the default and advanced surfaces.
 - [Hosted Mode](docs/hosted-mode.md): stateless HTTP mode, local-only exclusions, file summaries, and review modes.
 - [MCP Integrations](docs/mcp-integrations.md): guarded MCP server recommendations, install plans, and local-only apply policy.
-- [Rust TUI](docs/rust-tui.md): Ratatui client, headless JSONL mode, ACP stdio mode, adapter templates, worktree isolation, focused diff commands, approval/promotion commands, arena run/ranking, guarded repo-foundry staging, and release binary policy.
+- [Rust TUI](docs/rust-tui.md): Ratatui client, headless JSONL mode, ACP stdio mode, adapter templates, worktree isolation, focused diff commands, approval/promotion commands, arena run/ranking, guarded repo-foundry staging/smoke checks, and release binary policy.
 - [TUI Live QA](docs/tui-live-qa.md): Linux, macOS, and Windows install-smoke, live-QA smoke, and manual live QA checklist.
 - [Stack Packs](docs/stack-packs.md): pack authoring, source guidance, promotion flow, and coverage checks.
 - [Release Readiness](docs/release-readiness.md): release gate, package boundary, GitHub Pages build, and compatibility checks.
