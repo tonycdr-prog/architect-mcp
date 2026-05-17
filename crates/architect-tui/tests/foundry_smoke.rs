@@ -14,6 +14,7 @@ async fn foundry_smoke_dry_run_stages_repo_without_github_execution() {
         config,
         &FoundrySmokeOptions {
             json: true,
+            public_summary: false,
             owner: "tonycdr-prog".to_string(),
             repo: Some("architect-mcp-foundry-dry-run".to_string()),
             execute: false,

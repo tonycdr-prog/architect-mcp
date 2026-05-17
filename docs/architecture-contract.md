@@ -33,6 +33,7 @@
 - Baselines must not suppress new high-confidence errors without path/message specificity.
 - Architecture review should run after scaffold and major generated changes.
 - Launch-stack merge plans are read-only checklists; they must never merge PRs, close issues, tag releases, publish packages, or replace real terminal QA evidence.
+- Repo-foundry public summaries must omit local workspace paths, staged repo paths, private proof-repo names/URLs, raw command strings, command transcripts, stdout/stderr tails, raw MCP payloads, and token-shaped values.
 
 ## Baseline Lifecycle
 - New findings must be fixed or deliberately accepted with a reason.

@@ -140,6 +140,7 @@ async fn main() -> Result<()> {
         }
         Some(Commands::FoundrySmoke {
             json,
+            public_summary,
             owner,
             repo,
             execute,
@@ -151,6 +152,7 @@ async fn main() -> Result<()> {
                 config,
                 FoundrySmokeOptions {
                     json,
+                    public_summary,
                     owner,
                     repo,
                     execute,
