@@ -26,6 +26,8 @@ pub mod evidence_index;
 mod evidence_index_markdown;
 mod evidence_index_report;
 #[cfg(test)]
+mod evidence_index_required_checks_tests;
+#[cfg(test)]
 mod evidence_index_tests;
 pub mod foundry;
 mod foundry_artifacts;

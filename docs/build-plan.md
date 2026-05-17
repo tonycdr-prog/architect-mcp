@@ -30,7 +30,7 @@
 
 ### 4. Launch Checklist Evidence
 - Inputs: discovered PR stack, PR review decisions, explicit required check names, blocker issues, terminal QA issue state, terminal evidence provenance
-- Outputs: read-only launch-stack merge plan, public-safe evidence summary, review-aware/provenance-aware launch gate, required-check absence detection, goal ledger update
+- Outputs: read-only launch-stack merge plan, public-safe evidence summary with missing required-check evidence, review-aware/provenance-aware launch gate, required-check absence detection, goal ledger update
 - Allowed directories: crates/architect-tui/src, crates/architect-tui/tests, docs, tests
 - Forbidden files: GitHub mutation scripts, auto-merge flows, release tagging, package publishing
 - Checks: cargo fmt --check, cargo clippy --workspace --all-targets -- -D warnings, cargo test --workspace, npm run release:check
