@@ -7,11 +7,13 @@ use serde::Serialize;
 use crate::launch_judge_report::LaunchJudgeResult;
 use crate::launch_stack_discovery::{LaunchStackDiscovery, resolve_launch_stack_pr_numbers};
 use crate::launch_stack_github::{fetch_issue, fetch_pr, public_text};
+use crate::launch_stack_merge_plan::print_launch_stack_merge_plan;
 use crate::launch_stack_output::print_launch_stack_text_report;
 
 #[derive(Debug, Clone)]
 pub struct LaunchStackOptions {
     pub json: bool,
+    pub merge_plan: bool,
     pub repo: Option<String>,
     pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
@@ -78,8 +80,13 @@ pub struct LaunchStackIssue {
 }
 
 pub fn run_launch_stack(workspace: &Path, options: LaunchStackOptions) -> Result<()> {
+    if options.json && options.merge_plan {
+        anyhow::bail!("--json and --merge-plan are mutually exclusive");
+    }
     let report = build_launch_stack_report(workspace, &options);
-    if options.json {
+    if options.merge_plan {
+        print_launch_stack_merge_plan(&report);
+    } else if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
         print_launch_stack_text_report(&report);

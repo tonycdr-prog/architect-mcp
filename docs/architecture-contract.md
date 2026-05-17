@@ -32,6 +32,7 @@
 - Default CI gate: zero error findings.
 - Baselines must not suppress new high-confidence errors without path/message specificity.
 - Architecture review should run after scaffold and major generated changes.
+- Launch-stack merge plans are read-only checklists; they must never merge PRs, close issues, tag releases, publish packages, or replace real terminal QA evidence.
 
 ## Baseline Lifecycle
 - New findings must be fixed or deliberately accepted with a reason.

@@ -206,6 +206,7 @@ async fn main() -> Result<()> {
         }
         Some(Commands::LaunchStack {
             json,
+            merge_plan,
             repo,
             stack_from_pr,
             prs,
@@ -215,6 +216,7 @@ async fn main() -> Result<()> {
             &workspace,
             LaunchStackOptions {
                 json,
+                merge_plan,
                 repo,
                 stack_from_pr,
                 prs,

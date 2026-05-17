@@ -27,3 +27,11 @@
 - Forbidden files: baseline entries without path or reason
 - Checks: npm run typecheck, npm test, npm run build
 - Stop after: stop if review gate fails.
+
+### 4. Launch Checklist Evidence
+- Inputs: discovered PR stack, blocker issues, terminal QA issue state
+- Outputs: read-only launch-stack merge plan, public-safe evidence summary, goal ledger update
+- Allowed directories: crates/architect-tui/src, crates/architect-tui/tests, docs, tests
+- Forbidden files: GitHub mutation scripts, auto-merge flows, release tagging, package publishing
+- Checks: cargo fmt --check, cargo clippy --workspace --all-targets -- -D warnings, cargo test --workspace, npm run release:check
+- Stop after: stop if #136 terminal evidence is missing and no explicit maintainer waiver exists.
