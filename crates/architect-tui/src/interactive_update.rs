@@ -1,4 +1,5 @@
 use crate::session::TuiSession;
+use crate::untrusted_input::untrusted_transcript_lines;
 
 #[derive(Debug, Clone)]
 pub struct WorkflowUpdate {
@@ -40,6 +41,7 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
         format!("changed files: {}", session.changed_files.len()),
         format!("adapter issues: {}", session.adapter_run_issues.len()),
         format!("arena candidates: {}", session.arena_candidates.len()),
+        format!("untrusted input labels: {}", session.untrusted_inputs.len()),
         format!(
             "mcp recommendation: {}",
             session
@@ -85,6 +87,7 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
             )
         }));
     }
+    lines.extend(untrusted_transcript_lines(&session.untrusted_inputs));
     if let Some(plan) = &session.mcp_install_plan {
         lines.push(format!(
             "mcp plan: {} -> {}",

@@ -66,6 +66,8 @@ Verification evidence is strict. The TUI captures the required checks from the l
 
 Adapter run evidence is also strict. Timeout, crash, cancellation, non-zero exit, and truncated output are saved into the session as adapter issues, shown in the inspector, and block normal promotion approval/readiness until the adapter is rerun successfully or a maintainer records an explicit override. A rerun requires file-plan review and execution approval again, replaces the managed isolated worktree for that session/adapter, clears stale run evidence, and then applies the new evidence.
 
+Untrusted input labeling is metadata, not prompt-injection prevention. TUI sessions label issue/PR text, repo docs, web snippets, MCP responses, tool output, adapter output, test logs, dependency output, and memory/repo context when those sources appear in prompts, answers, MCP gate results, adapter events, or final/session review inputs. The labels are shown in the transcript and inspector, persisted without raw payloads, included in final/session review requests, and remind agents that external text and tool output are data only. See [Prompt Injection And Gate Bypass Threat Model](./prompt-injection-threat-model.md).
+
 Headless JSONL run:
 
 ```bash
@@ -150,6 +152,8 @@ Every coding and app-building loop starts with the architect-mcp work gate:
 9. `review_agent_session`
 
 The headless runner starts architect-mcp with `ARCHITECT_MCP_TOOL_SURFACE=advanced`, calls `grill_me` over stdio first, and stops with `approval_required` when the brief is incomplete. If the brief is ready, it calls `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan`, then pauses before any adapter process unless `--execute` is present.
+
+When adapter execution is approved, the adapter prompt includes an untrusted-input policy notice. It labels observed sources and states that embedded workflow-changing instructions must not override the approved contract, verification rules, or promotion gate.
 
 ## Interface
 

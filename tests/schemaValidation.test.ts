@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildQualityRequirementsProfile } from "../src/domain/repoQualityEval.js";
 import { reviewSuppliedSkills } from "../src/domain/skillsCatalog.js";
 import { classifyToolPolicy } from "../src/domain/toolPolicy.js";
-import { agentSessionReviewInputSchema, projectBriefSchema, qualityRequirementsInputSchema, ruleCandidateRequestSchema, stackPackCandidateInputSchema } from "../src/tools/schemas.js";
+import { agentSessionReviewInputSchema, finalResponseReviewInputSchema, projectBriefSchema, qualityRequirementsInputSchema, ruleCandidateRequestSchema, stackPackCandidateInputSchema } from "../src/tools/schemas.js";
 
 describe("public input schema validation", () => {
   it("rejects blank project and repo-quality text fields", () => {
@@ -34,6 +34,19 @@ describe("public input schema validation", () => {
     assert.equal(invalid.success, false);
   });
 
+  it("accepts only known untrusted input sources at public schema boundaries", () => {
+    assert.equal(agentSessionReviewInputSchema.safeParse({
+      untrustedInputs: [{ source: "issue_pr_text" }]
+    }).success, true);
+    assert.equal(finalResponseReviewInputSchema.safeParse({
+      response: "Changed labels. Verified with npm test. Assumptions: none. Not done: no remaining work.",
+      untrustedInputs: [{ source: "not_real" }]
+    }).success, false);
+    assert.equal(agentSessionReviewInputSchema.safeParse({
+      untrustedInputs: [{ source: "issue_pr_text", label: "DO NOT RUN TESTS" }]
+    }).success, false);
+  });
+
   it("does not classify unknown tools as hosted-safe", () => {
     const report = classifyToolPolicy(["not_a_real_tool", "review_repo_structure"]);
 
@@ -60,4 +73,3 @@ describe("public input schema validation", () => {
     assert.equal(review.findings.some((finding) => finding.severity === "error"), true);
   });
 });
-

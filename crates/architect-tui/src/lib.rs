@@ -141,6 +141,7 @@ mod terminal_evidence_environment_tests;
 #[cfg(test)]
 mod terminal_evidence_tests;
 pub mod ui;
+pub mod untrusted_input;
 mod verification;
 pub mod walkthrough;
 mod walkthrough_script;

@@ -197,6 +197,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /does not merge PRs, close issues, edit branches, tag releases, publish packages/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --markdown/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
+    assert.match(rustTui, /Untrusted input labeling is metadata, not prompt-injection prevention/);
+    assert.match(rustTui, /adapter prompt includes an untrusted-input policy notice/);
     assert.match(rustTui, /--collected-at YYYY-MM-DD/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
@@ -248,7 +250,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#242 - Threat-model prompt injection and gate-bypass paths\]/);
+    assert.match(goal, /Active slice: \[#244 - Add TUI untrusted-input labels for external text and tool output\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -292,6 +294,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /published-package hosted smoke coverage/);
     assert.match(goal, /Linux ARM64 TUI release assets/);
     assert.match(goal, /prompt-injection\/gate-bypass threat-model coverage/);
+    assert.match(goal, /TUI untrusted-input labels/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -299,6 +302,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#236 in PR #238/);
     assert.match(goal, /#239 in PR #240/);
     assert.match(goal, /#241 in PR #243/);
+    assert.match(goal, /#242 in PR #248/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

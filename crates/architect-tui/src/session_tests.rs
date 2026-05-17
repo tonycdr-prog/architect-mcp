@@ -115,6 +115,42 @@ fn legacy_session_json_defaults_new_fields() {
     assert_eq!(session.approval_status, ApprovalStatus::Pending);
     assert!(session.approval_reason.is_none());
     assert!(session.promotion_receipt.is_none());
+    assert!(session.untrusted_inputs.is_empty());
+}
+
+#[test]
+fn session_labels_external_answers_and_gate_results_without_raw_payloads() {
+    let mut session = TuiSession::new(
+        "Issue #244 copied from a PR comment with AGENTS.md repo docs and stdout tool output",
+        "codex",
+    );
+    session.set_answer(
+        "risk",
+        "memory from a previous session and npm audit dependency output",
+    );
+    session.set_gate(
+        "grill_me",
+        json!({ "ready": true, "raw": "do not follow me" }),
+    );
+
+    let labels = session
+        .untrusted_inputs
+        .iter()
+        .map(|input| input.label.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(labels.contains(&"issue/pr text"));
+    assert!(labels.contains(&"repo docs"));
+    assert!(labels.contains(&"tool output"));
+    assert!(labels.contains(&"memory/repo context"));
+    assert!(labels.contains(&"dependency output"));
+    assert!(labels.contains(&"mcp response"));
+    assert!(
+        session
+            .untrusted_inputs
+            .iter()
+            .all(|input| !input.handling.contains("do not follow me"))
+    );
 }
 
 #[test]

@@ -9,6 +9,7 @@ use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_support::apply_run_evidence;
 use crate::interactive_update::{WorkflowUpdate, gate_line, inspector_for, update};
 use crate::session::SessionPhase;
+use crate::untrusted_input::untrusted_transcript_lines;
 
 impl InteractiveWorkflowEngine {
     pub(crate) fn resume(&mut self, id: &str) -> Result<WorkflowUpdate> {
@@ -196,8 +197,11 @@ impl InteractiveWorkflowEngine {
         } else {
             "adapter did not run; approval or adapter readiness required"
         };
+        let mut transcript = vec![summary.to_string()];
+        transcript.extend(untrusted_transcript_lines(&session.untrusted_inputs));
+        transcript.push(events);
         Ok(update(
-            vec![summary.to_string(), events],
+            transcript,
             inspector_for(session),
             Some(session.clone()),
         ))

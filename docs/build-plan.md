@@ -67,3 +67,11 @@
 - Forbidden files: exploit payloads, secrets, private repository data, cloud moderation dependencies, changes that claim MCP tools sandbox direct shell or file mutation
 - Checks: node --import tsx --test tests/workGateThreatModel.test.ts, node --import tsx --test tests/supplyChain.test.ts, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if public docs overclaim that report-only MCP tools prevent prompt injection, direct file edits, selective tool calls, or fabricated verification evidence without TUI, host, CI, or human enforcement.
+
+### 9. TUI Untrusted Input Labels
+- Inputs: issue #244, prompt-injection threat model, TUI session/transcript/review prompt flow
+- Outputs: metadata-only untrusted-input labels in TUI sessions, transcript/inspector display, adapter prompt notice, final/session review request labels, docs update, goal ledger update
+- Allowed directories: crates/architect-tui/src, crates/architect-tui/tests, src/domain, src/tools/schemas, tests, docs
+- Forbidden files: raw exploit payloads, secrets, private repository data, cloud moderation dependencies, claims that labels prevent prompt injection or sandbox models
+- Checks: cargo test -p architect-tui untrusted, cargo test --workspace --test workflows, node --import tsx --test tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts, npm run docs:build, npm run release:check, git diff --check
+- Stop after: stop if labels include raw untrusted text, if review prompts omit labels for adapter/MCP output, or if docs describe labeling as model-level prevention.

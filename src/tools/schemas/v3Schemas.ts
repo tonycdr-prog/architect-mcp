@@ -3,6 +3,11 @@ import { fileSummarySchema, stackPackCandidateSchema } from "./commonSchemas.js"
 import { harnessIntentResultSchema, preEditContractSchema } from "./harnessSchemas.js";
 import { memoryProposalSchema } from "./memorySchemas.js";
 import { boundedArray, idText, longText, mediumText, optionalText, pathText } from "./schemaLimits.js";
+import { untrustedInputSources } from "../../domain/untrustedInputs.js";
+
+const untrustedInputSchema = z.object({
+  source: z.enum(untrustedInputSources)
+}).strict();
 
 export const mcpSecurityReviewInputSchema = z.object({
   config: z.unknown(),
@@ -35,7 +40,8 @@ export const clientRecipeInputSchema = z.object({
 
 export const finalResponseReviewInputSchema = z.object({
   response: longText,
-  requiredChecks: boundedArray(mediumText, 100).optional()
+  requiredChecks: boundedArray(mediumText, 100).optional(),
+  untrustedInputs: boundedArray(untrustedInputSchema, 100).optional()
 }).strict();
 
 export const mcpConfigFileScanInputSchema = z.object({
@@ -55,7 +61,8 @@ export const agentSessionReviewInputSchema = z.object({
   }).strict()).max(100).optional(),
   finalResponse: optionalText(longText),
   memories: boundedArray(memoryProposalSchema, 200).optional(),
-  request: optionalText(mediumText)
+  request: optionalText(mediumText),
+  untrustedInputs: boundedArray(untrustedInputSchema, 100).optional()
 }).strict();
 
 export const hostedPolicyAuditInputSchema = z.object({
