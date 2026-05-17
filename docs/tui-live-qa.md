@@ -12,7 +12,7 @@ The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa
 - macOS 14.
 - Windows latest.
 
-The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds a local debug TUI binary before exercising the shim help path and workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
+The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds the TypeScript MCP server, builds a local debug TUI binary, exercises the shim help path, runs `architect-mcp-tui walkthrough --json`, and runs workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
 
 ## Post-Release Evidence
 
@@ -47,6 +47,7 @@ Use a fresh private repository or local throwaway git repo. Do not run destructi
 
 1. Confirm `architect-mcp-tui config adapters --json` reports Codex auth accurately.
 1. Run `architect-mcp-tui smoke --json` and save the report.
+1. Run `architect-mcp-tui walkthrough --json` and confirm it ends with `status=passed`, `finalApproval=promoted`, and at least one promoted file.
 2. Run a vague prompt in gate-only mode and confirm it stops at `approval_required` after `grill_me`.
 3. Run a ready prompt through `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` without `--execute`; confirm no adapter process starts.
 4. Run a safe shell adapter with `--execute` in an isolated worktree; confirm JSONL remains parseable and includes `diff_evidence`.
@@ -64,6 +65,7 @@ For each platform, record:
 - Adapter health JSON summary.
 - Commands run and pass/fail status.
 - Any terminal rendering corruption, mouse-routing issue, or JSONL parse failure.
+- Scripted walkthrough status and promoted files.
 - Whether promotion was tested and which files were promoted.
 
 ## Release Decision

@@ -38,5 +38,7 @@ mod smoke_report;
 mod smoke_types;
 pub mod ui;
 mod verification;
+pub mod walkthrough;
+mod walkthrough_script;
 
 pub const APP_NAME: &str = "architect-mcp-tui";

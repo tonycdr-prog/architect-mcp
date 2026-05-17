@@ -82,12 +82,7 @@ pub(crate) async fn review_adapter_work<W: AsyncWriteExt + Unpin>(
         options.jsonl,
         "review_repo_structure",
         "review changed file summaries before promotion",
-        json!({
-            "files": evidence.changed_files.clone(),
-            "directories": evidence.changed_directories.clone(),
-            "contract": gate_state.pre_edit.clone(),
-            "mode": "audit"
-        }),
+        repo_structure_args(gate_state, evidence),
     )
     .await?;
     let final_response = final_response_text(evidence, &gate_state.verification);
@@ -178,6 +173,37 @@ fn verification_statuses(checks: &[String]) -> Vec<Value> {
         .collect()
 }
 
+fn repo_structure_args(gate_state: &GateReviewState, evidence: &DiffEvidence) -> Value {
+    let mut args = json!({
+        "files": evidence.changed_files.clone(),
+        "directories": evidence.changed_directories.clone(),
+        "mode": "audit"
+    });
+    if let Some(contract) = architecture_contract(gate_state) {
+        args["contract"] = contract;
+    }
+    args
+}
+
+fn architecture_contract(gate_state: &GateReviewState) -> Option<Value> {
+    for candidate in [
+        gate_state.pre_edit.get("architectureContract"),
+        gate_state.pre_edit.get("contract"),
+        Some(&gate_state.pre_edit),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if candidate.get("contractVersion").is_some()
+            && candidate.get("generatedBy").is_some()
+            && candidate.get("directories").is_some()
+        {
+            return Some(candidate.clone());
+        }
+    }
+    None
+}
+
 fn final_response_text(evidence: &DiffEvidence, checks: &[String]) -> String {
     let files = evidence
         .changed_files
@@ -193,4 +219,63 @@ fn final_response_text(evidence: &DiffEvidence, checks: &[String]) -> String {
     format!(
         "Adapter produced isolated worktree changes in: {files}. {checks} Assumptions: changes are not promoted until explicit approval. Not done: verification and promotion remain pending."
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repo_structure_args_omits_pre_edit_contract_shape() {
+        let gate_state = GateReviewState {
+            pre_edit: json!({
+                "contract": {
+                    "likelyFiles": ["src/**/*"],
+                    "verificationChecks": ["npm test"]
+                }
+            }),
+            verification: vec!["npm test".to_string()],
+        };
+        let evidence = DiffEvidence {
+            changed_files: vec![json!({ "path": "src/main.ts", "lines": 1 })],
+            changed_directories: vec!["src".to_string()],
+            diff_stat: "src/main.ts | 1 +".to_string(),
+        };
+
+        let args = repo_structure_args(&gate_state, &evidence);
+
+        assert!(args.get("contract").is_none());
+        assert_eq!(args["files"][0]["path"], "src/main.ts");
+    }
+
+    #[test]
+    fn repo_structure_args_includes_architecture_contract_shape() {
+        let architecture_contract = json!({
+            "contractVersion": "1",
+            "generatedBy": { "tool": "architect-mcp", "version": "0.0.0", "generatedAt": "2026-05-17" },
+            "name": "Example",
+            "purpose": "Example purpose",
+            "stack": {},
+            "stackPacks": [],
+            "directories": [],
+            "fileRules": [],
+            "moduleBoundaries": [],
+            "testingExpectations": [],
+            "agentInstructions": [],
+            "foundationPacks": []
+        });
+        let gate_state = GateReviewState {
+            pre_edit: json!({ "architectureContract": architecture_contract }),
+            verification: vec![],
+        };
+        let evidence = DiffEvidence {
+            changed_files: vec![],
+            changed_directories: vec![],
+            diff_stat: String::new(),
+        };
+
+        let args = repo_structure_args(&gate_state, &evidence);
+
+        assert_eq!(args["contract"]["name"], "Example");
+    }
 }

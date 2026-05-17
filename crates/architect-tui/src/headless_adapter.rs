@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
 
-use crate::adapter::{AgentEvent, probe_adapter_health, run_adapter_pty};
+use crate::adapter::{AgentEvent, probe_adapter_health, run_adapter_process, run_adapter_pty};
 use crate::adapter_review::{collect_diff_evidence, review_adapter_work};
 use crate::headless::GateReviewState;
 use crate::headless::HeadlessRunOptions;
@@ -41,14 +41,16 @@ pub(crate) async fn run_ready_adapter<W: AsyncWriteExt + Unpin>(
         return Ok(false);
     };
     adapter.working_directory = Some(workspace.display().to_string());
-    let events = run_adapter_pty(
-        &adapter,
-        crate::adapter::PtyRunOptions {
-            adapter_name: options.adapter.clone(),
-            prompt: prompt.to_string(),
-            timeout: Duration::from_secs(orchestrator.config.agents.default_timeout_seconds),
-        },
-    )
+    let run_options = crate::adapter::PtyRunOptions {
+        adapter_name: options.adapter.clone(),
+        prompt: prompt.to_string(),
+        timeout: Duration::from_secs(orchestrator.config.agents.default_timeout_seconds),
+    };
+    let events = if adapter.pty {
+        run_adapter_pty(&adapter, run_options)
+    } else {
+        run_adapter_process(&adapter, run_options)
+    }
     .unwrap_or_else(|error| {
         vec![AgentEvent::Crashed {
             message: error.to_string(),

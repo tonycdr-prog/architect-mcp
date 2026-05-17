@@ -389,6 +389,84 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
     );
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn interactive_failed_adapter_run_blocks_normal_promotion_approval() {
+    let Some((mut orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    init_git_repo(_temp.path());
+    let mut shell = failing_shell_writer("docs/failed-run.md", "partial work\\n", 2);
+    shell.available = Some(true);
+    orchestrator
+        .config_mut()
+        .adapters
+        .insert("shell".to_string(), shell);
+    orchestrator.config_mut().agents.default_adapter = "shell".to_string();
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app ready app with users flows stack risks verification")
+        .await
+        .expect("new app");
+    engine.apply_input("grill").await.expect("grill");
+    engine.apply_input("contract").await.expect("contract");
+    engine.apply_input("review plan").await.expect("plan");
+    engine.apply_input("review files").await.expect("files");
+    engine
+        .apply_input("approve run isolated adapter")
+        .await
+        .expect("approve execution");
+    let update = engine
+        .apply_input("run adapter")
+        .await
+        .expect("run adapter");
+    let session = update.session.expect("session");
+    assert_eq!(
+        session.adapter_run_issues,
+        vec!["adapter exited with code 2"]
+    );
+
+    engine
+        .apply_input("record verification npm test=passed")
+        .await
+        .expect("verification");
+    engine
+        .apply_input("final review Changed files: docs/failed-run.md. Verification: npm test passed. Assumptions: adapter exited non-zero. Not done: normal promotion blocked.")
+        .await
+        .expect("final review");
+    engine
+        .apply_input("session review")
+        .await
+        .expect("session review");
+    let blocked = engine
+        .apply_input("approve promote reviewed diff")
+        .await
+        .expect_err("adapter issue blocks approval");
+    assert!(
+        blocked
+            .to_string()
+            .contains("adapter run has blocking issues")
+    );
+    let status = engine
+        .apply_input("promotion status")
+        .await
+        .expect("promotion status")
+        .transcript
+        .join("\n");
+    assert!(status.contains("adapter run issue: adapter exited with code 2"));
+
+    engine
+        .apply_input("override maintainer inspected non-zero adapter output")
+        .await
+        .expect("override");
+    let update = engine.apply_input("promote").await.expect("promote");
+    assert_eq!(
+        update.session.expect("session").approval_status,
+        ApprovalStatus::Promoted
+    );
+}
+
 #[tokio::test]
 async fn interactive_flow_blocks_until_grill_is_ready_and_shows_blockers() {
     let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
@@ -654,6 +732,21 @@ fn shell_writer(path: &str, content: &str) -> AdapterConfig {
             "-c".to_string(),
             format!(
                 "mkdir -p \"$(dirname {path})\" && printf '{}' > {path}",
+                content.replace('\'', "'\\''")
+            ),
+        ],
+        ..AdapterConfig::default()
+    }
+}
+
+#[cfg(unix)]
+fn failing_shell_writer(path: &str, content: &str, exit_code: i32) -> AdapterConfig {
+    AdapterConfig {
+        command: "sh".to_string(),
+        args: vec![
+            "-c".to_string(),
+            format!(
+                "mkdir -p \"$(dirname {path})\" && printf '{}' > {path}; exit {exit_code}",
                 content.replace('\'', "'\\''")
             ),
         ],

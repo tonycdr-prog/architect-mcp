@@ -88,14 +88,24 @@ fn apply_agent_event(session: &mut TuiSession, event: &Value) {
         return;
     };
     match agent_event.get("type").and_then(Value::as_str) {
-        Some("crashed" | "timed_out" | "cancelled") => session.adapter_crashed = true,
+        Some("crashed") => session.record_adapter_run_issue(
+            agent_event
+                .get("message")
+                .and_then(Value::as_str)
+                .map(|message| format!("adapter crashed: {message}"))
+                .unwrap_or_else(|| "adapter crashed".to_string()),
+        ),
+        Some("timed_out") => session.record_adapter_run_issue("adapter timed out"),
+        Some("cancelled") => session.record_adapter_run_issue("adapter cancelled"),
         Some("completed") => {
-            if agent_event
-                .get("exit_code")
-                .is_some_and(|code| !matches!(code.as_i64(), Some(0)))
+            if let Some(exit_code) = agent_event.get("exit_code").and_then(Value::as_i64)
+                && exit_code != 0
             {
-                session.adapter_crashed = true;
+                session.record_adapter_run_issue(format!("adapter exited with code {exit_code}"));
             }
+        }
+        Some("output") if agent_event.get("truncated").and_then(Value::as_bool) == Some(true) => {
+            session.record_adapter_run_issue("adapter output truncated")
         }
         _ => {}
     }
@@ -113,5 +123,26 @@ mod tests {
             r#"{"type":"agent_event","event":{"type":"crashed","message":"boom"}}"#,
         );
         assert!(session.adapter_crashed);
+        assert_eq!(session.adapter_run_issues, vec!["adapter crashed: boom"]);
+    }
+
+    #[test]
+    fn run_evidence_records_timeout_exit_and_truncation_issues() {
+        let mut session = TuiSession::new("build", "shell");
+        apply_run_evidence(
+            &mut session,
+            r#"{"type":"agent_event","event":{"type":"timed_out"}}
+{"type":"agent_event","event":{"type":"completed","exit_code":2}}
+{"type":"agent_event","event":{"type":"output","stream":"pty","text":"...","truncated":true}}"#,
+        );
+
+        assert_eq!(
+            session.adapter_run_issues,
+            vec![
+                "adapter timed out",
+                "adapter exited with code 2",
+                "adapter output truncated"
+            ]
+        );
     }
 }

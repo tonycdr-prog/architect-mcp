@@ -65,6 +65,8 @@ pub struct TuiSession {
     #[serde(default)]
     pub adapter_crashed: bool,
     #[serde(default)]
+    pub adapter_run_issues: Vec<String>,
+    #[serde(default)]
     pub arena_candidates: Vec<ArenaCandidateRecord>,
     #[serde(default = "default_approval_status")]
     pub approval_status: ApprovalStatus,
@@ -93,6 +95,7 @@ impl TuiSession {
             execution_approved: false,
             execution_approval_reason: None,
             adapter_crashed: false,
+            adapter_run_issues: Vec::new(),
             arena_candidates: Vec::new(),
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
@@ -143,6 +146,19 @@ impl TuiSession {
     pub fn clear_execution_approval(&mut self) {
         self.execution_approved = false;
         self.execution_approval_reason = None;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn record_adapter_run_issue(&mut self, issue: impl Into<String>) {
+        let issue = issue.into();
+        if !self
+            .adapter_run_issues
+            .iter()
+            .any(|existing| existing == &issue)
+        {
+            self.adapter_run_issues.push(issue);
+        }
+        self.adapter_crashed = true;
         self.updated_at = unix_timestamp();
     }
 

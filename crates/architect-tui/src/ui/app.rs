@@ -53,6 +53,9 @@ impl PanelLayout {
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(8), Constraint::Length(3)])
             .split(area);
+        if area.width < 112 {
+            return Self::from_narrow_area(root[0], root[1]);
+        }
         let columns = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
@@ -66,6 +69,29 @@ impl PanelLayout {
             transcript: columns[1],
             inspector: columns[2],
             command: root[1],
+        }
+    }
+
+    fn from_narrow_area(body: Rect, command: Rect) -> Self {
+        let inspector_height = if body.height >= 18 {
+            7
+        } else {
+            body.height.saturating_div(3).clamp(3, 6)
+        };
+        let vertical = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(6), Constraint::Length(inspector_height)])
+            .split(body);
+        let session_width = if vertical[0].width >= 72 { 24 } else { 18 };
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Length(session_width), Constraint::Min(20)])
+            .split(vertical[0]);
+        Self {
+            sessions: columns[0],
+            transcript: columns[1],
+            inspector: vertical[1],
+            command,
         }
     }
 

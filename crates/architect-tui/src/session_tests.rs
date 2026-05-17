@@ -83,6 +83,7 @@ fn legacy_session_json_defaults_new_fields() {
     assert!(session.execution_approval_reason.is_none());
     assert!(session.required_verification.is_empty());
     assert!(session.final_response.is_none());
+    assert!(session.adapter_run_issues.is_empty());
     assert_eq!(session.approval_status, ApprovalStatus::Pending);
     assert!(session.approval_reason.is_none());
 }

@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result};
+use serde_json::Value;
 
 use crate::session::{ApprovalStatus, SessionPhase, TuiSession};
 use crate::verification::ensure_verification_passed;
@@ -103,6 +104,15 @@ pub(crate) fn promotion_readiness(session: &TuiSession, workspace: &Path) -> Pro
     }
 
     if !override_recorded {
+        for issue in &session.adapter_run_issues {
+            blockers.push(format!("adapter run issue: {issue}"));
+        }
+        if !session.adapter_run_issues.is_empty() {
+            push_action(
+                &mut next_actions,
+                "rerun adapter successfully or record an explicit override",
+            );
+        }
         if let Err(error) = ensure_verification_passed(session) {
             blockers.push(error.to_string());
             push_action(
@@ -155,8 +165,7 @@ fn review_gate_blockers(
     for gate in REQUIRED_REVIEW_GATES {
         match session.gates.get(*gate) {
             Some(review) => {
-                let text = review.to_string().to_lowercase();
-                if text.contains("fail") || text.contains("blocker") {
+                if review_blocks_promotion(review) {
                     blockers.push(format!("review gate blocking: {gate}"));
                     push_action(next_actions, review_gate_next_action(gate));
                 }
@@ -167,6 +176,42 @@ fn review_gate_blockers(
             }
         }
     }
+}
+
+fn review_blocks_promotion(review: &Value) -> bool {
+    review.get("valid").and_then(Value::as_bool) == Some(false)
+        || status_blocks(review.get("status"))
+        || status_blocks(review.pointer("/report/gate/status"))
+        || review
+            .pointer("/summary/errors")
+            .and_then(Value::as_u64)
+            .is_some_and(|errors| errors > 0)
+        || review
+            .get("violations")
+            .and_then(Value::as_array)
+            .is_some_and(|violations| violations.iter().any(violation_blocks))
+        || review
+            .get("sections")
+            .and_then(Value::as_array)
+            .is_some_and(|sections| {
+                sections
+                    .iter()
+                    .any(|section| status_blocks(section.get("status")))
+            })
+}
+
+fn status_blocks(status: Option<&Value>) -> bool {
+    matches!(
+        status.and_then(Value::as_str),
+        Some("fail" | "failed" | "blocked" | "blocker")
+    )
+}
+
+fn violation_blocks(violation: &Value) -> bool {
+    matches!(
+        violation.get("severity").and_then(Value::as_str),
+        Some("error")
+    ) || status_blocks(violation.get("status"))
 }
 
 fn review_gate_next_action(gate: &str) -> &'static str {

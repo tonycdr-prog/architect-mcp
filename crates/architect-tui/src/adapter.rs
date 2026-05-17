@@ -7,7 +7,7 @@ pub use crate::adapter_health::{
     AdapterHealth, AuthStatus, adapter_healths, codex_auth_status_from_output, print_adapter_table,
     probe_adapter_health,
 };
-pub use crate::adapter_pty::{PtyRunOptions, run_adapter_pty};
+pub use crate::adapter_pty::{PtyRunOptions, run_adapter_process, run_adapter_pty};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]

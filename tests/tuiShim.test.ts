@@ -53,13 +53,13 @@ describe("architect-mcp-tui npm shim", () => {
     chmodSync(current, 0o755);
 
     const resolved = shim.findLocalBinary([stale, current], {
-      requiredHelpCommands: ["smoke"],
+      requiredHelpCommands: ["smoke", "walkthrough"],
       runHelp: (binaryPath) => ({
         ok: true,
         output:
           binaryPath === stale
-            ? "Commands:\n  run\n  config\n"
-            : "Commands:\n  run\n  config\n  smoke\n",
+            ? "Commands:\n  run\n  config\n  smoke\n"
+            : "Commands:\n  run\n  config\n  smoke\n  walkthrough\n",
       }),
     });
 

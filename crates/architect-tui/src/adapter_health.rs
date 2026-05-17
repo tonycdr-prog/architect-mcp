@@ -174,6 +174,12 @@ fn probe_adapter_auth(name: &str, config: &AdapterConfig) -> (AuthStatus, Option
     if is_shell_adapter(name, &config.command) {
         return (AuthStatus::NotApplicable, Some("shell adapter".to_string()));
     }
+    if is_fixture_adapter(name) {
+        return (
+            AuthStatus::NotApplicable,
+            Some("fixture adapter".to_string()),
+        );
+    }
     if is_codex_adapter(name, &config.command) {
         return probe_codex_auth(&config.command);
     }
@@ -191,6 +197,10 @@ fn is_shell_adapter(name: &str, command: &str) -> bool {
                 "sh" | "bash" | "zsh" | "fish" | "pwsh" | "powershell" | "cmd" | "cmd.exe"
             )
         })
+}
+
+fn is_fixture_adapter(name: &str) -> bool {
+    name.eq_ignore_ascii_case("walkthrough")
 }
 
 fn is_codex_adapter(name: &str, command: &str) -> bool {

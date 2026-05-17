@@ -37,8 +37,19 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
         format!("execution approved: {}", session.execution_approved),
         format!("approval: {:?}", session.approval_status),
         format!("changed files: {}", session.changed_files.len()),
+        format!("adapter issues: {}", session.adapter_run_issues.len()),
         format!("arena candidates: {}", session.arena_candidates.len()),
     ];
+    if !session.adapter_run_issues.is_empty() {
+        lines.push("adapter issue detail:".to_string());
+        lines.extend(
+            session
+                .adapter_run_issues
+                .iter()
+                .take(3)
+                .map(|issue| format!("  {issue}")),
+        );
+    }
     if let Some(diff_stat) = &session.diff_stat {
         lines.push("diff stat:".to_string());
         lines.extend(diff_stat.lines().take(4).map(|line| format!("  {line}")));

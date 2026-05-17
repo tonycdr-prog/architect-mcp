@@ -26,6 +26,11 @@ impl InteractiveWorkflowEngine {
             }
             (SessionPhase::Complete, true) => {
                 ensure_verification_passed(self.active()?)?;
+                if !self.active()?.adapter_run_issues.is_empty() {
+                    anyhow::bail!(
+                        "adapter run has blocking issues; rerun adapter successfully or use override <reason>"
+                    );
+                }
                 let session = self.update_active(|session| session.approve(reason))?;
                 Ok(update(
                     vec![format!("changes approved for promotion: {reason}")],
