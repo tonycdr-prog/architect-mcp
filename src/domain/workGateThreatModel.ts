@@ -170,8 +170,8 @@ export const WORK_GATE_BYPASS_CASES: WorkGateBypassCase[] = [
       "Run no MCP work-gate calls before the edit.",
       "Confirm that only git diff, CI, human review, or a later audit can catch the missing gate evidence."
     ],
-    currentControl: "This is outside MCP enforcement. The TUI enforces its own managed flow, and CI/release gates cover configured checks.",
-    followUp: "Add a gate-completeness audit that detects missing work-gate evidence for non-TUI workflows.",
+    currentControl: "This is outside MCP enforcement. The TUI enforces its own managed flow, CI/release gates cover configured checks, and direct clients can attach work-gate completeness audit output.",
+    followUp: "Keep direct-mutation evidence explicit in PRs; the audit remains detection-only and does not sandbox direct edits.",
     publicSafe: true
   },
   {
@@ -185,8 +185,8 @@ export const WORK_GATE_BYPASS_CASES: WorkGateBypassCase[] = [
       "Run wording-only final-response review.",
       "Confirm wording review cannot prove execution without structured verification evidence."
     ],
-    currentControl: "TUI promotion requires recorded verification state, and CI/release checks can produce independent evidence.",
-    followUp: "Add command receipt attachment and freshness checks to final/session review inputs.",
+    currentControl: "TUI promotion requires recorded verification state, CI/release checks can produce independent evidence, and final/session review can inspect structured command receipts.",
+    followUp: "Keep receipt summaries public-safe; command receipts improve evidence quality but do not replace CI, terminal QA, or human review.",
     publicSafe: true
   },
   {
@@ -200,8 +200,8 @@ export const WORK_GATE_BYPASS_CASES: WorkGateBypassCase[] = [
       "Do not call the preceding or following work-gate tools.",
       "Check whether downstream reporting distinguishes a single review result from a complete work-gate run."
     ],
-    currentControl: "TUI state tracks its own gate sequence; standalone MCP clients must record sequence evidence themselves.",
-    followUp: "Expose a sequence receipt or session audit helper for direct MCP clients.",
+    currentControl: "TUI state tracks its own gate sequence; standalone MCP clients can attach audit and sequence receipt output as public-safe evidence.",
+    followUp: "Keep sequence receipts detection-only and do not claim they force direct clients to call tools.",
     publicSafe: true
   }
 ];

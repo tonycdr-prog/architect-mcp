@@ -11,8 +11,9 @@ import { classifyToolPolicy } from "../domain/toolPolicy.js";
 import type { StackPackCandidate } from "../domain/types.js";
 import { runV3EvalHarness } from "../domain/v3EvalHarness.js";
 import { auditWorkGateCompleteness } from "../domain/workGateCompleteness.js";
+import { createWorkGateSequenceReceipt } from "../domain/workGateSequenceReceipt.js";
 import { safeJsonResponse } from "./responses.js";
-import { agentSessionReviewInputSchema, artifactQualityInputSchema, clientRecipeInputSchema, finalResponseReviewInputSchema, genericObjectOutputSchema, hostedPolicyAuditInputSchema, mcpConfigFileScanInputSchema, mcpSecurityReviewInputSchema, stackPackPromotionFilesSchema, v3EvalHarnessInputSchema, workGateCompletenessInputSchema } from "./schemas.js";
+import { agentSessionReviewInputSchema, artifactQualityInputSchema, clientRecipeInputSchema, finalResponseReviewInputSchema, genericObjectOutputSchema, hostedPolicyAuditInputSchema, mcpConfigFileScanInputSchema, mcpSecurityReviewInputSchema, stackPackPromotionFilesSchema, v3EvalHarnessInputSchema, workGateCompletenessInputSchema, workGateSequenceReceiptInputSchema } from "./schemas.js";
 import { registeredArchitectureToolNames, type ToolSurface } from "./toolRegistry.js";
 
 export function registerV3Tools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean; toolSurface?: ToolSurface } = {}): void {
@@ -135,6 +136,19 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       outputSchema: genericObjectOutputSchema
     },
     async ({ request }) => safeJsonResponse(() => auditWorkGateCompleteness(request ?? {}))
+  );
+
+  server.registerTool(
+    "create_work_gate_sequence_receipt",
+    {
+      title: "Create Work Gate Sequence Receipt",
+      description: "Create a public-safe direct-client receipt for ordered work-gate calls, confirmed inputs, and review evidence.",
+      inputSchema: {
+        request: workGateSequenceReceiptInputSchema.optional()
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ request }) => safeJsonResponse(() => createWorkGateSequenceReceipt(request ?? {}))
   );
 
   server.registerTool(
