@@ -10,8 +10,9 @@ import { promoteStackPackCandidateToFiles } from "../domain/stackPackWorkflow.js
 import { classifyToolPolicy } from "../domain/toolPolicy.js";
 import type { StackPackCandidate } from "../domain/types.js";
 import { runV3EvalHarness } from "../domain/v3EvalHarness.js";
+import { auditWorkGateCompleteness } from "../domain/workGateCompleteness.js";
 import { safeJsonResponse } from "./responses.js";
-import { agentSessionReviewInputSchema, artifactQualityInputSchema, clientRecipeInputSchema, finalResponseReviewInputSchema, genericObjectOutputSchema, hostedPolicyAuditInputSchema, mcpConfigFileScanInputSchema, mcpSecurityReviewInputSchema, stackPackPromotionFilesSchema, v3EvalHarnessInputSchema } from "./schemas.js";
+import { agentSessionReviewInputSchema, artifactQualityInputSchema, clientRecipeInputSchema, finalResponseReviewInputSchema, genericObjectOutputSchema, hostedPolicyAuditInputSchema, mcpConfigFileScanInputSchema, mcpSecurityReviewInputSchema, stackPackPromotionFilesSchema, v3EvalHarnessInputSchema, workGateCompletenessInputSchema } from "./schemas.js";
 import { registeredArchitectureToolNames, type ToolSurface } from "./toolRegistry.js";
 
 export function registerV3Tools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean; toolSurface?: ToolSurface } = {}): void {
@@ -121,6 +122,19 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       request: request.request,
       untrustedInputs: request.untrustedInputs
     }))
+  );
+
+  server.registerTool(
+    "audit_work_gate_completeness",
+    {
+      title: "Audit Work Gate Completeness",
+      description: "Read-only report on whether direct MCP clients supplied complete, fresh, ordered work-gate evidence.",
+      inputSchema: {
+        request: workGateCompletenessInputSchema.optional()
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ request }) => safeJsonResponse(() => auditWorkGateCompleteness(request ?? {}))
   );
 
   server.registerTool(

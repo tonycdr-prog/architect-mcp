@@ -94,6 +94,7 @@ Ambiguity classification, implementation intent, contract lifecycle review, and 
 | `classify_ambiguity_risk` | Classify Ambiguity Risk. |
 | `record_assumption` | Record Assumption. |
 | `load_triggered_stack_guidance` | Load Triggered Stack Guidance. |
+| `audit_work_gate_completeness` | Report whether direct MCP workflows supplied complete, fresh, ordered work-gate evidence. |
 | `explain_review_findings` | Explain Review Findings. |
 | `simulate_policy_gate` | Simulate Policy Gate. |
 | `review_contract_lifecycle` | Review Contract Lifecycle. |
