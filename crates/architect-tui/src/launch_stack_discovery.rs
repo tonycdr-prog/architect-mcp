@@ -55,7 +55,7 @@ fn discover_stack_from_pr(
         "pr".to_string(),
         "list".to_string(),
         "--state".to_string(),
-        "open".to_string(),
+        "all".to_string(),
         "--limit".to_string(),
         "200".to_string(),
         "--json".to_string(),
@@ -77,11 +77,13 @@ pub(crate) fn discover_stack_from_records(
     records: &[LaunchStackPrRecord],
 ) -> Result<LaunchStackDiscovery, String> {
     let mut by_number: BTreeMap<u64, &LaunchStackPrRecord> = BTreeMap::new();
-    let mut by_head: BTreeMap<&str, &LaunchStackPrRecord> = BTreeMap::new();
+    let mut by_head_open: BTreeMap<&str, &LaunchStackPrRecord> = BTreeMap::new();
+    let mut by_head_any: BTreeMap<&str, &LaunchStackPrRecord> = BTreeMap::new();
     for record in records {
+        by_head_any.insert(record.head_ref_name.as_str(), record);
         if record.state == "OPEN" {
             by_number.insert(record.pr.number, record);
-            by_head.insert(record.head_ref_name.as_str(), record);
+            by_head_open.insert(record.head_ref_name.as_str(), record);
         }
     }
 
@@ -102,7 +104,13 @@ pub(crate) fn discover_stack_from_records(
         }
         pull_requests.push(current.pr.number);
         let base = current.base_ref_name.clone();
-        let Some(next) = by_head.get(base.as_str()).copied() else {
+        let Some(next) = by_head_open.get(base.as_str()).copied() else {
+            if by_head_any.contains_key(base.as_str()) {
+                return Err(format!(
+                    "stack discovery: branch {} matches a PR head that is not open",
+                    public_text(&base, 120)
+                ));
+            }
             pull_requests.reverse();
             return Ok(LaunchStackDiscovery {
                 from_pr: number,

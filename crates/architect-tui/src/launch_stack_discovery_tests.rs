@@ -105,3 +105,37 @@ fn stack_discovery_detects_cycles() {
 
     assert!(error.contains("cycle detected"));
 }
+
+#[test]
+fn stack_discovery_fails_closed_when_base_branch_targets_non_open_pr() {
+    let records = vec![
+        pr_record_from_value(&json!({
+            "number": 190,
+            "title": "combined readiness",
+            "url": "https://github.com/example/repo/pull/190",
+            "headRefName": "codex/launch-readiness-report",
+            "baseRefName": "codex/launch-stack-waivers",
+            "state": "OPEN",
+            "isDraft": false,
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": []
+        })),
+        pr_record_from_value(&json!({
+            "number": 188,
+            "title": "waivers",
+            "url": "https://github.com/example/repo/pull/188",
+            "headRefName": "codex/launch-stack-waivers",
+            "baseRefName": "main",
+            "state": "CLOSED",
+            "isDraft": false,
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": []
+        })),
+    ];
+
+    let error =
+        discover_stack_from_records(190, &records).expect_err("closed linked PR should fail");
+
+    assert!(error.contains("not open"));
+    assert!(error.contains("codex/launch-stack-waivers"));
+}
