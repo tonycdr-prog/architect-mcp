@@ -1,5 +1,6 @@
 use serde_json::json;
 
+use crate::promotion_receipt::build_promotion_receipt;
 use crate::session::{ApprovalStatus, SessionPhase, SessionStore, TuiSession};
 
 #[test]
@@ -22,8 +23,35 @@ fn approval_state_controls_promotion_readiness() {
     assert!(!session.can_promote());
     session.approve("review gates passed");
     assert!(session.can_promote());
-    session.mark_promoted();
+    let receipt = build_promotion_receipt(&session, &[], 123);
+    session.mark_promoted(receipt);
     assert_eq!(session.approval_status, ApprovalStatus::Promoted);
+    assert_eq!(
+        session.promotion_receipt.expect("receipt").decision,
+        "approved"
+    );
+}
+
+#[test]
+fn approval_state_changes_clear_stale_promotion_receipts() {
+    let mut session = TuiSession::new("build a recipe app", "codex");
+    session.approve("review gates passed");
+    let receipt = build_promotion_receipt(&session, &[], 123);
+
+    session.mark_promoted(receipt.clone());
+    session.approve("reopened approval");
+    assert_eq!(session.approval_status, ApprovalStatus::Approved);
+    assert!(session.promotion_receipt.is_none());
+
+    session.mark_promoted(receipt.clone());
+    session.reject("reopened rejection");
+    assert_eq!(session.approval_status, ApprovalStatus::Rejected);
+    assert!(session.promotion_receipt.is_none());
+
+    session.mark_promoted(receipt);
+    session.override_approval("reopened override with reason");
+    assert_eq!(session.approval_status, ApprovalStatus::Override);
+    assert!(session.promotion_receipt.is_none());
 }
 
 #[test]
@@ -86,6 +114,7 @@ fn legacy_session_json_defaults_new_fields() {
     assert!(session.adapter_run_issues.is_empty());
     assert_eq!(session.approval_status, ApprovalStatus::Pending);
     assert!(session.approval_reason.is_none());
+    assert!(session.promotion_receipt.is_none());
 }
 
 #[test]
@@ -101,6 +130,8 @@ fn clear_adapter_run_evidence_resets_stale_promotion_state() {
     session.set_final_response("old final response");
     session.record_adapter_run_issue("adapter exited with code 2");
     session.approve("old approval");
+    let receipt = build_promotion_receipt(&session, &[], 123);
+    session.mark_promoted(receipt);
     session.set_gate("grill_me", json!({ "ready": true }));
     session.set_gate("review_build_plan", json!({ "ok": true }));
     session.set_gate(
@@ -122,6 +153,7 @@ fn clear_adapter_run_evidence_resets_stale_promotion_state() {
     assert!(session.adapter_run_issues.is_empty());
     assert_eq!(session.approval_status, ApprovalStatus::Pending);
     assert!(session.approval_reason.is_none());
+    assert!(session.promotion_receipt.is_none());
     assert!(session.gates.contains_key("grill_me"));
     assert!(session.gates.contains_key("review_build_plan"));
     assert!(

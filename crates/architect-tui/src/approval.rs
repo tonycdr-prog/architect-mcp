@@ -5,15 +5,12 @@ use anyhow::{Context, Result};
 use serde_json::Value;
 
 use crate::approval_reason::valid_promotion_override_recorded;
+use crate::promotion_receipt::{PROMOTION_REVIEW_GATES, build_promotion_receipt};
+use crate::session::unix_timestamp;
 use crate::session::{ApprovalStatus, SessionPhase, TuiSession};
 use crate::verification::ensure_verification_passed;
 
-pub(crate) const REQUIRED_REVIEW_GATES: &[&str] = &[
-    "review_implementation_against_contract",
-    "review_repo_structure",
-    "review_agent_final_response",
-    "review_agent_session",
-];
+pub(crate) const REQUIRED_REVIEW_GATES: &[&str] = PROMOTION_REVIEW_GATES;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PromotionReadiness {
@@ -52,7 +49,8 @@ pub fn promote_approved_changes(
         }
         promoted.push(relative);
     }
-    session.mark_promoted();
+    let receipt = build_promotion_receipt(session, &promoted, unix_timestamp());
+    session.mark_promoted(receipt);
     Ok(promoted)
 }
 
