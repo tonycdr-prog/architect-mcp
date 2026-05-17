@@ -6,7 +6,7 @@ use tempfile::tempdir;
 use crate::config::TuiConfig;
 use crate::governance_audit::{GovernanceAuditOptions, build_governance_audit_report};
 use crate::governance_audit_report::{GovernanceAuditStatus, GovernanceMemoryProposal};
-use crate::governance_memory::filter_memory_proposals;
+use crate::governance_memory::{filter_memory_proposals, memory_proposals};
 
 #[tokio::test]
 async fn governance_audit_reports_read_only_release_and_memory_evidence() {
@@ -81,6 +81,70 @@ fn memory_proposals_reject_all_agents_md_prohibited_categories() {
 
     assert_eq!(proposals.len(), 1, "only the safe proposal should survive");
     assert_eq!(proposals[0].text, keep);
+}
+
+#[test]
+fn memory_proposals_are_scoped_to_audited_workspace_artifacts() {
+    let temp = tempdir().expect("temp");
+    let root = temp.path();
+    fs::create_dir_all(root.join(".git")).expect("git");
+    fs::create_dir_all(root.join("docs")).expect("docs");
+    fs::write(
+        root.join(".git/config"),
+        "[remote \"origin\"]\n\turl = https://github.com/example/sample-app.git\n",
+    )
+    .expect("git config");
+    fs::write(
+        root.join("package.json"),
+        r#"{"scripts":{"release:check":"npm test"}}"#,
+    )
+    .expect("package");
+    fs::write(
+        root.join("AGENTS.md"),
+        "Use memory only for durable project context.",
+    )
+    .expect("agents");
+    fs::write(root.join("docs/architecture-contract.md"), "contract").expect("contract");
+
+    let proposals = memory_proposals(root);
+
+    assert_eq!(proposals.len(), 3);
+    assert!(
+        proposals
+            .iter()
+            .all(|proposal| proposal.scope == "example/sample-app")
+    );
+    assert!(
+        proposals
+            .iter()
+            .all(|proposal| !proposal.text.contains("architect-mcp goal"))
+    );
+    assert!(
+        proposals
+            .iter()
+            .any(|proposal| proposal.source == "package.json")
+    );
+    assert!(
+        proposals
+            .iter()
+            .any(|proposal| proposal.source == "AGENTS.md")
+    );
+    assert!(
+        proposals
+            .iter()
+            .any(|proposal| proposal.source == "docs/architecture-contract.md")
+    );
+}
+
+#[test]
+fn memory_proposals_do_not_invent_architect_mcp_context_for_unadopted_repos() {
+    let temp = tempdir().expect("temp");
+    let root = temp.path();
+    fs::write(root.join("README.md"), "external repo").expect("readme");
+
+    let proposals = memory_proposals(root);
+
+    assert!(proposals.is_empty());
 }
 
 fn proposal(text: &str) -> GovernanceMemoryProposal {

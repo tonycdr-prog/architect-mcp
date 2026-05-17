@@ -13,6 +13,8 @@
 - Drift evidence: live `review_local_workspace` in `mode=audit` when architect-mcp is available.
 - Memory safety: durable context proposals only, filtered for secrets, raw chat, customer data, transient task details, speculative guesses, and sensitive security findings.
 
+Memory proposals are evidence-driven and scoped to the audited workspace. The audit does not invent `architect-mcp` project memory when it is pointed at an unrelated repository; it emits proposals only when repo-local artifacts such as `package.json`, `AGENTS.md`, `docs/goal-ai-software-foundry.md`, or `docs/architecture-contract.md` support them.
+
 ## Local Command
 
 ```bash
@@ -60,6 +62,8 @@ The useful public fields are:
 - Categories with findings.
 - Deterministic gates, especially `npm run release:check`.
 - Smoke evidence commands.
+
+For repositories that have not adopted architect-mcp governance artifacts, a failed audit can still be useful read-only evidence. Treat missing contracts, build plans, agent instructions, release gates, or env templates as adoption findings, not as proof that the repository was mutated.
 
 ## Release Gate
 
