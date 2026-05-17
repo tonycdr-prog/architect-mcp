@@ -19,15 +19,19 @@ Memory proposals are evidence-driven and scoped to the audited workspace. The au
 
 ```bash
 architect-mcp-tui governance-audit --json
+architect-mcp-tui governance-audit --public-summary
 ```
 
 Use `--skip-mcp` only when you need static evidence without spawning architect-mcp:
 
 ```bash
 architect-mcp-tui governance-audit --json --skip-mcp
+architect-mcp-tui governance-audit --public-summary --skip-mcp
 ```
 
 The command exits non-zero when deterministic governance checks fail. MCP review unavailability or repo-structure warnings are reported as warnings so maintainers can still inspect the report.
+
+Use `governance-audit --public-summary` for issue comments, release notes, and external maintainer handoff. It keeps status, read-only state, category status, deterministic and smoke evidence names/counts, memory proposal safety counts, MCP review counters, finding counts, redacted findings, and next actions. It omits the workspace path, raw command strings, raw memory proposal text, raw MCP detail payloads, finding evidence fields, private names, local paths, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
 
 For an explicit launch readiness decision, use:
 
@@ -50,7 +54,7 @@ architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --st
 
 `launch-readiness` is the maintainer rollup when both PR-stack state and public terminal-evidence issue state matter. It reuses the same read-only GitHub CLI lookups, reports a combined decision, and keeps explicit blocker waivers distinct from real terminal evidence. `--waive-terminal-evidence ISSUE=reason` records a public maintainer decision for missing or incomplete manual terminal evidence; it does not override malformed or unsafe evidence.
 
-Use `--public-summary` when posting launch-judge or launch-readiness evidence publicly. The public summaries keep the launch decision, check or stack summaries, next actions, release-gate attempt/result where relevant, terminal-evidence source filenames or platform status, and waiver state, but omit the workspace path, full governance audit, full smoke report, full PR/check payloads, terminal-evidence freeform source text, command summaries, notes, stdout/stderr tails, cache paths, private repo names, and token-shaped values.
+Use `--public-summary` when posting governance-audit, launch-judge, or launch-readiness evidence publicly. The public summaries keep the governance or launch decision, check or stack summaries, next actions, release-gate attempt/result where relevant, terminal-evidence source filenames or platform status, and waiver state, but omit the workspace path, full governance audit, full smoke report, full PR/check payloads, raw memory proposal text, terminal-evidence freeform source text, command summaries, notes, stdout/stderr tails, cache paths, private repo names, and token-shaped values.
 
 `--terminal-evidence` is for short, public-safe Linux and Windows QA summaries, not raw output. Pass it more than once when each platform report is saved separately. The JSON schema is:
 
@@ -85,10 +89,10 @@ Do not include secrets, raw stdout or stderr, private repo names, absolute local
 `.github/workflows/governance-audit.yml` runs on manual dispatch and a weekly schedule. It builds the source TUI, runs:
 
 ```bash
-node bin/architect-mcp-tui.cjs governance-audit --json > governance-audit.json
+node bin/architect-mcp-tui.cjs governance-audit --public-summary > governance-audit-public-summary.json
 ```
 
-Then it writes a public-safe GitHub step summary with status, read-only state, MCP gate status, counts, categories with findings, deterministic gates, and smoke evidence. It does not upload the raw JSON by default.
+Then it writes a GitHub step summary from that public summary with status, read-only state, MCP gate status, counts, categories with findings, deterministic gate names, and smoke evidence names. It does not upload the raw JSON by default.
 
 ## Public-Safe Issue Evidence
 

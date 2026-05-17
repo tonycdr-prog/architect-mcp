@@ -5,6 +5,7 @@ use anyhow::Result;
 
 use crate::config::TuiConfig;
 use crate::governance_audit_mcp::run_mcp_repo_review;
+use crate::governance_audit_public_summary::build_public_summary;
 use crate::governance_audit_report::{
     GovernanceAuditReport, GovernanceAuditStatus, GovernanceFinding, GovernanceMcpReview,
     print_text_report,
@@ -18,6 +19,7 @@ use crate::governance_memory::memory_proposals;
 #[derive(Debug, Clone)]
 pub struct GovernanceAuditOptions {
     pub json: bool,
+    pub public_summary: bool,
     pub skip_mcp: bool,
     pub max_files: usize,
 }
@@ -28,7 +30,12 @@ pub async fn run_governance_audit(
     options: GovernanceAuditOptions,
 ) -> Result<()> {
     let report = build_governance_audit_report(workspace, config, &options).await;
-    if options.json {
+    if options.public_summary {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&build_public_summary(&report))?
+        );
+    } else if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
         print_text_report(&report);

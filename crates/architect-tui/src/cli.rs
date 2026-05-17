@@ -104,6 +104,8 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
         #[arg(long)]
+        public_summary: bool,
+        #[arg(long)]
         skip_mcp: bool,
         #[arg(long, default_value_t = 1000)]
         max_files: usize,

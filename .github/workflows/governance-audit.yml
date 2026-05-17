@@ -29,21 +29,21 @@ jobs:
       - name: Build source TUI
         run: npm run build && cargo build --workspace --bin architect-mcp-tui
       - name: Run governance audit
-        run: node bin/architect-mcp-tui.cjs governance-audit --json > governance-audit.json
+        run: node bin/architect-mcp-tui.cjs governance-audit --public-summary > governance-audit-public-summary.json
       - name: Summarize public-safe evidence
         run: |
           node <<'NODE'
           const fs = require("node:fs");
-          const report = JSON.parse(fs.readFileSync("governance-audit.json", "utf8"));
+          const report = JSON.parse(fs.readFileSync("governance-audit-public-summary.json", "utf8"));
           const categories = report.categories
             .filter((category) => category.summary !== "no findings")
             .map((category) => `- ${category.name}: ${category.status} (${category.summary})`)
             .join("\n") || "- none";
-          const deterministic = report.deterministicGates
-            .map((gate) => `- ${gate.command}${gate.requiredForRelease ? " (release gate)" : ""}`)
+          const deterministic = report.deterministicGates.names
+            .map((name) => `- ${name}`)
             .join("\n");
-          const smoke = report.smokeEvidence
-            .map((gate) => `- ${gate.command}`)
+          const smoke = report.smokeEvidence.names
+            .map((name) => `- ${name}`)
             .join("\n");
           const mcp = report.mcpReview || {};
           const summary = [
@@ -53,8 +53,11 @@ jobs:
             `Read only: ${report.readOnly}`,
             `MCP gate: ${mcp.gateStatus || "unknown"}`,
             `Files reviewed: ${mcp.filesReviewed ?? "unknown"}`,
-            `Errors: ${mcp.errors ?? "unknown"}`,
-            `Warnings: ${mcp.warnings ?? "unknown"}`,
+            `Finding errors: ${report.findingCounts.errors}`,
+            `Finding warnings: ${report.findingCounts.warnings}`,
+            `MCP errors: ${mcp.errors ?? "unknown"}`,
+            `MCP warnings: ${mcp.warnings ?? "unknown"}`,
+            `Memory proposals: ${report.memory.proposalCount} (${report.memory.safeToStoreCount} safe)`,
             "",
             "## Categories With Findings",
             categories,

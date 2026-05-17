@@ -157,6 +157,7 @@ async fn main() -> Result<()> {
         }
         Some(Commands::GovernanceAudit {
             json,
+            public_summary,
             skip_mcp,
             max_files,
         }) => {
@@ -165,6 +166,7 @@ async fn main() -> Result<()> {
                 config,
                 GovernanceAuditOptions {
                     json,
+                    public_summary,
                     skip_mcp,
                     max_files,
                 },

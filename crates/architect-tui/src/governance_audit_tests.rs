@@ -19,6 +19,7 @@ async fn governance_audit_reports_read_only_release_and_memory_evidence() {
         TuiConfig::default(),
         &GovernanceAuditOptions {
             json: true,
+            public_summary: false,
             skip_mcp: true,
             max_files: 100,
         },

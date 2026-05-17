@@ -28,6 +28,9 @@ mod foundry_stage_content;
 mod gate_calls;
 pub mod governance_audit;
 mod governance_audit_mcp;
+mod governance_audit_public_summary;
+#[cfg(test)]
+mod governance_audit_public_summary_tests;
 mod governance_audit_report;
 mod governance_audit_support;
 #[cfg(test)]
