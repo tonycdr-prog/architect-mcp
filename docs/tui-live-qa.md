@@ -2,7 +2,7 @@
 
 Use this page for release-candidate validation that cannot be proven by unit tests alone. Do not publish a TUI release until the clean release gate passes and the platform smoke matrix is green or explicitly waived.
 
-For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
+For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). Terminal QA reports should include public-safe launch judge evidence JSON that can be consumed with `architect-mcp-tui launch-judge --terminal-evidence`; they should not include raw smoke JSON, raw stdout/stderr logs, absolute local paths, cache paths, private repo names, or tokens. For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
 
 ## Automated Matrix
 
@@ -28,6 +28,24 @@ Latest recorded release: `v0.2.1`, published on 2026-05-16.
 | Manual Windows terminal smoke | Windows Terminal or PowerShell | Pending unless explicitly waived | Hosted workflow evidence is not a substitute for a real terminal smoke |
 
 Do not convert pending manual rows to passed status without platform, command, version, and failure-note evidence.
+
+When Linux or Windows manual evidence is posted publicly, normalize it into the launch judge terminal evidence schema:
+
+```json
+{
+  "schemaVersion": 1,
+  "reports": [
+    {
+      "platform": "linux",
+      "status": "passed",
+      "source": "issue #136 public-safe terminal QA report",
+      "commandSummary": "architect-mcp-tui --help, config adapters --json, and gate-only run --jsonl passed",
+      "collectedAt": "2026-05-17",
+      "notes": "summary only, no raw logs"
+    }
+  ]
+}
+```
 
 ## Manual Matrix
 

@@ -22,6 +22,8 @@ It produces a secret-safe report with:
 
 Missing Codex login is a warning, not an install failure. A smoke failure usually means help output, binary launch, or live MCP gate execution failed.
 
+Keep the smoke JSON locally for troubleshooting. Do not paste the raw smoke JSON into public issues; it can include local binary/cache paths or other details that are useful for debugging but not safe public evidence.
+
 ## Scripted Walkthrough
 
 Run the guarded command-palette flow in a throwaway git workspace:
@@ -51,7 +53,7 @@ npm install -g @tonycdr-prog/architect-mcp
 architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
 ```
 
-If the command exits non-zero, keep `architect-mcp-tui-smoke.json` if it was written and paste the terminal error into the issue.
+If the command exits non-zero, keep `architect-mcp-tui-smoke.json` locally if it was written and paste only the shortest useful terminal error into the issue.
 
 Manual fallback commands:
 
@@ -133,16 +135,41 @@ Do not run adapter execution in a public repository unless you are intentionally
 
 ## Report Results
 
-For successful terminal QA, open a Terminal QA report and paste:
+For successful terminal QA, open a Terminal QA report and paste a public-safe launch judge evidence summary. Maintainers should be able to save the JSON as `terminal-evidence.json` and run:
+
+```bash
+architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
+```
+
+Use this evidence shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "reports": [
+    {
+      "platform": "linux",
+      "status": "passed",
+      "source": "issue #136 public-safe terminal QA report",
+      "commandSummary": "architect-mcp-tui --help, config adapters --json, and gate-only run --jsonl passed",
+      "collectedAt": "2026-05-17",
+      "notes": "interactive launch opened cleanly; keyboard, mouse scroll, resize, and exit behaved as expected"
+    }
+  ]
+}
+```
+
+Use `platform` as `linux` or `windows`, and `status` as `passed`, `passed_with_warnings`, or `failed`. For each platform, also include:
 
 - OS and CPU architecture.
 - Node and npm versions.
 - Package version tested.
 - Commands run.
-- `architect-mcp-tui-smoke.json`.
-- `architect-mcp-tui-walkthrough.json` when run.
-- `architect-mcp-tui-promotion-smoke.json` when Codex promotion smoke is run.
+- Adapter health summary.
+- Whether `architect-mcp-tui smoke --json`, `walkthrough --json`, or `promotion-smoke --json` was run.
 - Any terminal rendering, resize, mouse, cache, checksum, or JSONL issue.
+
+Keep raw `architect-mcp-tui-smoke.json`, `architect-mcp-tui-walkthrough.json`, and `architect-mcp-tui-promotion-smoke.json` files local unless a maintainer asks for a redacted excerpt. Public issues should contain summaries, not raw logs, absolute local paths, cache paths, private repo names, tokens, or full environment dumps.
 
 For install, checksum, cache, download, or binary launch failures, use the Install failure form.
 

@@ -103,6 +103,8 @@ describe("supply-chain and release hygiene", () => {
     const newAppGuide = readFileSync("docs/new-app-work-gate.md", "utf8");
     const releaseReadiness = readFileSync("docs/release-readiness.md", "utf8");
     const tuiLiveQa = readFileSync("docs/tui-live-qa.md", "utf8");
+    const terminalQa = readFileSync("docs/terminal-qa.md", "utf8");
+    const terminalQaIssue = readFileSync(".github/ISSUE_TEMPLATE/terminal-qa-report.yml", "utf8");
     const readme = readFileSync("README.md", "utf8");
     const llms = readFileSync("llms.txt", "utf8");
 
@@ -119,6 +121,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(tuiLiveQa, /Post-Release Evidence/);
     assert.match(tuiLiveQa, /Manual Linux terminal smoke/);
     assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
+    assert.match(terminalQa, /launch-judge --json --terminal-evidence terminal-evidence\.json/);
+    assert.match(terminalQa, /Do not paste the raw smoke JSON into public issues/);
+    assert.match(terminalQaIssue, /Launch judge terminal evidence JSON/);
+    assert.match(terminalQaIssue, /Do not paste raw smoke JSON/);
+    assert.doesNotMatch(terminalQaIssue, /Paste the output from architect-mcp-tui smoke --json/);
   });
 
   it("runs cross-platform TUI live QA smoke with pinned actions", () => {
