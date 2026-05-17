@@ -174,6 +174,8 @@ pub enum Commands {
         #[arg(long)]
         markdown_output: Option<PathBuf>,
         #[arg(long)]
+        require_go: bool,
+        #[arg(long)]
         repo: Option<String>,
         #[arg(long = "stack-from-pr")]
         stack_from_pr: Option<u64>,

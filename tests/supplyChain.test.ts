@@ -164,6 +164,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui evidence-index --json/);
     assert.match(rustTui, /architect-mcp-tui evidence-index --markdown/);
     assert.match(rustTui, /evidence-index --markdown-output <path>/);
+    assert.match(rustTui, /evidence-index --require-go/);
     assert.match(rustTui, /architect-mcp-tui collect-terminal-evidence --json/);
     assert.match(rustTui, /extracts fenced terminal-evidence JSON/);
     assert.match(rustTui, /draft PRs, pending checks, temporarily unstable merge states caused by pending checks, and open blocker issues are `conditional_go`/);
@@ -209,6 +210,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(docs, /evidence-index --json/);
     assert.match(docs, /evidence-index --markdown/);
     assert.match(docs, /evidence-index --markdown-output <path>/);
+    assert.match(docs, /evidence-index --require-go/);
     assert.match(docs, /npm run release:check/);
   });
 
