@@ -122,6 +122,10 @@ describe("supply-chain and release hygiene", () => {
   });
 
   it("runs cross-platform TUI live QA smoke with pinned actions", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    const rustTui = readFileSync("docs/rust-tui.md", "utf8");
     const workflow = readFileSync(".github/workflows/tui-live-qa.yml", "utf8");
     const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
 
@@ -131,6 +135,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /macos-14/);
     assert.match(workflow, /windows-latest/);
     assert.match(workflow, /npm run tui:live-qa/);
+    assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
+    assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
+    assert.match(rustTui, /conditional_go/);
   });
 
   it("runs recurring governance audit with pinned actions and public-safe summaries", () => {

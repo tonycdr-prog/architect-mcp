@@ -51,6 +51,10 @@ mod interactive_integrations_summary;
 mod interactive_integrations_support;
 mod interactive_support;
 mod interactive_update;
+pub mod launch_judge;
+mod launch_judge_report;
+#[cfg(test)]
+mod launch_judge_tests;
 pub mod mcp;
 mod mcp_client;
 pub mod orchestrator;

@@ -10,7 +10,7 @@ const { spawn, spawnSync } = require("node:child_process");
 
 const packageJson = require("../package.json");
 const MAX_REDIRECTS = 5;
-const REQUIRED_LOCAL_HELP_COMMANDS = ["smoke", "walkthrough", "promotion-smoke", "foundry-smoke", "governance-audit"];
+const REQUIRED_LOCAL_HELP_COMMANDS = ["smoke", "walkthrough", "promotion-smoke", "foundry-smoke", "governance-audit", "launch-judge"];
 
 const root = path.resolve(__dirname, "..");
 const binaryName = process.platform === "win32" ? "architect-mcp-tui.exe" : "architect-mcp-tui";
