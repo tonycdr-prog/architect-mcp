@@ -66,8 +66,12 @@ pub(crate) fn session_changed_files(session: &TuiSession) -> Vec<String> {
         .changed_files
         .iter()
         .filter_map(|file| file.get("path").and_then(|value| value.as_str()))
-        .map(ToString::to_string)
+        .map(normalize_report_path)
         .collect()
+}
+
+fn normalize_report_path(path: &str) -> String {
+    path.replace('\\', "/")
 }
 
 pub(crate) fn print_text_report(report: &PromotionSmokeReport) {
@@ -92,5 +96,23 @@ pub(crate) fn print_text_report(report: &PromotionSmokeReport) {
     }
     if !report.promoted_files.is_empty() {
         println!("promoted files: {}", report.promoted_files.join(", "));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn session_changed_files_normalizes_windows_separators() {
+        let mut session = TuiSession::new("build", "codex");
+        session.changed_files = vec![json!({ "path": "docs\\codex-adapter-smoke.md" })];
+
+        assert_eq!(
+            session_changed_files(&session),
+            vec!["docs/codex-adapter-smoke.md".to_string()]
+        );
     }
 }
