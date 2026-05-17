@@ -28,7 +28,7 @@ async fn promotion_smoke_with_fixture_adapter_promotes_changed_file() {
         .await
         .expect("promotion smoke");
 
-    assert_eq!(report.status, PromotionSmokeStatus::Passed);
+    assert_eq!(report.status, PromotionSmokeStatus::Passed, "{report:#?}");
     assert_eq!(report.final_phase, Some(SessionPhase::Complete));
     assert_eq!(report.final_approval, Some(ApprovalStatus::Promoted));
     assert_eq!(
@@ -38,31 +38,14 @@ async fn promotion_smoke_with_fixture_adapter_promotes_changed_file() {
 }
 
 fn fixture_adapter() -> AdapterConfig {
-    #[cfg(windows)]
-    {
-        AdapterConfig {
-            command: "pwsh".to_string(),
-            args: vec![
-                "-NoProfile".to_string(),
-                "-Command".to_string(),
-                "New-Item -ItemType Directory -Force -Path docs | Out-Null; Set-Content -NoNewline -Path docs/codex-adapter-smoke.md -Value 'codex-adapter-smoke'".to_string(),
-            ],
-            pty: false,
-            ..AdapterConfig::default()
-        }
-    }
-    #[cfg(not(windows))]
-    {
-        AdapterConfig {
-            command: "sh".to_string(),
-            args: vec![
-                "-c".to_string(),
-                "mkdir -p docs && printf codex-adapter-smoke > docs/codex-adapter-smoke.md"
-                    .to_string(),
-            ],
-            pty: false,
-            ..AdapterConfig::default()
-        }
+    AdapterConfig {
+        command: "node".to_string(),
+        args: vec![
+            "-e".to_string(),
+            "const fs=require('node:fs'); fs.mkdirSync('docs',{recursive:true}); fs.writeFileSync('docs/codex-adapter-smoke.md','codex-adapter-smoke');".to_string(),
+        ],
+        pty: false,
+        ..AdapterConfig::default()
     }
 }
 
