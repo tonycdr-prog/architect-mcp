@@ -71,7 +71,7 @@ fn complete_terminal_evidence_passes() {
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
           "collectedAt": "2026-05-17",
-          "notes": "summary only"
+          "notes": "summary only, no raw logs"
         },
         {
           "platform": "windows",
@@ -79,7 +79,7 @@ fn complete_terminal_evidence_passes() {
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
           "collectedAt": "2026-05-17",
-          "notes": "summary only"
+          "notes": "summary only, no raw logs"
         }
       ]
     }"##;

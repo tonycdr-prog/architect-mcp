@@ -262,7 +262,6 @@ fn looks_like_template_placeholder(value: &str) -> bool {
         || normalized == "issue #136 public-safe terminal qa report"
         || normalized
             == "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized"
-        || normalized == "summary only, no raw logs"
 }
 
 fn failed(
