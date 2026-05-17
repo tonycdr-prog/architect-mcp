@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::governance_audit_report::{GovernanceAuditReport, GovernanceAuditStatus};
 use crate::smoke_types::{SmokeReport, SmokeStatus};
@@ -43,6 +43,34 @@ pub struct LaunchJudgeCommandEvidence {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LaunchJudgeTerminalEvidenceStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchJudgeTerminalEvidenceReport {
+    pub platform: String,
+    pub status: LaunchJudgeTerminalEvidenceStatus,
+    pub source: String,
+    pub command_summary: String,
+    pub collected_at: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchJudgeTerminalEvidenceSummary {
+    pub supplied: bool,
+    pub source_path: Option<String>,
+    pub reports: Vec<LaunchJudgeTerminalEvidenceReport>,
+    pub issues: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LaunchJudgeReport {
@@ -56,6 +84,7 @@ pub struct LaunchJudgeReport {
     pub governance_audit: GovernanceAuditReport,
     pub smoke: Option<SmokeReport>,
     pub release_check: LaunchJudgeCommandEvidence,
+    pub terminal_evidence: LaunchJudgeTerminalEvidenceSummary,
 }
 
 pub(crate) fn build_report(
@@ -64,13 +93,15 @@ pub(crate) fn build_report(
     smoke: Option<SmokeReport>,
     release_check: LaunchJudgeCommandEvidence,
     git_clean: LaunchJudgeCheck,
+    terminal_evidence: LaunchJudgeTerminalEvidenceSummary,
+    terminal_evidence_check: LaunchJudgeCheck,
 ) -> LaunchJudgeReport {
     let mut checks = vec![
         governance_check(&governance_audit),
         smoke_check(smoke.as_ref()),
         release_check_status(&release_check),
         git_clean,
-        manual_terminal_check(),
+        terminal_evidence_check,
     ];
     checks.sort_by(|left, right| left.name.cmp(&right.name));
 
@@ -106,6 +137,7 @@ pub(crate) fn build_report(
         governance_audit,
         smoke,
         release_check,
+        terminal_evidence,
     }
 }
 
@@ -187,17 +219,6 @@ pub(crate) fn release_check_status(evidence: &LaunchJudgeCommandEvidence) -> Lau
             Some("fix release gate failures before launch"),
         )
     }
-}
-
-fn manual_terminal_check() -> LaunchJudgeCheck {
-    check(
-        "external terminal evidence",
-        LaunchJudgeCheckStatus::Warning,
-        "manual Windows and Linux terminal evidence is not proven by this local command",
-        Some(
-            "collect or link public-safe Windows and Linux terminal QA evidence before final launch go",
-        ),
-    )
 }
 
 pub(crate) fn check(
