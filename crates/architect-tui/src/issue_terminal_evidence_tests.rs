@@ -4,6 +4,7 @@ use crate::issue_terminal_evidence::{
     IssueTerminalEvidenceBlockStatus, build_issue_terminal_evidence_report_from_value,
     extract_json_blocks,
 };
+use crate::issue_terminal_evidence_source::issue_view_args;
 use crate::launch_judge_report::LaunchJudgeResult;
 
 #[test]
@@ -21,6 +22,26 @@ Some note.
 
     let standalone = extract_json_blocks(r#"{"schemaVersion":1,"reports":[]}"#);
     assert_eq!(standalone, vec![r#"{"schemaVersion":1,"reports":[]}"#]);
+
+    let non_json_fence = extract_json_blocks("```bash\necho test\n```");
+    assert!(non_json_fence.is_empty());
+
+    let standalone_missing_schema = extract_json_blocks(r#"{"reports":[]}"#);
+    assert!(standalone_missing_schema.is_empty());
+}
+
+#[test]
+fn collector_uses_read_only_issue_view_command() {
+    assert_eq!(
+        issue_view_args(136),
+        vec![
+            "issue".to_string(),
+            "view".to_string(),
+            "136".to_string(),
+            "--json".to_string(),
+            "number,title,url,body,comments".to_string(),
+        ]
+    );
 }
 
 #[test]
@@ -116,6 +137,35 @@ fn collector_rejects_unsafe_evidence_blocks() {
             .findings
             .iter()
             .any(|finding| finding.contains("secret-shaped or local-path"))
+    );
+}
+
+#[test]
+fn collector_rejects_malformed_json_blocks() {
+    let value = json!({
+        "number": 136,
+        "title": "Run post-release TUI terminal QA on Windows and Linux",
+        "url": "https://github.com/example/repo/issues/136",
+        "body": "",
+        "comments": [
+            {
+                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\"\n```"
+            }
+        ]
+    });
+
+    let report = build_issue_terminal_evidence_report_from_value(None, 136, &value);
+
+    assert_eq!(report.result, LaunchJudgeResult::NoGo);
+    assert_eq!(
+        report.extracted_blocks[0].status,
+        IssueTerminalEvidenceBlockStatus::Rejected
+    );
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|finding| finding.contains("JSON could not be parsed"))
     );
 }
 

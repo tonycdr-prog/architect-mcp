@@ -38,7 +38,10 @@ impl IssueContent {
 pub(crate) fn extract_json_blocks(body: &str) -> Vec<String> {
     let mut blocks = Vec::new();
     let trimmed = body.trim();
-    if trimmed.starts_with('{') && trimmed.contains("\"reports\"") {
+    if trimmed.starts_with('{')
+        && trimmed.contains("\"schemaVersion\"")
+        && trimmed.contains("\"reports\"")
+    {
         blocks.push(trimmed.to_string());
     }
 
@@ -70,13 +73,7 @@ pub(crate) fn fetch_issue_content(
     repo: Option<&str>,
     issue: u64,
 ) -> Result<IssueContent, String> {
-    let mut args = vec![
-        "issue".to_string(),
-        "view".to_string(),
-        issue.to_string(),
-        "--json".to_string(),
-        "number,title,url,body,comments".to_string(),
-    ];
+    let mut args = issue_view_args(issue);
     if let Some(repo) = repo.filter(|repo| !repo.trim().is_empty()) {
         args.push("--repo".to_string());
         args.push(repo.to_string());
@@ -131,6 +128,16 @@ pub(crate) fn issue_content_from_value(
         url,
         bodies,
     })
+}
+
+pub(crate) fn issue_view_args(issue: u64) -> Vec<String> {
+    vec![
+        "issue".to_string(),
+        "view".to_string(),
+        issue.to_string(),
+        "--json".to_string(),
+        "number,title,url,body,comments".to_string(),
+    ]
 }
 
 fn run_gh_json(workspace: &Path, args: &[String]) -> Result<Value, String> {
