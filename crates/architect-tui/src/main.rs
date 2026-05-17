@@ -168,6 +168,7 @@ async fn main() -> Result<()> {
         }
         Some(Commands::LaunchJudge {
             json,
+            public_summary,
             skip_mcp,
             skip_smoke,
             run_release_check,
@@ -180,6 +181,7 @@ async fn main() -> Result<()> {
                 config,
                 LaunchJudgeOptions {
                     json,
+                    public_summary,
                     skip_mcp,
                     skip_smoke,
                     run_release_check,

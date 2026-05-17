@@ -113,6 +113,8 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
         #[arg(long)]
+        public_summary: bool,
+        #[arg(long)]
         skip_mcp: bool,
         #[arg(long)]
         skip_smoke: bool,

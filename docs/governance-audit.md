@@ -36,9 +36,12 @@ architect-mcp-tui launch-judge --json
 architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 ```
 
 `launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and external terminal evidence. It reports `go`, `conditional_go`, or `no_go`. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or missing Linux/Windows terminal evidence keep the result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, unsafe terminal evidence, failed external terminal QA, or a dirty git state with `--require-clean-git` produce `no_go`.
+
+Use `--public-summary` when posting launch-judge evidence publicly. The public summary keeps the launch decision, check summaries, next actions, release-gate attempt/result, terminal-evidence source filenames, and terminal-evidence platform status, but omits the workspace path, full governance audit, full smoke report, terminal-evidence freeform source text, command summaries, notes, stdout/stderr tails, cache paths, private repo names, and token-shaped values.
 
 `--terminal-evidence` is for short, public-safe Linux and Windows QA summaries, not raw output. Pass it more than once when each platform report is saved separately. The JSON schema is:
 

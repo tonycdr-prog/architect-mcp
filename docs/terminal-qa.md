@@ -154,9 +154,10 @@ For successful Linux or Windows terminal QA, open a Terminal QA report and paste
 ```bash
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 ```
 
-Use the repeated flag form when Linux and Windows evidence arrives as separate issue comments or files. The launch judge merges the reports and validates the combined evidence without requiring hand-edited JSON.
+Use the repeated flag form when Linux and Windows evidence arrives as separate issue comments or files. The launch judge merges the reports and validates the combined evidence without requiring hand-edited JSON. Maintainers should use `--public-summary` when posting the launch-judge decision back to an issue or release note; it keeps the decision, source filenames, and platform evidence while omitting freeform evidence text, raw report internals, and local paths.
 
 The generated evidence has this shape:
 

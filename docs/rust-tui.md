@@ -217,9 +217,12 @@ architect-mcp-tui launch-judge --json
 architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 ```
 
 This command combines the read-only governance audit, terminal smoke, release-gate evidence, git worktree state, and external terminal evidence into one `go`, `conditional_go`, or `no_go` report. By default it does not run `npm run release:check`; missing release-gate execution is a `conditional_go` warning with a next action. Use `--run-release-check` when collecting release-sensitive evidence. Use `--skip-mcp` or `--skip-smoke` only when documenting why the judge report is intentionally partial. A `no_go` result exits non-zero; `conditional_go` exits zero so maintainers can inspect incomplete external evidence without breaking static CI.
+
+Use `--public-summary` for public PR comments, release notes, and issue evidence. It emits a compact launch decision summary with check status, next actions, release-gate attempt/result, terminal-evidence source filenames, and terminal-evidence platform status. It intentionally omits the workspace path, governance-audit internals, smoke report internals, raw command tails, terminal-evidence freeform source text, command summaries, notes, stdout/stderr logs, cache paths, private repo names, and token-shaped values. Keep `--json` for local diagnosis when you need the full report.
 
 Linux and Windows testers can generate the public-safe evidence file directly:
 
