@@ -116,7 +116,6 @@ fn codex_exec_adapter() -> AdapterConfig {
             "exec",
             "--sandbox",
             "workspace-write",
-            "--json",
             "--color",
             "never",
             "--ephemeral",
@@ -173,7 +172,6 @@ mod tests {
                 "exec".to_string(),
                 "--sandbox".to_string(),
                 "workspace-write".to_string(),
-                "--json".to_string(),
                 "--color".to_string(),
                 "never".to_string(),
                 "--ephemeral".to_string()

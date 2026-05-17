@@ -9,8 +9,7 @@ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 
 use crate::adapter::{AdapterConfig, AgentEvent};
 
-const OUTPUT_LIMIT_BYTES: usize = 64 * 1024;
-const TRUNCATED_MARKER: &str = "[truncated after 65536 bytes]";
+const OUTPUT_LIMIT_BYTES: usize = 512 * 1024;
 const OUTPUT_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone)]
@@ -79,7 +78,7 @@ pub fn run_adapter_pty(config: &AdapterConfig, options: PtyRunOptions) -> Result
             }
         }
         if truncated {
-            output.push_str(TRUNCATED_MARKER);
+            output.push_str(&truncated_marker());
         }
         let _ = output_tx.send((output, truncated));
     });
@@ -155,8 +154,12 @@ fn truncate_output(text: String) -> (String, bool) {
         return (text, false);
     }
     let mut output = prefix_by_bytes(&text, OUTPUT_LIMIT_BYTES);
-    output.push_str(TRUNCATED_MARKER);
+    output.push_str(&truncated_marker());
     (output, true)
+}
+
+fn truncated_marker() -> String {
+    format!("[truncated after {OUTPUT_LIMIT_BYTES} bytes]")
 }
 
 fn prefix_by_bytes(text: &str, max_bytes: usize) -> String {
@@ -235,7 +238,10 @@ mod tests {
                 command: "sh".to_string(),
                 args: vec![
                     "-c".to_string(),
-                    "python3 - <<'PY'\nprint('x' * 70000)\nPY".to_string(),
+                    format!(
+                        "python3 - <<'PY'\nprint('x' * {})\nPY",
+                        OUTPUT_LIMIT_BYTES + 1
+                    ),
                 ],
                 ..AdapterConfig::default()
             },
@@ -253,7 +259,7 @@ mod tests {
                 text,
                 truncated: true,
                 ..
-            } if text.contains(TRUNCATED_MARKER)
+            } if text.contains(&truncated_marker())
         )));
     }
 

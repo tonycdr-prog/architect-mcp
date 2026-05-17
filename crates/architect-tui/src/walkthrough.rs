@@ -139,9 +139,14 @@ async fn build_walkthrough_report(
     }
 
     let active = engine.active().ok();
-    let promoted_files = active.map(session_changed_files).unwrap_or_default();
+    let changed_files = active.map(session_changed_files).unwrap_or_default();
     let final_phase = active.map(|session| session.phase.clone());
     let final_approval = active.map(|session| session.approval_status.clone());
+    let promoted_files = if final_approval == Some(ApprovalStatus::Promoted) {
+        changed_files
+    } else {
+        Vec::new()
+    };
     let status = if error.is_none()
         && final_phase == Some(SessionPhase::Complete)
         && final_approval == Some(ApprovalStatus::Promoted)

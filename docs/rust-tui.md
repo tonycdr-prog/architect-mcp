@@ -110,6 +110,14 @@ architect-mcp-tui walkthrough --json
 
 The walkthrough runs the same command-palette engine as the interactive TUI in a throwaway git workspace. It creates a session, answers intake, runs grill/contract/plan/file gates, approves and runs a fixture adapter in an isolated worktree, inspects diff evidence, records verification, runs final/session review, checks `promotion status`, approves promotion, and promotes the reviewed file. It is reproducible release evidence for the operator flow, but it does not replace manual visual terminal QA.
 
+Local real-adapter promotion smoke:
+
+```bash
+architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace
+```
+
+This command is explicit local QA, not a default CI release gate. It creates a disposable git repo, wires the TUI to the source architect-mcp server, confirms the selected adapter is ready, drives the command-palette engine through grill, contract, plan review, file-plan review, execution approval, isolated adapter execution, diff inspection, verification, final/session review, promotion approval, and promotion. The default Codex path asks for a documentation-only change to `docs/codex-adapter-smoke.md`; the smoke passes only when that file is the only promoted file. Keep the workspace when collecting evidence so the isolated worktree, promoted file, and session JSON can be inspected.
+
 ## Work Gate
 
 Every coding and app-building loop starts with the architect-mcp work gate:
@@ -143,7 +151,7 @@ The render scheduler coalesces redraw requests and relies on Ratatui backend dif
 
 ## Adapters
 
-Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing. Codex also reports auth state from `codex login status`; it is ready only when the command succeeds and reports `Logged in`. The default Codex template runs `codex exec --sandbox workspace-write --json --color never --ephemeral` so approved TUI execution uses a bounded non-interactive Codex run inside the isolated worktree instead of launching the interactive Codex UI. Other authenticated CLIs remain `auth unknown` until reliable probes are added.
+Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing. Codex also reports auth state from `codex login status`; it is ready only when the command succeeds and reports `Logged in`. The default Codex template runs `codex exec --sandbox workspace-write --color never --ephemeral` so approved TUI execution uses a bounded non-interactive Codex run inside the isolated worktree instead of launching the interactive Codex UI. It does not request Codex JSONL by default because verbose event streams can exceed the TUI output cap and become promotion blockers even when the diff and verification evidence are valid. Other authenticated CLIs remain `auth unknown` until reliable probes are added.
 
 Agents run in a PTY by default when execution is explicitly enabled. Headless `--execute` creates an isolated git worktree, sends the adapter the original request plus the approved pre-edit contract, required verification checks, and execution rules, streams PTY output, records changed-file evidence, and runs `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` before any promotion. PTY output is capped with an explicit truncation marker, and truncated output becomes a promotion blocker in the normal path.
 

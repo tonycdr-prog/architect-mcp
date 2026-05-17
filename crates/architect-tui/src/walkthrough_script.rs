@@ -25,7 +25,7 @@ pub(crate) fn walkthrough_commands() -> &'static [&'static str] {
         "answer stack=frontend=TypeScript CLI; backend=local file service",
         "answer storage=local JSON file under user data directory",
         "answer enforcement=advisory findings during intake, with manual TUI approval gates before execution and promotion",
-        "answer repoLayout=features=src/features/notes; services=src/services; docs=docs; tests=tests",
+        "answer repoLayout=features=src/features/notes/live-qa.ts; services=src/services; docs=docs; tests=tests",
         "answer constraints=generate AGENTS.md, architecture contract, build plan, review gate evidence, and CI workflow before coding",
         "answer dataEntities=Note entity owned by src/features/notes; UserSettings entity owned by src/services/settings",
         "answer risk=file corruption and accidental data loss",

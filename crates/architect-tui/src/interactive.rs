@@ -112,6 +112,9 @@ impl InteractiveWorkflowEngine {
         self.require_adapter_review_evidence()?;
         ensure_verification_passed(self.active()?)?;
         let checks = required_checks(self.active()?);
+        let implementation_result = self
+            .review_implementation_with_current_verification()
+            .await?;
         let result = self
             .call_tool(
                 "review_agent_final_response",
@@ -120,6 +123,10 @@ impl InteractiveWorkflowEngine {
             )
             .await?;
         let session = self.update_active(|session| {
+            session.set_gate(
+                "review_implementation_against_contract",
+                implementation_result,
+            );
             session.set_final_response(response.to_string());
             session.set_gate("review_agent_final_response", result);
         })?;
@@ -219,5 +226,29 @@ impl InteractiveWorkflowEngine {
             }
         }
         Ok(Value::Object(request))
+    }
+
+    async fn review_implementation_with_current_verification(&self) -> Result<Value> {
+        let session = self.active()?;
+        let pre_edit = session
+            .gates
+            .get("create_pre_edit_contract")
+            .ok_or_else(|| anyhow::anyhow!("create contract before implementation review"))?;
+        let contract = pre_edit
+            .get("contract")
+            .cloned()
+            .unwrap_or_else(|| pre_edit.clone());
+        self.call_tool(
+            "review_implementation_against_contract",
+            "refresh implementation drift review with verification evidence",
+            json!({
+                "input": {
+                    "contract": contract,
+                    "changedFiles": session.changed_files.clone(),
+                    "verification": verification_records(session)
+                }
+            }),
+        )
+        .await
     }
 }
