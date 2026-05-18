@@ -158,7 +158,7 @@ fn run_release_check(workspace: &Path) -> LaunchJudgeCommandEvidence {
         Ok(output) => LaunchJudgeCommandEvidence {
             command: command.to_string(),
             attempted: true,
-            ok: output.status.success(),
+            ok: Some(output.status.success()),
             exit_code: output.status.code(),
             stdout_tail: tail_lines(&String::from_utf8_lossy(&output.stdout), 20),
             stderr_tail: tail_lines(&String::from_utf8_lossy(&output.stderr), 20),
@@ -167,7 +167,7 @@ fn run_release_check(workspace: &Path) -> LaunchJudgeCommandEvidence {
         Err(error) => LaunchJudgeCommandEvidence {
             command: command.to_string(),
             attempted: true,
-            ok: false,
+            ok: Some(false),
             exit_code: None,
             stdout_tail: Vec::new(),
             stderr_tail: Vec::new(),

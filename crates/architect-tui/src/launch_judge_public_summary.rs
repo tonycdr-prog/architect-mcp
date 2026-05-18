@@ -36,7 +36,8 @@ pub struct LaunchJudgePublicCheck {
 pub struct LaunchJudgePublicReleaseCheck {
     pub command: String,
     pub attempted: bool,
-    pub ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ok: Option<bool>,
     pub exit_code: Option<i32>,
 }
 

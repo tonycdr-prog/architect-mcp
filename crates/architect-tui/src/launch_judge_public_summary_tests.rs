@@ -15,7 +15,7 @@ fn public_summary_omits_workspace_and_raw_command_tails() {
         LaunchJudgeCommandEvidence {
             command: "npm run release:check".to_string(),
             attempted: true,
-            ok: false,
+            ok: Some(false),
             exit_code: Some(1),
             stdout_tail: vec!["built from /Users/example/private/architect-mcp".to_string()],
             stderr_tail: vec!["npm_SECRET=do-not-print".to_string()],
@@ -81,7 +81,7 @@ fn public_summary_keeps_terminal_platform_statuses() {
         LaunchJudgeCommandEvidence {
             command: "npm run release:check".to_string(),
             attempted: false,
-            ok: false,
+            ok: None,
             exit_code: None,
             stdout_tail: Vec::new(),
             stderr_tail: Vec::new(),
@@ -128,6 +128,7 @@ fn public_summary_keeps_terminal_platform_statuses() {
 
     let summary = build_public_summary_at(&report, 1);
 
+    assert_eq!(summary.release_check.ok, None);
     assert!(summary.terminal_evidence.supplied);
     assert_eq!(
         summary.terminal_evidence.source_path.as_deref(),
