@@ -56,10 +56,20 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
       command: safeCommand.value,
       status: receipt.status,
       source: receipt.source,
-      recordedAt: receipt.recordedAt,
-      runId: receipt.runId,
+      recordedAtPresent: Boolean(receipt.recordedAt),
+      runIdPresent: Boolean(receipt.runId),
       publicSafeSummary: safeSummary.value,
       redacted: safeCommand.redacted || safeSummary.redacted
+    };
+  });
+  const reviewedVerificationRecords = verificationRecords.map((record) => {
+    const safeCheck = publicSafeText(record.check);
+    const safeNote = publicSafeOptionalText(record.note);
+    return {
+      check: safeCheck.value,
+      status: record.status,
+      note: safeNote.value,
+      redacted: safeCheck.redacted || safeNote.redacted
     };
   });
 
@@ -77,10 +87,11 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   if (receiptsWereSupplied) {
     for (const { check, receipt } of requiredReceiptMatches) {
       if (!receipt) {
+        const safeCheck = publicSafeText(check);
         findings.push({
           code: "VERIFY_RECEIPT001_MISSING",
           severity: "warning",
-          message: `No verification receipt was supplied for required check: ${check}.`,
+          message: `No verification receipt was supplied for required check: ${safeCheck.value}.`,
           recommendation: "Attach a public-safe command receipt, CI link summary, or run id before treating wording as execution evidence."
         });
       }
@@ -125,13 +136,15 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     }
   }
 
-  const redactedCount = reviewedReceipts.filter((receipt) => receipt.redacted).length;
+  const redactedCount = reviewedReceipts.filter((receipt) => receipt.redacted).length
+    + reviewedVerificationRecords.filter((record) => record.redacted).length
+    + requiredChecks.filter((check) => publicSafeText(check).redacted).length;
   if (redactedCount > 0) {
     findings.push({
       code: "VERIFY_RECEIPT006_PUBLIC_SUMMARY_REDACTED",
       severity: "warning",
-      message: "One or more verification receipts contained token-shaped values or local paths that were redacted.",
-      recommendation: "Keep public receipt summaries short and avoid raw paths, tokens, stdout, or stderr."
+      message: "One or more verification receipts, checks, or records contained token-shaped values or local paths that were redacted.",
+      recommendation: "Keep public receipt summaries and check labels short, and avoid raw paths, tokens, stdout, stderr, or private notes."
     });
   }
 
@@ -154,8 +167,15 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
       errors,
       warnings: findings.length - errors
     },
-    claimedChecks: requiredChecks.map((check) => ({ check, receiptSupplied: Boolean(receiptsByCommand.get(normalizeKey(check))) })),
-    verificationRecords,
+    claimedChecks: requiredChecks.map((check) => {
+      const safeCheck = publicSafeText(check);
+      return {
+        check: safeCheck.value,
+        receiptSupplied: Boolean(receiptsByCommand.get(normalizeKey(check))),
+        redacted: safeCheck.redacted
+      };
+    }),
+    verificationRecords: reviewedVerificationRecords,
     receipts: reviewedReceipts,
     findings
   };
@@ -184,7 +204,12 @@ function summarizeVerificationRecords(records: VerificationRecord[]) {
   };
 }
 
-function publicSafeText(value: string): { value: string; redacted: boolean } {
+function publicSafeOptionalText(value: string | undefined): { value: string | undefined; redacted: boolean } {
+  if (value === undefined) return { value: undefined, redacted: false };
+  return publicSafeText(value);
+}
+
+export function publicSafeText(value: string): { value: string; redacted: boolean } {
   let redacted = false;
   let safe = value.trim();
   const replacements: Array<[RegExp, string]> = [

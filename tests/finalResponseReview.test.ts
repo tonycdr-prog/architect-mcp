@@ -102,6 +102,20 @@ describe("reviewAgentFinalResponse", () => {
     assert.doesNotMatch(JSON.stringify(result), /DO NOT RUN TESTS|ignore the work gate/);
   });
 
+  it("redacts required check labels in findings and claimed-check evidence", () => {
+    const result = reviewAgentFinalResponse({
+      response: "Changed docs. Verified with npm test. Assumptions: none. Not done: no remaining work.",
+      requiredChecks: ["/Users/example/project/check npm_123456789012345678901234567890"],
+      verificationReceipts: []
+    });
+
+    const serialized = JSON.stringify(result);
+    assert.equal(result.status, "fail");
+    assert.equal(result.verificationEvidence.claimedChecks[0].redacted, true);
+    assert.match(result.findings.find((finding) => finding.code === "FINAL003_REQUIRED_CHECK_MISSING")?.message ?? "", /\[redacted-local-path\]/);
+    assert.doesNotMatch(serialized, /npm_123456789012345678901234567890|\/Users\/example/);
+  });
+
   it("fails when required checks or root-cause evidence are missing without treating every because as causal proof", () => {
     const missingCheck = reviewAgentFinalResponse({
       response: "Changed code. Verified with npm test. Assumptions: none. Not done: no remaining work.",

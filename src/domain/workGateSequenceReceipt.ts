@@ -87,7 +87,7 @@ export function createWorkGateSequenceReceipt(input: WorkGateSequenceReceiptInpu
       status: record?.status ?? "missing",
       inputsPresent: record?.inputsPresent === true,
       evidencePresent: record?.evidencePresent === true,
-      recordedAt: record?.recordedAt,
+      recordedAtPresent: Boolean(record?.recordedAt),
       runIdPresent: Boolean(record?.runId),
       publicSummary: safeSummary.value,
       redacted: safeSummary.redacted

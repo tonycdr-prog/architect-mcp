@@ -45,6 +45,50 @@ describe("auditWorkGateCompleteness", () => {
     assert.equal(report.findings.some((finding) => finding.code === "WG004_STALE_EVIDENCE"), true);
   });
 
+  it("does not treat run ids alone as fresh evidence", () => {
+    const report = auditWorkGateCompleteness({
+      now: freshTimestamp,
+      records: workGateSequence.map((gate) => record(gate, {
+        recordedAt: undefined,
+        runId: "run-without-timestamp"
+      }))
+    });
+
+    assert.equal(report.status, "warn");
+    assert.equal(report.classification, "incomplete");
+    assert.equal(report.complete, false);
+    assert.equal(report.summary.warnings, workGateSequence.length);
+    assert.equal(report.findings.every((finding) => finding.code === "WG007_FRESHNESS_UNKNOWN"), true);
+  });
+
+  it("classifies caller-narrowed required gates as partial evidence", () => {
+    const report = auditWorkGateCompleteness({
+      now: freshTimestamp,
+      requiredGates: ["grill_me", "create_pre_edit_contract"],
+      records: [
+        record("grill_me"),
+        record("create_pre_edit_contract")
+      ]
+    });
+
+    assert.equal(report.status, "fail");
+    assert.equal(report.classification, "partial");
+    assert.equal(report.complete, false);
+    assert.equal(report.requiredGates.length, workGateSequence.length);
+    assert.equal(report.findings.some((finding) => finding.code === "WG012_PARTIAL_REQUIRED_GATES"), true);
+  });
+
+  it("reports invalid audit reference times instead of silently falling back", () => {
+    const report = auditWorkGateCompleteness({
+      now: "not a timestamp",
+      records: workGateSequence.map((gate) => record(gate))
+    });
+
+    assert.equal(report.status, "fail");
+    assert.equal(report.complete, false);
+    assert.equal(report.findings.some((finding) => finding.code === "WG013_INVALID_NOW"), true);
+  });
+
   it("passes complete fresh ordered evidence", () => {
     const report = auditWorkGateCompleteness({
       now: freshTimestamp,
@@ -94,6 +138,8 @@ describe("createWorkGateSequenceReceipt", () => {
     assert.equal(receipt.summary.evidenceUnconfirmed, 0);
     assert.equal(receipt.receipt.kind, "work_gate_sequence_receipt");
     assert.equal(receipt.steps.every((step) => step.inputsPresent && step.evidencePresent), true);
+    assert.equal(receipt.steps.every((step) => step.recordedAtPresent === true && !("recordedAt" in step)), true);
+    assert.doesNotMatch(JSON.stringify(receipt.receipt), /2026-05-17T22:00:00.000Z/);
   });
 
   it("fails when a required gate is missing from the receipt", () => {

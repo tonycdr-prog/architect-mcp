@@ -67,6 +67,28 @@ describe("reviewVerificationReceipts", () => {
     assert.match(report.receipts[0].publicSafeSummary, /\[redacted-token\]/);
     assert.doesNotMatch(JSON.stringify(report), /npm_123456789012345678901234567890|\/Users\/example/);
   });
+
+  it("redacts required checks, claimed checks, records, and receipt timing from public output", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["/Users/example/project/scripts/check npm_123456789012345678901234567890"],
+      verification: [{
+        check: "npm_123456789012345678901234567890",
+        status: "passed",
+        note: "local run in /Users/example/project"
+      }],
+      receipts: [receipt("npm test")],
+      now
+    });
+
+    const serialized = JSON.stringify(report);
+    assert.equal(report.status, "warn");
+    assert.equal(report.claimedChecks[0].redacted, true);
+    assert.equal(report.verificationRecords[0].redacted, true);
+    assert.equal(report.receipts[0].recordedAtPresent, true);
+    assert.equal("recordedAt" in report.receipts[0], false);
+    assert.match(report.findings.find((finding) => finding.code === "VERIFY_RECEIPT001_MISSING")?.message ?? "", /\[redacted-local-path\]/);
+    assert.doesNotMatch(serialized, /npm_123456789012345678901234567890|\/Users\/example|2026-05-17T22:30:00.000Z/);
+  });
 });
 
 function receipt(command: string, overrides: Partial<VerificationReceipt> = {}) {

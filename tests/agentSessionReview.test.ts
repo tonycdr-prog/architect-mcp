@@ -103,6 +103,24 @@ describe("reviewAgentSession", () => {
     assert.match(JSON.stringify(section?.details), /matchedRequired/);
   });
 
+  it("does not leak raw verification notes through public-safe receipt review details", () => {
+    const report = reviewAgentSession({
+      verification: [{
+        check: "npm_123456789012345678901234567890",
+        status: "passed",
+        note: "ran from /Users/example/project"
+      }],
+      verificationReceipts: [],
+      finalResponse: "Changed receipt handling. Verification was skipped for the secret check. Assumptions: none. Not done: receipt evidence remains."
+    });
+
+    const section = report.sections.find((item) => item.name === "verification-evidence");
+    assert.equal(section?.summary, "Verification records and command receipts were reviewed with public-safe output.");
+    assert.doesNotMatch(JSON.stringify(section?.details), /npm_123456789012345678901234567890|\/Users\/example/);
+    assert.match(JSON.stringify(section?.details), /\[redacted-token\]/);
+    assert.match(JSON.stringify(section?.details), /\[redacted-local-path\]/);
+  });
+
   it("fails session review when attached receipt evidence contradicts a passed record", () => {
     const report = reviewAgentSession({
       verification: [{ check: "npm test", status: "passed" }],

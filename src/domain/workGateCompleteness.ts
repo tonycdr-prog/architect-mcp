@@ -45,11 +45,31 @@ type WorkGateClassification =
 const DEFAULT_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export function auditWorkGateCompleteness(input: WorkGateCompletenessInput = {}) {
-  const requiredGates = input.requiredGates?.length ? input.requiredGates : [...workGateSequence];
+  const canonicalRequiredGates = [...workGateSequence];
+  const requiredGates = canonicalRequiredGates;
   const records = input.records ?? [];
-  const nowMs = parseTimestamp(input.now) ?? Date.now();
+  const parsedNow = parseTimestamp(input.now);
+  const nowMs = parsedNow ?? Date.now();
   const maxAgeSeconds = input.maxAgeSeconds ?? DEFAULT_MAX_AGE_SECONDS;
   const findings: WorkGateFinding[] = [];
+
+  if (input.requiredGates?.length && !sameGateSequence(input.requiredGates, canonicalRequiredGates)) {
+    findings.push({
+      code: "WG012_PARTIAL_REQUIRED_GATES",
+      severity: "error",
+      message: "Caller-supplied required gates do not match the canonical work-gate sequence.",
+      recommendation: "Audit the full canonical sequence, or label the evidence as partial instead of complete."
+    });
+  }
+
+  if (input.now !== undefined && parsedNow === undefined) {
+    findings.push({
+      code: "WG013_INVALID_NOW",
+      severity: "error",
+      message: "The supplied audit reference time is invalid.",
+      recommendation: "Use a valid ISO timestamp for now so freshness checks are deterministic."
+    });
+  }
 
   const unknownGates = records
     .map((record) => record.gate)
@@ -109,12 +129,12 @@ export function auditWorkGateCompleteness(input: WorkGateCompletenessInput = {})
           recommendation: "Attach fresh gate evidence from the current run before using it in PR or launch evidence."
         });
       }
-    } else if (!record.runId) {
+    } else {
       findings.push({
         code: "WG007_FRESHNESS_UNKNOWN",
         severity: "warning",
-        message: `Work-gate evidence for ${gate} has no timestamp or run id.`,
-        recommendation: "Include a public-safe timestamp or run id so reviewers can tell whether evidence is fresh."
+        message: `Work-gate evidence for ${gate} has no timestamp.`,
+        recommendation: "Include a public-safe timestamp so reviewers can tell whether evidence is fresh; run ids alone do not prove freshness."
       });
     }
   }
@@ -185,6 +205,10 @@ function isOrdered(gates: WorkGateName[], requiredGates: WorkGateName[]): boolea
     lastIndex = index;
   }
   return true;
+}
+
+function sameGateSequence(a: readonly WorkGateName[], b: readonly WorkGateName[]): boolean {
+  return a.length === b.length && a.every((gate, index) => gate === b[index]);
 }
 
 function classify(presentCount: number, requiredCount: number, findings: WorkGateFinding[], status: string): WorkGateClassification {
