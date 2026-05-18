@@ -150,12 +150,13 @@ describe("supply-chain and release hygiene", () => {
     assert.match(terminalQaIssue, /Launch judge terminal evidence Markdown/);
     assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --markdown/);
     assert.match(terminalQaIssue, /--issue-url https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/136/);
+    assert.match(terminalQaIssue, /Prefer pasting the public-safe output/);
     assert.match(terminalQaIssue, /collectedAt/);
     assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --json/);
     assert.match(terminalQaIssue, /environment/);
     assert.match(terminalQaIssue, /local_terminal/);
     assert.match(terminalQaIssue, /vm_or_cloud_terminal/);
-    assert.match(terminalQaIssue, /hosted_ci, container, missing, or unknown stays conditional/);
+    assert.match(terminalQaIssue, /hosted_ci, container, missing, or unknown provenance does not satisfy #136 manual terminal QA and remains conditional/);
     assert.match(terminalQaIssue, /Do not paste raw smoke JSON/);
     assert.match(terminalQaIssue, /```json/);
     assert.match(terminalQaIssue, /REPLACE with public issue or PR link/);

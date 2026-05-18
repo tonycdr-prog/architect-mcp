@@ -45,7 +45,7 @@ body:
     id: launch-judge-evidence
     attributes:
       label: Launch judge terminal evidence Markdown
-      description: Required for Linux and Windows launch-readiness reports. Paste the public-safe output from architect-mcp-tui terminal-evidence --markdown --issue-url https://github.com/tonycdr-prog/architect-mcp/issues/136, or paste only the JSON from architect-mcp-tui terminal-evidence --json if a maintainer asks for a local file. If filling this example manually, set environment to local_terminal or vm_or_cloud_terminal for launch-relevant manual QA; hosted_ci, container, missing, or unknown stays conditional. Do not paste raw smoke JSON.
+      description: Required for Linux and Windows launch-readiness reports. Prefer pasting the public-safe output from architect-mcp-tui terminal-evidence --markdown --issue-url https://github.com/tonycdr-prog/architect-mcp/issues/136. Use manual JSON fallback from architect-mcp-tui terminal-evidence --json only if a maintainer asks for a local file. If filling this example manually, set environment to local_terminal or vm_or_cloud_terminal for launch-relevant manual QA; hosted_ci, container, missing, or unknown provenance does not satisfy #136 manual terminal QA and remains conditional. Do not paste raw smoke JSON.
       value: |
         ```json
         {
