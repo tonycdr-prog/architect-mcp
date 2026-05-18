@@ -6,16 +6,22 @@ For public tester commands and issue templates, use [Terminal QA](./terminal-qa.
 
 ## Automated Matrix
 
-The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa.yml` workflows run on pull requests and manual dispatch across:
+The `.github/workflows/tui-install-smoke.yml` workflow runs on pull requests and manual dispatch across:
 
 - Ubuntu latest.
 - Ubuntu 24.04 ARM.
 - macOS 14.
 - Windows latest.
 
+The `.github/workflows/tui-live-qa.yml` workflow runs on pull requests and manual dispatch across:
+
+- Ubuntu latest.
+- macOS 14.
+- Windows latest.
+
 The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds the TypeScript MCP server, builds a local debug TUI binary, exercises the shim help path, runs `architect-mcp-tui walkthrough --json`, emits a public launch-judge summary instead of the full local launch report, runs fixture-backed promotion-smoke unit coverage, and runs workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. On Ubuntu and Windows, the workflow also writes a public-safe `architect-mcp-tui terminal-evidence --json` summary to the GitHub step summary as hosted CI baseline evidence. That hosted evidence is not a substitute for the real post-release terminal QA tracked in #136. Real Codex promotion smoke is manual because it requires local auth and a live model. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
 
-The `.github/workflows/tui-published-package-smoke.yml` workflow is the published-package counterpart. It does not check out or build this repository; it installs `@tonycdr-prog/architect-mcp@latest` into a clean temporary npm workspace on hosted Ubuntu and Windows, points the TUI bridge at the installed package's `dist/index.js`, runs the documented non-interactive TUI commands, validates adapter-health JSON, and verifies the gate-only JSONL run stops at `approval_required` without adapter execution. This is useful release telemetry for the package users actually install, but it does not replace #136 manual terminal QA because hosted runners do not validate real interactive terminal rendering, mouse, resize, PTY behavior, or clean exit in a user terminal. Linux ARM64 published-package smoke should be added only after a release ships `architect-mcp-tui-linux-arm64.tar.gz`.
+The `.github/workflows/tui-published-package-smoke.yml` workflow is the published-package counterpart. It runs on a schedule or manual dispatch instead of pull requests because it installs `@tonycdr-prog/architect-mcp@latest` from the registry rather than the PR's code. It does not check out or build this repository; it installs the package into a clean temporary npm install directory on hosted Ubuntu and Windows, points the TUI bridge at the installed package's `dist/index.js`, exports `ARCHITECT_MCP_WORKSPACE` to an isolated temporary workspace, runs the documented non-interactive TUI commands, validates adapter-health JSON, and verifies the gate-only JSONL run stops at `approval_required` without adapter execution. This is useful release telemetry for the package users actually install, but it does not replace #136 manual terminal QA because hosted runners do not validate real interactive terminal rendering, mouse, resize, PTY behavior, or clean exit in a user terminal. Linux ARM64 published-package smoke should be added only after a release ships `architect-mcp-tui-linux-arm64.tar.gz`.
 
 ## Post-Release Evidence
 
@@ -24,7 +30,7 @@ Latest recorded release: `v0.2.1`, published on 2026-05-16.
 | Evidence | Platform coverage | Status | Link or note |
 | --- | --- | --- | --- |
 | npm publish workflow for `v0.2.1` | Ubuntu publish runner | Passed | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25968887248 |
-| TUI install-smoke workflow | Ubuntu x64, Ubuntu ARM64, macOS 14, Windows latest | Passed on latest recorded PR run for pre-ARM matrix | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25970418642 |
+| TUI install-smoke workflow | Ubuntu x64, Ubuntu ARM64, macOS 14, Windows latest | Passed on latest recorded PR run with ARM64 matrix | https://github.com/tonycdr-prog/architect-mcp/actions/runs/26060781025 |
 | TUI live-QA smoke workflow | Ubuntu, macOS 14, Windows latest | Passed on latest recorded PR run | https://github.com/tonycdr-prog/architect-mcp/actions/runs/25969825040 |
 | TUI published package smoke workflow | Ubuntu and Windows hosted runners | Pending first run | Hosted non-interactive baseline only; does not replace #136 manual terminal QA |
 | CI terminal-evidence summaries | Ubuntu and Windows hosted runners | Baseline only | Emitted in the TUI live-QA workflow step summary; does not replace #136 manual terminal QA |
@@ -47,13 +53,13 @@ When Linux and Windows reports are generated separately, pass both files to the 
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect-mcp --issue 136
-architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui evidence-index --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui evidence-index --markdown --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui evidence-index --markdown-output .architect-mcp/release/evidence-index.md --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui evidence-index --json --require-go --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted launch with platform QA waiver" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --markdown --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --markdown-output .architect-mcp/release/evidence-index.md --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --json --require-go --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted launch with platform QA waiver" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 
 Use `launch-judge --public-summary` or `launch-readiness --public-summary` for PR comments, release notes, and issue follow-up. These summaries keep the launch decision, next actions, stack/evidence status, source filenames or platform evidence where relevant, terminal-evidence status, environment provenance, collected dates, and waiver state while omitting workspace paths, raw command tails, smoke internals, full PR/check payloads, terminal-evidence freeform source text, command summaries, notes, cache paths, and token-shaped values. `launch-readiness --public-summary` includes the supplied `repository` identifier after local-path and secret-shaped redaction; remove or replace private owner/repo names before posting if those identifiers should not be public. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
@@ -70,14 +76,14 @@ When launch readiness depends on a stack of open PRs plus external blocker issue
 
 ```bash
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136
-architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136
-architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --required-check verify
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --required-check verify
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason"
-architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui evidence-index --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui evidence-index --markdown --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
-architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --markdown --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 
 `launch-stack` is a read-only GitHub CLI summary for PR and issue numbers. It can use explicit `--pr` flags or discover a stacked chain with `--stack-from-pr <number>`, ordered from the base PR to the head PR. Maintainers can repeat `--required-check <name>` when a specific CI job must exist on every listed PR; absent required checks are `no_go`. It is `no_go` for failed checks, missing required checks, dirty/unknown merge states, requested PR changes, or review-thread lookup failures; `conditional_go` for draft PRs, required review, unknown review decisions, unresolved review threads, pending checks, unstable merge states without explicit required-check evidence, or open blocker issues; and `go` only when supplied PRs are non-draft, review-compatible, have no unresolved review threads, are green, contain every required check, and supplied blocker issues are closed or explicitly waived. When unresolved review threads exist, `launch-stack --json` and `--merge-plan` expose public-safe thread routing details: URL, path, line, author, and outdated flag, never review bodies or diff hunks. A GitHub `UNSTABLE` merge state can be treated as ready only when GitHub also reports `mergeable=MERGEABLE`, no checks are failed or pending, and the caller supplied at least one explicit required check that is present and green. Waivers must be supplied by the maintainer as `--waive-blocker ISSUE=reason`; the report records `status: waived` and the public reason so a waiver is visible and does not pretend evidence exists.

@@ -1,8 +1,9 @@
 name: TUI published package smoke
 
 on:
-  pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
 
 permissions:
   contents: read
@@ -29,6 +30,9 @@ jobs:
 
           smoke_dir="$(mktemp -d)"
           trap 'rm -rf "$smoke_dir"' EXIT
+          workspace_dir="$smoke_dir/workspace"
+          mkdir -p "$workspace_dir"
+          export ARCHITECT_MCP_WORKSPACE="$workspace_dir"
 
           echo "Node: $(node --version)"
           echo "npm: $(npm --version)"
