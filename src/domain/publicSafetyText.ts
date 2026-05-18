@@ -29,5 +29,5 @@ export function publicSafeSummary(value: string): { value: string; redacted: boo
 }
 
 function containsRawOutput(value: string): boolean {
-  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/.test(value);
+  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/i.test(value);
 }

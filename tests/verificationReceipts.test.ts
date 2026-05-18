@@ -211,6 +211,9 @@ describe("reviewVerificationReceipts", () => {
       receipts: [
         receipt("npm test", {
           summary: "stdout:\n```json\n{\"private\":\"payload\"}\n```"
+        }),
+        receipt("npm run build", {
+          summary: "STDERR: private build output"
         })
       ],
       now
@@ -219,7 +222,10 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.status, "warn");
     assert.equal(report.receipts[0].publicSafeSummary, "[redacted-raw-output]");
     assert.equal(report.receipts[0].redacted, true);
+    assert.equal(report.receipts[1].publicSafeSummary, "[redacted-raw-output]");
+    assert.equal(report.receipts[1].redacted, true);
     assert.doesNotMatch(JSON.stringify(report), /```json/);
+    assert.doesNotMatch(JSON.stringify(report), /private build output/);
   });
 });
 
