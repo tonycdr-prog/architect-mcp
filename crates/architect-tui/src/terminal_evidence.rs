@@ -11,6 +11,7 @@ use crate::smoke::{SmokeOptions, SmokeReport, SmokeStatus, build_smoke_report};
 use crate::terminal_evidence_date::collected_at_value;
 use crate::terminal_evidence_environment::resolve_environment;
 pub(crate) use crate::terminal_evidence_issue_url::validate_issue_url;
+use crate::terminal_evidence_safety::sanitize_note;
 
 #[derive(Debug, Clone)]
 pub struct TerminalEvidenceOptions {
@@ -47,6 +48,11 @@ pub async fn run_terminal_evidence(
     } else {
         print_text_report(&report);
     }
+    if has_failed_terminal_evidence(&report) {
+        anyhow::bail!(
+            "terminal evidence failed; keep raw smoke output local and fix the smoke failure"
+        );
+    }
     Ok(())
 }
 
@@ -72,6 +78,7 @@ pub(crate) fn evidence_from_smoke(
     smoke: &SmokeReport,
     options: &TerminalEvidenceOptions,
 ) -> Result<TerminalEvidenceFile> {
+    validate_gate_evidence(smoke, options)?;
     let platform = resolve_platform(&smoke.environment.os, options.platform.as_deref())?;
     let source = options
         .source
@@ -95,6 +102,11 @@ pub(crate) fn evidence_from_smoke(
 }
 
 pub(crate) fn validate_output_mode(options: &TerminalEvidenceOptions) -> Result<Option<String>> {
+    if options.skip_gate {
+        anyhow::bail!(
+            "terminal-evidence cannot use --skip-gate; run the live gate smoke before collecting launch evidence"
+        );
+    }
     if options.json && options.markdown {
         anyhow::bail!("choose only one terminal-evidence output mode: --json or --markdown");
     }
@@ -105,6 +117,25 @@ pub(crate) fn validate_output_mode(options: &TerminalEvidenceOptions) -> Result<
         return Ok(Some(validate_issue_url(issue_url)?));
     }
     Ok(None)
+}
+
+fn validate_gate_evidence(smoke: &SmokeReport, options: &TerminalEvidenceOptions) -> Result<()> {
+    if options.skip_gate
+        || !smoke.gate_only.attempted
+        || smoke.gate_only.status.as_deref() == Some("skipped")
+    {
+        anyhow::bail!(
+            "terminal-evidence requires a live gate smoke run; skipped gates cannot produce launch evidence"
+        );
+    }
+    Ok(())
+}
+
+pub(crate) fn has_failed_terminal_evidence(report: &TerminalEvidenceFile) -> bool {
+    report
+        .reports
+        .iter()
+        .any(|report| matches!(report.status, LaunchJudgeTerminalEvidenceStatus::Failed))
 }
 
 pub(crate) fn render_markdown(
@@ -210,61 +241,6 @@ fn tool_summary(smoke: &SmokeReport) -> String {
         })
         .collect::<Vec<_>>()
         .join(",")
-}
-
-pub(crate) fn sanitize_note(note: &str) -> String {
-    let first_line = note.lines().next().unwrap_or_default().replace('\\', "/");
-    first_line
-        .split_whitespace()
-        .map(|part| {
-            if looks_like_local_path(part) {
-                "[redacted-path]"
-            } else if looks_like_secret(part) {
-                "[redacted-secret]"
-            } else {
-                part
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
-        .chars()
-        .take(240)
-        .collect()
-}
-
-fn looks_like_local_path(part: &str) -> bool {
-    let lower = part
-        .trim_matches(|ch: char| {
-            matches!(
-                ch,
-                ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\''
-            )
-        })
-        .to_ascii_lowercase();
-    lower.starts_with("/")
-        || lower.contains("/users/")
-        || lower.contains("/home/")
-        || (lower.len() >= 3 && lower.as_bytes()[1] == b':' && lower.as_bytes()[2] == b'/')
-}
-
-fn looks_like_secret(part: &str) -> bool {
-    let lower = part
-        .trim_matches(|ch: char| {
-            matches!(
-                ch,
-                ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\''
-            )
-        })
-        .to_ascii_lowercase();
-    lower.contains("npm_")
-        || lower.contains("ghp_")
-        || lower.contains("gho_")
-        || lower.contains("ghu_")
-        || lower.contains("ghs_")
-        || lower.contains("ghr_")
-        || lower.contains("github_pat_")
-        || lower.contains("sk-")
-        || lower.contains("xoxb-")
 }
 
 fn pass_fail(ok: bool) -> &'static str {
