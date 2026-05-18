@@ -51,7 +51,7 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   const findings: ReceiptFinding[] = [];
   const reviewedReceipts = receipts.map((receipt) => {
     const safeCommand = publicSafeText(receipt.command);
-    const safeSummary = publicSafeText(receipt.summary);
+    const safeSummary = publicSafeSummary(receipt.summary);
     return {
       command: safeCommand.value,
       status: receipt.status,
@@ -206,7 +206,7 @@ function summarizeVerificationRecords(records: VerificationRecord[]) {
 
 function publicSafeOptionalText(value: string | undefined): { value: string | undefined; redacted: boolean } {
   if (value === undefined) return { value: undefined, redacted: false };
-  return publicSafeText(value);
+  return publicSafeSummary(value);
 }
 
 export function publicSafeText(value: string): { value: string; redacted: boolean } {
@@ -225,4 +225,15 @@ export function publicSafeText(value: string): { value: string; redacted: boolea
     });
   }
   return { value: safe, redacted };
+}
+
+function publicSafeSummary(value: string): { value: string; redacted: boolean } {
+  if (containsRawOutput(value)) {
+    return { value: "[redacted-raw-output]", redacted: true };
+  }
+  return publicSafeText(value);
+}
+
+function containsRawOutput(value: string): boolean {
+  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/.test(value);
 }

@@ -219,6 +219,21 @@ describe("createWorkGateSequenceReceipt", () => {
     assert.match(receipt.steps[0].publicSummary ?? "", /\[redacted-token\]/);
     assert.doesNotMatch(JSON.stringify(receipt), /abcdefghijklmnopqrstuvwxyz123456|\/Users\/example/);
   });
+
+  it("redacts fenced raw output and stdout/stderr markers from gate public summaries", () => {
+    const receipt = createWorkGateSequenceReceipt({
+      records: workGateSequence.map((gate) => receiptRecord(gate, {
+        publicSummary: gate === "grill_me"
+          ? "stderr:\n```text\nstacktrace and payload\n```"
+          : "Reviewed public-safe evidence."
+      }))
+    });
+
+    assert.equal(receipt.status, "warn");
+    assert.equal(receipt.steps[0].publicSummary, "[redacted-raw-output]");
+    assert.equal(receipt.steps[0].redacted, true);
+    assert.doesNotMatch(JSON.stringify(receipt), /stacktrace|```text/);
+  });
 });
 
 function record(gate: typeof workGateSequence[number], overrides: Partial<ReturnType<typeof recordShape>> = {}) {

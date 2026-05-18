@@ -89,6 +89,23 @@ describe("reviewVerificationReceipts", () => {
     assert.match(report.findings.find((finding) => finding.code === "VERIFY_RECEIPT001_MISSING")?.message ?? "", /\[redacted-local-path\]/);
     assert.doesNotMatch(serialized, /npm_123456789012345678901234567890|\/Users\/example|2026-05-17T22:30:00.000Z/);
   });
+
+  it("redacts fenced raw output and stdout/stderr markers from receipt summaries", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["npm test"],
+      receipts: [
+        receipt("npm test", {
+          summary: "stdout:\n```json\n{\"private\":\"payload\"}\n```"
+        })
+      ],
+      now
+    });
+
+    assert.equal(report.status, "warn");
+    assert.equal(report.receipts[0].publicSafeSummary, "[redacted-raw-output]");
+    assert.equal(report.receipts[0].redacted, true);
+    assert.doesNotMatch(JSON.stringify(report), /```json/);
+  });
 });
 
 function receipt(command: string, overrides: Partial<VerificationReceipt> = {}) {
