@@ -4,10 +4,13 @@ use anyhow::Result;
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::issue_terminal_evidence_output::print_text_report;
 pub(crate) use crate::issue_terminal_evidence_source::extract_json_blocks;
 #[cfg(test)]
 use crate::issue_terminal_evidence_source::issue_content_from_value;
-use crate::issue_terminal_evidence_source::{IssueContent, fetch_issue_content, public_text};
+use crate::issue_terminal_evidence_source::{
+    IssueContent, fetch_issue_content, issue_terminal_evidence_source_path, public_text,
+};
 use crate::launch_judge_evidence::{
     build_terminal_evidence_summary, parse_terminal_evidence_value,
 };
@@ -151,11 +154,24 @@ fn build_report_from_issue(
 ) -> IssueTerminalEvidenceReport {
     let mut blocks = Vec::new();
     let mut reports = Vec::new();
-    let mut findings = Vec::new();
+    let mut global_findings = Vec::new();
     let mut hard_failure = false;
+    let mut has_issue_body_blocks = false;
+    let mut has_comment_blocks = false;
+    let rejected_block_finding = |source: &str| {
+        format!("{source}: terminal evidence block rejected; see extractedBlocks issues")
+    };
 
     for body in issue.bodies() {
-        for (index, block) in extract_json_blocks(&body.body).iter().enumerate() {
+        let json_blocks = extract_json_blocks(&body.body);
+        if !json_blocks.is_empty() {
+            if body.source == "issue body" {
+                has_issue_body_blocks = true;
+            } else {
+                has_comment_blocks = true;
+            }
+        }
+        for (index, block) in json_blocks.iter().enumerate() {
             let source = format!("{} block {}", body.source, index + 1);
             match serde_json::from_str::<Value>(block) {
                 Ok(value) => match parse_terminal_evidence_value(value, &source) {
@@ -165,7 +181,7 @@ fn build_report_from_issue(
                             let issues = vec![format!(
                                 "{source}: terminal evidence schemaVersion must be 1"
                             )];
-                            findings.extend(issues.clone());
+                            global_findings.push(rejected_block_finding(&source));
                             blocks.push(IssueTerminalEvidenceBlock {
                                 source,
                                 status: IssueTerminalEvidenceBlockStatus::Rejected,
@@ -185,7 +201,7 @@ fn build_report_from_issue(
                     }
                     Err(issues) => {
                         hard_failure = true;
-                        findings.extend(issues.clone());
+                        global_findings.push(rejected_block_finding(&source));
                         blocks.push(IssueTerminalEvidenceBlock {
                             source,
                             status: IssueTerminalEvidenceBlockStatus::Rejected,
@@ -197,7 +213,7 @@ fn build_report_from_issue(
                 Err(error) => {
                     hard_failure = true;
                     let issues = vec![format!("{source}: JSON could not be parsed: {error}")];
-                    findings.extend(issues.clone());
+                    global_findings.push(rejected_block_finding(&source));
                     blocks.push(IssueTerminalEvidenceBlock {
                         source,
                         status: IssueTerminalEvidenceBlockStatus::Rejected,
@@ -210,19 +226,19 @@ fn build_report_from_issue(
     }
 
     if blocks.is_empty() {
-        findings.push(format!(
+        global_findings.push(format!(
             "issue #{} does not contain terminal-evidence JSON blocks",
             issue.number()
         ));
     }
 
-    let source_path = if blocks.is_empty() {
-        None
-    } else {
-        Some(format!("issue #{} comments", issue.number()))
-    };
+    let source_path = issue_terminal_evidence_source_path(
+        issue.number(),
+        has_issue_body_blocks,
+        has_comment_blocks,
+    );
     let (summary, check) =
-        build_terminal_evidence_summary(source_path, reports, findings.clone(), hard_failure);
+        build_terminal_evidence_summary(source_path, reports, global_findings, hard_failure);
     build_report_from_summary(
         repository,
         IssueTerminalEvidenceIssue {
@@ -274,24 +290,5 @@ fn build_report_from_summary(
         terminal_evidence,
         merged_evidence,
         next_actions,
-    }
-}
-
-fn print_text_report(report: &IssueTerminalEvidenceReport) {
-    println!(
-        "architect-mcp-tui issue terminal evidence: {:?}",
-        report.result
-    );
-    println!("- issue #{}: {}", report.issue.number, report.issue.title);
-    println!("- extracted blocks: {}", report.extracted_blocks.len());
-    println!("- reports: {}", report.terminal_evidence.reports.len());
-    for finding in &report.findings {
-        println!("- finding: {finding}");
-    }
-    if !report.next_actions.is_empty() {
-        println!("next actions:");
-        for action in &report.next_actions {
-            println!("- {action}");
-        }
     }
 }

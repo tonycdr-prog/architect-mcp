@@ -70,6 +70,10 @@ fn collector_passes_complete_linux_and_windows_issue_evidence() {
     assert_eq!(report.result, LaunchJudgeResult::Go);
     assert_eq!(report.extracted_blocks.len(), 2);
     assert_eq!(report.terminal_evidence.reports.len(), 2);
+    assert_eq!(
+        report.terminal_evidence.source_path.as_deref(),
+        Some("issue #136 comments")
+    );
     assert!(report.findings.is_empty());
     assert_eq!(
         report
@@ -166,8 +170,8 @@ fn collector_rejects_unsafe_evidence_blocks() {
         IssueTerminalEvidenceBlockStatus::Rejected
     );
     assert!(
-        report
-            .findings
+        report.extracted_blocks[0]
+            .issues
             .iter()
             .any(|finding| finding.contains("secret-shaped or local-path"))
     );
@@ -195,8 +199,8 @@ fn collector_rejects_malformed_json_blocks() {
         IssueTerminalEvidenceBlockStatus::Rejected
     );
     assert!(
-        report
-            .findings
+        report.extracted_blocks[0]
+            .issues
             .iter()
             .any(|finding| finding.contains("JSON could not be parsed"))
     );

@@ -86,6 +86,9 @@ mod interactive_integrations_support;
 mod interactive_support;
 mod interactive_update;
 pub mod issue_terminal_evidence;
+#[cfg(test)]
+mod issue_terminal_evidence_hardening_tests;
+mod issue_terminal_evidence_output;
 mod issue_terminal_evidence_source;
 #[cfg(test)]
 mod issue_terminal_evidence_tests;

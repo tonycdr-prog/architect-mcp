@@ -67,7 +67,11 @@ fn readiness_is_no_go_when_terminal_evidence_is_malformed() {
     assert_eq!(report.result, LaunchJudgeResult::NoGo);
     assert!(
         report
-            .findings
+            .terminal_evidence_issue
+            .as_ref()
+            .expect("terminal evidence issue")
+            .extracted_blocks[0]
+            .issues
             .iter()
             .any(|finding| finding.contains("JSON could not be parsed"))
     );
@@ -97,7 +101,11 @@ fn readiness_is_no_go_when_terminal_evidence_is_unsafe() {
     assert_eq!(report.result, LaunchJudgeResult::NoGo);
     assert!(
         report
-            .findings
+            .terminal_evidence_issue
+            .as_ref()
+            .expect("terminal evidence issue")
+            .extracted_blocks[0]
+            .issues
             .iter()
             .any(|finding| finding.contains("local-path content"))
     );
@@ -274,7 +282,11 @@ fn readiness_terminal_waiver_does_not_override_unsafe_evidence() {
     );
     assert!(
         report
-            .findings
+            .terminal_evidence_issue
+            .as_ref()
+            .expect("terminal evidence issue")
+            .extracted_blocks[0]
+            .issues
             .iter()
             .any(|finding| finding.contains("local-path content"))
     );
