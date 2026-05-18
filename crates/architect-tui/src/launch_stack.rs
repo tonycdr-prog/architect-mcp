@@ -55,6 +55,7 @@ pub struct LaunchStackPullRequest {
     pub url: String,
     pub is_draft: bool,
     pub review_decision: Option<String>,
+    pub unresolved_review_threads: usize,
     pub merge_state_status: String,
     pub mergeable: Option<String>,
     pub checks: LaunchStackCheckSummary,

@@ -31,6 +31,8 @@ pub struct LaunchReadinessPublicStack {
     pub pull_request_count: usize,
     pub pull_request_order: Vec<u64>,
     pub pull_request_status: LaunchReadinessPublicStatusCounts,
+    pub unresolved_review_thread_count: usize,
+    pub unresolved_review_threads: Vec<LaunchReadinessPublicUnresolvedReviewThreads>,
     pub missing_required_check_count: usize,
     pub missing_required_checks: Vec<LaunchReadinessPublicMissingRequiredCheck>,
     pub blocker_issues: Vec<LaunchReadinessPublicBlockerIssue>,
@@ -59,6 +61,13 @@ pub struct LaunchReadinessPublicBlockerIssue {
 pub struct LaunchReadinessPublicMissingRequiredCheck {
     pub pull_request: u64,
     pub names: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchReadinessPublicUnresolvedReviewThreads {
+    pub pull_request: u64,
+    pub count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -127,6 +136,11 @@ fn public_stack(stack: &LaunchStackReport) -> LaunchReadinessPublicStack {
         .iter()
         .map(|entry| entry.names.len())
         .sum();
+    let unresolved_review_threads = unresolved_review_threads(stack);
+    let unresolved_review_thread_count = unresolved_review_threads
+        .iter()
+        .map(|entry| entry.count)
+        .sum();
     LaunchReadinessPublicStack {
         result: stack.result.clone(),
         from_pr: stack
@@ -144,6 +158,8 @@ fn public_stack(stack: &LaunchStackReport) -> LaunchReadinessPublicStack {
             .map(|discovery| discovery.pull_requests.clone())
             .unwrap_or_else(|| stack.pull_requests.iter().map(|pr| pr.number).collect()),
         pull_request_status: status_counts(stack.pull_requests.iter().map(|pr| &pr.status)),
+        unresolved_review_thread_count,
+        unresolved_review_threads,
         missing_required_check_count,
         missing_required_checks,
         blocker_issues: stack
@@ -157,6 +173,20 @@ fn public_stack(stack: &LaunchStackReport) -> LaunchReadinessPublicStack {
             })
             .collect(),
     }
+}
+
+fn unresolved_review_threads(
+    stack: &LaunchStackReport,
+) -> Vec<LaunchReadinessPublicUnresolvedReviewThreads> {
+    stack
+        .pull_requests
+        .iter()
+        .filter(|pr| pr.unresolved_review_threads > 0)
+        .map(|pr| LaunchReadinessPublicUnresolvedReviewThreads {
+            pull_request: pr.number,
+            count: pr.unresolved_review_threads,
+        })
+        .collect()
 }
 
 fn missing_required_checks(

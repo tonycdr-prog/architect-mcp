@@ -3,6 +3,7 @@ use crate::launch_stack::{LaunchStackCheckSummary, LaunchStackItemStatus};
 pub(crate) struct PrStatusEvidence<'a> {
     pub is_draft: bool,
     pub review_decision: Option<&'a str>,
+    pub unresolved_review_threads: usize,
     pub merge_state_status: &'a str,
     pub mergeable: Option<&'a str>,
     pub checks: &'a LaunchStackCheckSummary,
@@ -19,6 +20,7 @@ pub(crate) fn pr_status(evidence: &PrStatusEvidence<'_>) -> LaunchStackItemStatu
     } else if evidence.is_draft
         || is_review_required(evidence.review_decision)
         || has_unknown_review_decision(evidence.review_decision)
+        || evidence.unresolved_review_threads > 0
         || evidence.checks.pending > 0
         || evidence.checks.total == 0
         || is_unresolved_merge_state(
@@ -67,6 +69,10 @@ pub(crate) fn pr_next_action(
                 "inspect PR #{number} review decision before final launch go"
             ))
         }
+        LaunchStackItemStatus::Warning if evidence.unresolved_review_threads > 0 => Some(format!(
+            "resolve {} unresolved review thread(s) on PR #{number} before final launch go",
+            evidence.unresolved_review_threads
+        )),
         LaunchStackItemStatus::Warning if evidence.checks.pending > 0 => Some(format!(
             "wait for PR #{number} checks to finish before final launch go"
         )),

@@ -1,13 +1,14 @@
 use std::path::Path;
-use std::process::Command;
 
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::launch_stack::{
     LaunchStackCheckSummary, LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest,
 };
+pub(crate) use crate::launch_stack_github_support::{public_text, run_gh_json};
 use crate::launch_stack_pr_status::{PrStatusEvidence, pr_next_action, pr_status};
 use crate::launch_stack_required_checks::apply_required_checks;
+use crate::launch_stack_review_threads::fetch_unresolved_review_threads;
 
 pub(crate) fn fetch_pr(
     workspace: &Path,
@@ -20,11 +21,25 @@ pub(crate) fn fetch_pr(
         "view".to_string(),
         number.to_string(),
         "--json".to_string(),
-        "number,title,url,isDraft,reviewDecision,mergeStateStatus,mergeable,statusCheckRollup"
+        "id,number,title,url,isDraft,reviewDecision,mergeStateStatus,mergeable,statusCheckRollup"
             .to_string(),
     ];
     append_repo_args(&mut args, repo);
-    let value = run_gh_json(workspace, &args).map_err(|error| format!("PR #{number}: {error}"))?;
+    let mut value =
+        run_gh_json(workspace, &args).map_err(|error| format!("PR #{number}: {error}"))?;
+    let pr_id = value
+        .get("id")
+        .and_then(Value::as_str)
+        .filter(|id| !id.trim().is_empty())
+        .ok_or_else(|| format!("PR #{number}: GitHub response omitted PR node id"))?;
+    let unresolved_review_threads = fetch_unresolved_review_threads(workspace, pr_id)
+        .map_err(|error| format!("PR #{number}: {error}"))?;
+    if let Some(object) = value.as_object_mut() {
+        object.insert(
+            "unresolvedReviewThreads".to_string(),
+            json!(unresolved_review_threads),
+        );
+    }
     Ok(pr_from_value_with_required_checks(
         number,
         &value,
@@ -84,11 +99,16 @@ pub(crate) fn pr_from_value_with_required_checks(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(|value| public_text(&value.to_ascii_uppercase(), 80));
+    let unresolved_review_threads = value
+        .get("unresolvedReviewThreads")
+        .and_then(Value::as_u64)
+        .unwrap_or_default() as usize;
     let mut checks = summarize_checks(value.get("statusCheckRollup"));
     apply_required_checks(&mut checks, required_checks);
     let evidence = PrStatusEvidence {
         is_draft,
         review_decision: review_decision.as_deref(),
+        unresolved_review_threads,
         merge_state_status: &merge_state_status,
         mergeable: mergeable.as_deref(),
         checks: &checks,
@@ -105,6 +125,7 @@ pub(crate) fn pr_from_value_with_required_checks(
         url: public_text(value.get("url").and_then(Value::as_str).unwrap_or(""), 240),
         is_draft,
         review_decision,
+        unresolved_review_threads,
         merge_state_status: public_text(&merge_state_status, 80),
         mergeable,
         checks,
@@ -201,80 +222,9 @@ pub(crate) fn summarize_checks(value: Option<&Value>) -> LaunchStackCheckSummary
     summary
 }
 
-pub(crate) fn public_text(value: &str, max_len: usize) -> String {
-    let normalized = value
-        .replace('\\', "/")
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ");
-    if is_private_key_material(&normalized) {
-        return "[redacted-secret]".to_string();
-    }
-    let mut text = normalized
-        .split_whitespace()
-        .map(redact_token)
-        .collect::<Vec<_>>()
-        .join(" ");
-    if text.chars().count() > max_len {
-        text = text.chars().take(max_len).collect::<String>();
-        text.push_str(" [truncated]");
-    }
-    text
-}
-
 pub(crate) fn append_repo_args(args: &mut Vec<String>, repo: Option<&str>) {
     if let Some(repo) = repo.filter(|repo| !repo.trim().is_empty()) {
         args.push("--repo".to_string());
         args.push(repo.to_string());
     }
-}
-
-pub(crate) fn run_gh_json(workspace: &Path, args: &[String]) -> Result<Value, String> {
-    let output = Command::new("gh")
-        .args(args)
-        .current_dir(workspace)
-        .output()
-        .map_err(|error| {
-            format!(
-                "gh command could not run: {}",
-                public_text(&error.to_string(), 240)
-            )
-        })?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!(
-            "gh command failed: {}",
-            public_text(stderr.trim(), 240)
-        ));
-    }
-    serde_json::from_slice(&output.stdout)
-        .map_err(|error| format!("gh JSON could not be parsed: {error}"))
-}
-
-fn redact_token(token: &str) -> String {
-    let lower = token.to_ascii_lowercase();
-    if lower.contains("npm_")
-        || lower.contains("ghp_")
-        || lower.contains("github_pat_")
-        || lower.contains("sk-")
-        || lower.contains("xoxb-")
-        || is_private_key_material(token)
-    {
-        "[redacted-secret]".to_string()
-    } else if lower.starts_with("/")
-        || lower.contains("/users/")
-        || lower.contains("/home/")
-        || (lower.len() >= 3 && lower.as_bytes()[1] == b':' && lower.as_bytes()[2] == b'/')
-    {
-        "[redacted-local-path]".to_string()
-    } else {
-        token.to_string()
-    }
-}
-
-fn is_private_key_material(value: &str) -> bool {
-    let lower = value.to_ascii_lowercase();
-    lower.contains("begin") && lower.contains("private") && lower.contains("key")
 }

@@ -176,6 +176,32 @@ fn merge_plan_shows_review_decision_holds() {
 }
 
 #[test]
+fn merge_plan_shows_unresolved_review_thread_holds() {
+    let pr = pr_from_value(
+        10,
+        &json!({
+            "number": 10,
+            "title": "approved with thread left open",
+            "url": "https://github.com/example/repo/pull/10",
+            "isDraft": false,
+            "reviewDecision": "APPROVED",
+            "unresolvedReviewThreads": 1,
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+    );
+    let report = build_report_from_items(None, vec![pr], Vec::new(), Vec::new());
+
+    let text = render_launch_stack_merge_plan(&report).join("\n");
+
+    assert!(text.contains("PR #10 [hold] approved with thread left open"));
+    assert!(text.contains("unresolved_threads=1"));
+    assert!(text.contains("resolve 1 unresolved review thread(s) on PR #10"));
+}
+
+#[test]
 fn merge_plan_shows_missing_required_checks() {
     let pr = pr_from_value_with_required_checks(
         10,
