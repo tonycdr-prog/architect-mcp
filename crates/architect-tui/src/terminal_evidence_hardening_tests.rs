@@ -3,7 +3,10 @@ use crate::launch_judge_report::{
     LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceReport,
     LaunchJudgeTerminalEvidenceStatus,
 };
-use crate::terminal_evidence::{TerminalEvidenceFile, render_markdown, resolve_platform};
+use crate::terminal_evidence::{
+    TerminalEvidenceFile, TerminalEvidenceOptions, render_markdown, resolve_platform,
+    validate_output_mode,
+};
 use crate::terminal_evidence_issue_url::validate_issue_url;
 
 #[test]
@@ -52,6 +55,29 @@ fn terminal_evidence_markdown_can_name_target_issue_url() {
     ));
     assert!(markdown.contains("This command does not create, edit, or close GitHub issues"));
     assert_eq!(extract_json_blocks(&markdown).len(), 1);
+}
+
+#[test]
+fn terminal_evidence_rejects_issue_url_without_markdown_mode() {
+    let error = validate_output_mode(&TerminalEvidenceOptions {
+        json: true,
+        markdown: false,
+        prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
+        skip_gate: false,
+        platform: None,
+        environment: None,
+        source: None,
+        notes: None,
+        collected_at: None,
+        issue_url: Some("https://github.com/tonycdr-prog/architect-mcp/issues/136".to_string()),
+    })
+    .expect_err("issue-url should only be meaningful in markdown mode");
+
+    assert!(
+        error
+            .to_string()
+            .contains("--issue-url can only be used with --markdown")
+    );
 }
 
 #[test]

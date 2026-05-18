@@ -153,29 +153,6 @@ fn terminal_evidence_rejects_ambiguous_output_modes() {
 }
 
 #[test]
-fn terminal_evidence_rejects_issue_url_without_markdown_mode() {
-    let error = validate_output_mode(&TerminalEvidenceOptions {
-        json: true,
-        markdown: false,
-        prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
-        skip_gate: false,
-        platform: None,
-        environment: None,
-        source: None,
-        notes: None,
-        collected_at: None,
-        issue_url: Some("https://github.com/tonycdr-prog/architect-mcp/issues/136".to_string()),
-    })
-    .expect_err("issue-url should only be meaningful in markdown mode");
-
-    assert!(
-        error
-            .to_string()
-            .contains("--issue-url can only be used with --markdown")
-    );
-}
-
-#[test]
 fn terminal_evidence_rejects_invalid_collected_at_override_without_echoing_input() {
     let smoke = smoke_report(SmokeStatus::Passed, "linux");
     let error = evidence_from_smoke(
