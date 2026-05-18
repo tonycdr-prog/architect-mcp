@@ -48,6 +48,7 @@ jobs:
               "Read only: unknown",
               "MCP gate: unknown",
               "Files reviewed: unknown",
+              "Scan truncated: unknown",
               "",
               "The governance audit command failed before a public-safe summary could be parsed.",
               "Do not copy raw local paths, secrets, private repo names, raw file contents, or raw audit JSON into public issues."

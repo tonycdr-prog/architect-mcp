@@ -6,12 +6,16 @@ pub(crate) fn governance_config_files(workspace: &Path) -> Vec<PathBuf> {
     let canonical_root = workspace
         .canonicalize()
         .unwrap_or_else(|_| workspace.to_path_buf());
-    collect_config_files(workspace, &canonical_root, workspace, 0, &mut files);
+    collect_config_files(&canonical_root, workspace, 0, &mut files);
+    files.sort_by(|left, right| {
+        let left = left.strip_prefix(workspace).unwrap_or(left);
+        let right = right.strip_prefix(workspace).unwrap_or(right);
+        left.cmp(right)
+    });
     files
 }
 
 fn collect_config_files(
-    root: &Path,
     canonical_root: &Path,
     current: &Path,
     depth: usize,
@@ -36,7 +40,7 @@ fn collect_config_files(
             if ignored_dir(&name) {
                 continue;
             }
-            collect_config_files(root, canonical_root, &path, depth + 1, files);
+            collect_config_files(canonical_root, &path, depth + 1, files);
         } else if file_type.is_file()
             && is_sensitive_config_name(&name)
             && path_stays_inside(&path, canonical_root)
@@ -44,11 +48,6 @@ fn collect_config_files(
             files.push(path);
         }
     }
-    files.sort_by(|left, right| {
-        let left = left.strip_prefix(root).unwrap_or(left);
-        let right = right.strip_prefix(root).unwrap_or(right);
-        left.cmp(right)
-    });
 }
 
 fn path_stays_inside(path: &Path, canonical_root: &Path) -> bool {
