@@ -182,6 +182,39 @@ async fn foundry_state_clears_when_brief_changes() {
     assert!(!session.foundry_approved);
 }
 
+#[tokio::test]
+async fn foundry_commands_require_passing_file_plan_review() {
+    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app failed file review private repo app")
+        .await
+        .expect("new app");
+    run_gate_to_file_review(&mut engine).await;
+
+    for command in [
+        "foundry plan launchpad",
+        "foundry approve reviewed",
+        "foundry stage",
+        "foundry create",
+        "foundry create --execute",
+    ] {
+        let blocked = engine
+            .apply_input(command)
+            .await
+            .expect_err("file-plan review should block foundry commands");
+        assert!(
+            blocked
+                .to_string()
+                .contains("file-plan review must pass before foundry plan"),
+            "unexpected error for {command}: {blocked}"
+        );
+    }
+}
+
 fn git_current_branch(path: &std::path::Path) -> String {
     let output = Command::new("git")
         .arg("-C")
@@ -235,6 +268,7 @@ rl.on('line', (line) => {
   } else if (msg.method === 'tools/list') {
     respond(msg.id, { tools: [{ name: 'grill_me' }, { name: 'create_pre_edit_contract' }, { name: 'review_build_plan' }, { name: 'review_proposed_file_plan' }] });
   } else if (msg.method === 'tools/call' && msg.params.name === 'grill_me') {
+    const failFilePlanReview = String(msg.params.arguments.brief.idea || '').includes('failed file review');
     tool(msg.id, {
       ready: true,
       blockers: [],
@@ -266,9 +300,15 @@ rl.on('line', (line) => {
       },
       scaffoldPlan: [
         { path: 'crates/architect-tui/src/foundry.rs', action: 'create-file', rationale: 'Foundry planning logic.' },
-        { path: 'crates/architect-tui/tests/foundry_workflows.rs', action: 'create-file', rationale: 'Approval and dry-run tests.' }
+        { path: 'crates/architect-tui/tests/foundry_workflows.rs', action: 'create-file', rationale: 'Approval and dry-run tests.' },
+        ...(failFilePlanReview ? [{ path: 'failed-file-review-marker', action: 'create-file', rationale: 'Fixture marker for failed file review.' }] : [])
       ],
       artifacts: [{ path: 'AGENTS.md', description: 'Agent rules.' }]
+    });
+  } else if (msg.method === 'tools/call' && msg.params.name === 'review_proposed_file_plan' && (msg.params.arguments.plan.files || []).some((file) => String(file.path || '').includes('failed-file-review'))) {
+    tool(msg.id, {
+      summary: { errors: 1, warnings: 0 },
+      violations: [{ code: 'ARCH017_PLAN_MISSING_HARNESS', severity: 'error', message: 'fixture failure', recommendation: 'fix fixture' }]
     });
   } else if (msg.method === 'tools/call') {
     tool(msg.id, { ok: true, name: msg.params.name });
