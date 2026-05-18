@@ -9,7 +9,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::arena::ArenaCandidateRecord;
-use crate::brief::{apply_brief_answer, brief_from_prompt};
+use crate::brief::{answer_affects_mcp_recommendations, apply_brief_answer, brief_from_prompt};
 use crate::foundry::RepoFoundryPlan;
 use crate::foundry_execution::RepoFoundryExecution;
 use crate::foundry_stage::RepoFoundryStage;
@@ -151,9 +151,12 @@ impl TuiSession {
     }
 
     pub fn set_answer(&mut self, key: &str, value: &str) {
+        let affects_mcp_recommendations = answer_affects_mcp_recommendations(key);
         apply_brief_answer(&mut self.brief, key, value);
         self.add_untrusted_inputs(labels_for_text(value));
-        self.clear_mcp_integration_state();
+        if affects_mcp_recommendations {
+            self.clear_mcp_integration_state();
+        }
         self.clear_foundry_state();
     }
 

@@ -1,13 +1,12 @@
 use architect_tui::config::TuiConfig;
 use architect_tui::interactive::InteractiveWorkflowEngine;
 use architect_tui::orchestrator::Orchestrator;
+use architect_tui::session::SessionStore;
 use std::process::Command;
 
 #[tokio::test]
 async fn integrations_recommend_database_needs_provider_before_supabase_plan() {
-    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
-        return;
-    };
+    let (orchestrator, _temp) = fake_mcp_orchestrator();
     let mut engine = InteractiveWorkflowEngine::new(orchestrator);
 
     engine
@@ -55,9 +54,7 @@ async fn integrations_recommend_database_needs_provider_before_supabase_plan() {
 
 #[tokio::test]
 async fn integrations_review_and_approval_gate_config_writes() {
-    let Some((orchestrator, temp)) = fake_mcp_orchestrator() else {
-        return;
-    };
+    let (orchestrator, temp) = fake_mcp_orchestrator();
     let target = temp.path().join(".mcp.json");
     let mut engine = InteractiveWorkflowEngine::new(orchestrator);
 
@@ -125,10 +122,56 @@ async fn integrations_review_and_approval_gate_config_writes() {
 }
 
 #[tokio::test]
+async fn integrations_write_does_not_record_apply_gate_when_write_is_not_completed() {
+    let (orchestrator, temp) = fake_mcp_orchestrator();
+    let target = temp.path().join("not-written.mcp.json");
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input(
+            "new app ready app with database=supabase users flows stack risks verification",
+        )
+        .await
+        .expect("new app");
+    engine
+        .apply_input("integrations recommend")
+        .await
+        .expect("recommend");
+    engine
+        .apply_input("integrations plan supabase target=codex")
+        .await
+        .expect("plan");
+    engine
+        .apply_input("integrations review")
+        .await
+        .expect("review");
+    let approved = engine
+        .apply_input("integrations approve reviewed pinned Supabase plan")
+        .await
+        .expect("approve");
+    let session_id = approved.session.expect("session").id;
+
+    let blocked = engine
+        .apply_input("integrations write not-written.mcp.json")
+        .await
+        .expect_err("non-written status blocks write");
+
+    assert!(
+        blocked
+            .to_string()
+            .contains("MCP install write did not complete: dry-run")
+    );
+    assert!(!target.exists());
+    let stored = SessionStore::for_workspace(temp.path())
+        .load(&session_id)
+        .expect("stored session");
+    assert!(!stored.gates.contains_key("apply_mcp_install_plan"));
+    assert!(stored.mcp_install_approved);
+}
+
+#[tokio::test]
 async fn integrations_fail_closed_for_unknown_and_failed_install_reviews() {
-    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
-        return;
-    };
+    let (orchestrator, _temp) = fake_mcp_orchestrator();
     let mut engine = InteractiveWorkflowEngine::new(orchestrator);
 
     engine
@@ -184,9 +227,7 @@ async fn integrations_fail_closed_for_unknown_and_failed_install_reviews() {
 
 #[tokio::test]
 async fn changing_answers_clears_stale_integration_state() {
-    let Some((orchestrator, _temp)) = fake_mcp_orchestrator() else {
-        return;
-    };
+    let (orchestrator, _temp) = fake_mcp_orchestrator();
     let mut engine = InteractiveWorkflowEngine::new(orchestrator);
 
     engine
@@ -237,17 +278,61 @@ async fn changing_answers_clears_stale_integration_state() {
     assert!(blocked.to_string().contains("run integrations recommend"));
 }
 
-fn fake_mcp_orchestrator() -> Option<(Orchestrator, tempfile::TempDir)> {
-    if Command::new("node").arg("--version").output().is_err() {
-        return None;
-    }
+#[tokio::test]
+async fn unrelated_answers_preserve_reviewed_mcp_integration_state() {
+    let (orchestrator, _temp) = fake_mcp_orchestrator();
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input(
+            "new app ready app with database=supabase users flows stack risks verification",
+        )
+        .await
+        .expect("new app");
+    engine
+        .apply_input("integrations recommend")
+        .await
+        .expect("recommend");
+    engine
+        .apply_input("integrations plan supabase target=codex")
+        .await
+        .expect("plan");
+    engine
+        .apply_input("integrations review")
+        .await
+        .expect("review");
+    engine
+        .apply_input("integrations approve reviewed pinned Supabase plan")
+        .await
+        .expect("approve");
+
+    let answer = engine
+        .apply_input("answer verification=cargo test -p architect-tui mcp_integrations")
+        .await
+        .expect("answer");
+    let session = answer.session.expect("session");
+
+    assert!(session.mcp_recommendation.is_some());
+    assert!(session.mcp_install_plan.is_some());
+    assert!(session.mcp_install_review.is_some());
+    assert!(session.mcp_install_approved);
+    assert!(session.gates.contains_key("recommend_mcp_servers"));
+    assert!(session.gates.contains_key("create_mcp_install_plan"));
+    assert!(session.gates.contains_key("review_mcp_install_plan"));
+}
+
+fn fake_mcp_orchestrator() -> (Orchestrator, tempfile::TempDir) {
+    Command::new("node")
+        .arg("--version")
+        .output()
+        .expect("node must be available to run MCP integration fixture tests");
     let temp = tempfile::tempdir().expect("tempdir");
     let server_path = temp.path().join("fake-mcp.mjs");
     std::fs::write(&server_path, fake_mcp_server_script()).expect("fake server");
     let mut config = TuiConfig::default();
     config.architect_mcp.command = Some("node".to_string());
     config.architect_mcp.args = vec![server_path.display().to_string()];
-    Some((Orchestrator::new(temp.path(), config), temp))
+    (Orchestrator::new(temp.path(), config), temp)
 }
 
 fn fake_mcp_server_script() -> &'static str {
@@ -347,6 +432,15 @@ rl.on('line', (line) => {
   if (name === 'apply_mcp_install_plan') {
     const targetPath = request.targetPath ?? '.mcp.json';
     const resolved = path.resolve(process.cwd(), targetPath);
+    if (targetPath.includes('not-written')) {
+      tool(msg.id, {
+        status: 'dry-run',
+        targetPath: resolved,
+        files: [{ path: resolved, operation: 'create', content: JSON.stringify(request.plan.clientConfig, null, 2) }],
+        review: { status: 'pass', findings: [] }
+      });
+      return;
+    }
     if (request.writeFiles && request.explicitApproval) {
       fs.writeFileSync(resolved, `${JSON.stringify(request.plan.clientConfig, null, 2)}\n`, 'utf8');
       tool(msg.id, { status: 'written', targetPath: resolved, review: { status: 'pass', findings: [] } });

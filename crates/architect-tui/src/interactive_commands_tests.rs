@@ -53,6 +53,25 @@ fn parses_command_palette_actions() {
         }
     );
     assert_eq!(
+        parse_workflow_command("integrations plan supabase codex"),
+        WorkflowCommand::IntegrationsPlan {
+            server_id: "supabase".to_string(),
+            target_client: Some("codex".to_string())
+        }
+    );
+    assert_eq!(
+        parse_workflow_command("integrations plan supabase target="),
+        WorkflowCommand::Help
+    );
+    assert_eq!(
+        parse_workflow_command("integrations plan supabase target=codex extra"),
+        WorkflowCommand::Help
+    );
+    assert_eq!(
+        parse_workflow_command("mcp plan supabase target=codex extra"),
+        WorkflowCommand::Help
+    );
+    assert_eq!(
         parse_workflow_command("integrations apply .mcp.json"),
         WorkflowCommand::IntegrationsApplyDryRun {
             target_path: Some(".mcp.json".to_string())
