@@ -100,7 +100,7 @@ impl InteractiveWorkflowEngine {
             let Some(stage) = &session.foundry_stage else {
                 anyhow::bail!("run foundry stage before foundry create --execute");
             };
-            ensure_staged_repo_exists(stage)?;
+            ensure_staged_repo_exists(&self.orchestrator.workspace, &session.id, plan, stage)?;
             let execution = execute_repo_foundry_plan(plan, stage)?;
             let status = execution.status.clone();
             let command_count = execution.commands.len();
