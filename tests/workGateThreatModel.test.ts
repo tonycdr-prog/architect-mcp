@@ -73,6 +73,28 @@ describe("work gate threat model", () => {
     ), true);
   });
 
+  it("does not overclaim coverage when a bypass case has invalid source references", () => {
+    const id = "invalid-source-reference";
+    const injectedCase: WorkGateBypassCase = {
+      ...WORK_GATE_BYPASS_CASES[0],
+      id,
+      untrustedSources: ["issue-pr-typo"],
+      affectedBoundaryIds: ["tui-promotion", "release-check"]
+    };
+    WORK_GATE_BYPASS_CASES.push(injectedCase);
+
+    try {
+      const evaluation = evaluateBypassCase(id);
+
+      assert.equal(evaluation.referenceReview.valid, false);
+      assert.equal(evaluation.protectedByArchitectMcpAlone, false);
+      assert.equal(evaluation.requiredControls.includes("fix threat-model reference ids before claiming coverage"), true);
+    } finally {
+      const removed = WORK_GATE_BYPASS_CASES.pop();
+      assert.equal(removed?.id, id);
+    }
+  });
+
   it("covers the main untrusted input paths agents see during repository work", () => {
     const sourceIds = UNTRUSTED_AGENT_INPUTS.map((source) => source.id);
 
