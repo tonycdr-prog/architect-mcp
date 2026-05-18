@@ -322,10 +322,14 @@ async fn unrelated_answers_preserve_reviewed_mcp_integration_state() {
 }
 
 fn fake_mcp_orchestrator() -> (Orchestrator, tempfile::TempDir) {
-    Command::new("node")
+    let node_probe = Command::new("node")
         .arg("--version")
         .output()
         .expect("node must be available to run MCP integration fixture tests");
+    assert!(
+        node_probe.status.success(),
+        "node --version must exit successfully to run MCP integration fixture tests"
+    );
     let temp = tempfile::tempdir().expect("tempdir");
     let server_path = temp.path().join("fake-mcp.mjs");
     std::fs::write(&server_path, fake_mcp_server_script()).expect("fake server");
