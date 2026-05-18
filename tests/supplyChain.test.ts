@@ -214,6 +214,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
     assert.match(rustTui, /Untrusted input labeling is metadata, not prompt-injection prevention/);
     assert.match(rustTui, /adapter prompt includes an untrusted-input policy notice/);
+    assert.match(rustTui, /Promotion approval stays blocked until adapter evidence, isolated-worktree evidence, changed-file evidence, passed verification, `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` are all recorded\./);
+    assert.match(rustTui, /Overrides can bypass adapter-run, review, and verification blockers; they never replace isolated-worktree evidence or changed-file evidence\./);
     assert.match(rustTui, /--collected-at YYYY-MM-DD/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
