@@ -56,11 +56,23 @@ pub struct LaunchStackPullRequest {
     pub is_draft: bool,
     pub review_decision: Option<String>,
     pub unresolved_review_threads: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unresolved_review_thread_details: Vec<LaunchStackReviewThread>,
     pub merge_state_status: String,
     pub mergeable: Option<String>,
     pub checks: LaunchStackCheckSummary,
     pub status: LaunchStackItemStatus,
     pub next_action: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchStackReviewThread {
+    pub url: String,
+    pub path: String,
+    pub line: Option<u64>,
+    pub author: Option<String>,
+    pub outdated: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]

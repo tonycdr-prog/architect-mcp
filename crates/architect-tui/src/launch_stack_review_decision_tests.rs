@@ -144,3 +144,54 @@ fn launch_stack_unresolved_review_threads_block_final_go() {
         Some("resolve 2 unresolved review thread(s) on PR #10 before final launch go")
     );
 }
+
+#[test]
+fn launch_stack_keeps_public_safe_review_thread_handoff_details() {
+    let pr = pr_from_value(
+        10,
+        &json!({
+            "number": 10,
+            "title": "review comments still open",
+            "url": "https://github.com/example/repo/pull/10",
+            "isDraft": false,
+            "reviewDecision": "APPROVED",
+            "unresolvedReviewThreads": 1,
+            "unresolvedReviewThreadDetails": [
+                {
+                    "url": "https://github.com/example/repo/pull/10#discussion_r123",
+                    "path": "src/lib.rs /Users/example/private npm_SECRET",
+                    "line": 42,
+                    "author": "copilot-pull-request-reviewer",
+                    "outdated": false,
+                    "body": "raw review body must not round-trip",
+                    "diffHunk": "raw diff hunk must not round-trip"
+                }
+            ],
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+    );
+
+    assert_eq!(pr.unresolved_review_thread_details.len(), 1);
+    let detail = &pr.unresolved_review_thread_details[0];
+    assert_eq!(
+        detail.url,
+        "https://github.com/example/repo/pull/10#discussion_r123"
+    );
+    assert!(detail.path.contains("[redacted-local-path]"));
+    assert!(detail.path.contains("[redacted-secret]"));
+    assert_eq!(detail.line, Some(42));
+    assert_eq!(
+        detail.author.as_deref(),
+        Some("copilot-pull-request-reviewer")
+    );
+
+    let serialized = serde_json::to_string(&pr).expect("serialize launch stack PR");
+    assert!(serialized.contains("unresolvedReviewThreadDetails"));
+    assert!(!serialized.contains("raw review body"));
+    assert!(!serialized.contains("raw diff hunk"));
+    assert!(!serialized.contains("/Users/example"));
+    assert!(!serialized.contains("npm_SECRET"));
+}

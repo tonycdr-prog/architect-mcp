@@ -186,6 +186,16 @@ fn merge_plan_shows_unresolved_review_thread_holds() {
             "isDraft": false,
             "reviewDecision": "APPROVED",
             "unresolvedReviewThreads": 1,
+            "unresolvedReviewThreadDetails": [
+                {
+                    "url": "https://github.com/example/repo/pull/10#discussion_r123",
+                    "path": "src/lib.rs",
+                    "line": 42,
+                    "author": "copilot-pull-request-reviewer",
+                    "outdated": false,
+                    "body": "raw review body must stay out"
+                }
+            ],
             "mergeStateStatus": "CLEAN",
             "statusCheckRollup": [
                 {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
@@ -198,7 +208,9 @@ fn merge_plan_shows_unresolved_review_thread_holds() {
 
     assert!(text.contains("PR #10 [hold] approved with thread left open"));
     assert!(text.contains("unresolved_threads=1"));
+    assert!(text.contains("review thread: https://github.com/example/repo/pull/10#discussion_r123 path=src/lib.rs line=42 author=copilot-pull-request-reviewer outdated=false"));
     assert!(text.contains("resolve 1 unresolved review thread(s) on PR #10"));
+    assert!(!text.contains("raw review body"));
 }
 
 #[test]

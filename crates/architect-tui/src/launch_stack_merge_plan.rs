@@ -67,6 +67,20 @@ pub(crate) fn render_launch_stack_merge_plan(report: &LaunchStackReport) -> Vec<
                     public_text(&pr.checks.missing_required_names.join(", "), 220)
                 ));
             }
+            for thread in &pr.unresolved_review_thread_details {
+                let line = thread
+                    .line
+                    .map(|line| line.to_string())
+                    .unwrap_or_else(|| "unknown".to_string());
+                lines.push(format!(
+                    "   review thread: {} path={} line={} author={} outdated={}",
+                    public_text(&thread.url, 240),
+                    public_text(&thread.path, 120),
+                    line,
+                    thread.author.as_deref().unwrap_or("unknown"),
+                    thread.outdated
+                ));
+            }
         }
     }
 

@@ -2,12 +2,13 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use crate::launch_stack_github_support::run_gh_json;
+use crate::launch_stack::LaunchStackReviewThread;
+use crate::launch_stack_github_support::{public_text, run_gh_json};
 
 pub(crate) fn fetch_unresolved_review_threads(
     workspace: &Path,
     pr_id: &str,
-) -> Result<usize, String> {
+) -> Result<Vec<LaunchStackReviewThread>, String> {
     let query = r#"
         query($id: ID!) {
           node(id: $id) {
@@ -18,6 +19,17 @@ pub(crate) fn fetch_unresolved_review_threads(
                 }
                 nodes {
                   isResolved
+                  isOutdated
+                  path
+                  line
+                  comments(first: 1) {
+                    nodes {
+                      url
+                      author {
+                        login
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -57,5 +69,68 @@ pub(crate) fn fetch_unresolved_review_threads(
                 .and_then(Value::as_bool)
                 .unwrap_or(false)
         })
-        .count())
+        .filter_map(review_thread_from_node)
+        .collect())
+}
+
+fn review_thread_from_node(node: &Value) -> Option<LaunchStackReviewThread> {
+    let first_comment = node
+        .pointer("/comments/nodes")
+        .and_then(Value::as_array)
+        .and_then(|nodes| nodes.first());
+    let url = first_comment
+        .and_then(|comment| comment.get("url"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let path = node.get("path").and_then(Value::as_str).unwrap_or("");
+    if url.trim().is_empty() && path.trim().is_empty() {
+        return None;
+    }
+    Some(LaunchStackReviewThread {
+        url: public_text(url, 240),
+        path: public_text(path, 180),
+        line: node.get("line").and_then(Value::as_u64),
+        author: first_comment
+            .and_then(|comment| comment.pointer("/author/login"))
+            .and_then(Value::as_str)
+            .map(|author| public_text(author, 80)),
+        outdated: node
+            .get("isOutdated")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::review_thread_from_node;
+
+    #[test]
+    fn review_thread_from_node_drops_unactionable_empty_threads() {
+        assert!(review_thread_from_node(&json!({"comments": {"nodes": []}})).is_none());
+
+        let detail = review_thread_from_node(&json!({
+            "path": "src/lib.rs",
+            "line": 42,
+            "isOutdated": false,
+            "comments": {
+                "nodes": [
+                    {
+                        "url": "https://github.com/example/repo/pull/1#discussion_r1",
+                        "author": {"login": "copilot-pull-request-reviewer"}
+                    }
+                ]
+            }
+        }))
+        .expect("actionable review thread detail");
+
+        assert_eq!(detail.path, "src/lib.rs");
+        assert_eq!(detail.line, Some(42));
+        assert_eq!(
+            detail.url,
+            "https://github.com/example/repo/pull/1#discussion_r1"
+        );
+    }
 }
