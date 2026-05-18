@@ -10,6 +10,7 @@ use crate::launch_judge_report::{
 use crate::smoke::{SmokeOptions, SmokeReport, SmokeStatus, build_smoke_report};
 use crate::terminal_evidence_date::collected_at_value;
 use crate::terminal_evidence_environment::resolve_environment;
+pub(crate) use crate::terminal_evidence_issue_url::validate_issue_url;
 
 #[derive(Debug, Clone)]
 pub struct TerminalEvidenceOptions {
@@ -22,6 +23,7 @@ pub struct TerminalEvidenceOptions {
     pub source: Option<String>,
     pub notes: Option<String>,
     pub collected_at: Option<String>,
+    pub issue_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -41,7 +43,10 @@ pub async fn run_terminal_evidence(
     if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else if options.markdown {
-        print!("{}", render_markdown(&report)?);
+        print!(
+            "{}",
+            render_markdown(&report, options.issue_url.as_deref())?
+        );
     } else {
         print_text_report(&report);
     }
@@ -70,10 +75,7 @@ pub(crate) fn evidence_from_smoke(
     smoke: &SmokeReport,
     options: &TerminalEvidenceOptions,
 ) -> Result<TerminalEvidenceFile> {
-    let platform = match &options.platform {
-        Some(platform) => normalize_platform(platform)?,
-        None => platform_from_os(&smoke.environment.os)?,
-    };
+    let platform = resolve_platform(&smoke.environment.os, options.platform.as_deref())?;
     let source = options
         .source
         .as_deref()
@@ -99,22 +101,48 @@ pub(crate) fn validate_output_mode(options: &TerminalEvidenceOptions) -> Result<
     if options.json && options.markdown {
         anyhow::bail!("choose only one terminal-evidence output mode: --json or --markdown");
     }
+    if let Some(issue_url) = options.issue_url.as_deref() {
+        validate_issue_url(issue_url)?;
+    }
     Ok(())
 }
 
-pub(crate) fn render_markdown(report: &TerminalEvidenceFile) -> Result<String> {
+pub(crate) fn render_markdown(
+    report: &TerminalEvidenceFile,
+    issue_url: Option<&str>,
+) -> Result<String> {
     let json = serde_json::to_string_pretty(report)?;
+    let target = match issue_url {
+        Some(issue_url) => {
+            let issue_url = validate_issue_url(issue_url)?;
+            format!("paste this comment manually into {issue_url}.")
+        }
+        None => "paste this comment manually into the Terminal QA issue.".to_string(),
+    };
     Ok(format!(
-        "## architect-mcp TUI terminal evidence\n\nPublic-safe summary only. Keep raw logs local. This command does not create, edit, or close GitHub issues; paste this comment manually into the Terminal QA issue.\n\n```json\n{json}\n```\n"
+        "## architect-mcp TUI terminal evidence\n\nPublic-safe summary only. Keep raw logs local. This command does not create, edit, or close GitHub issues; {target}\n\n```json\n{json}\n```\n"
     ))
 }
 
 fn platform_from_os(os: &str) -> Result<String> {
     normalize_platform(os).map_err(|_| {
         anyhow::anyhow!(
-            "terminal evidence is launch-relevant only on linux or windows; rerun on one of those platforms or pass --platform when summarizing verified external evidence"
+            "terminal evidence is launch-relevant only on linux or windows; rerun terminal-evidence on one of those platforms"
         )
     })
+}
+
+pub(crate) fn resolve_platform(os: &str, platform_override: Option<&str>) -> Result<String> {
+    let actual = platform_from_os(os)?;
+    if let Some(platform_override) = platform_override {
+        let requested = normalize_platform(platform_override)?;
+        if requested != actual {
+            anyhow::bail!(
+                "--platform must match the current terminal OS; rerun terminal-evidence on the target platform"
+            );
+        }
+    }
+    Ok(actual)
 }
 
 fn normalize_platform(platform: &str) -> Result<String> {
