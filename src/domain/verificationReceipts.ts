@@ -67,8 +67,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     const safeCommand = publicSafeText(receipt.command);
     const safeSummary = publicSafeSummary(receipt.summary);
     const freshness = reviewFreshness(receipt, nowMs, maxAgeSeconds);
-    const independentlyResolvable = hasIndependentHandle(receipt);
-    const evidenceTier = receiptEvidenceTier(receipt);
+    const independentlyResolvable = hasIndependentHandle(receipt, freshness);
+    const evidenceTier = receiptEvidenceTier(independentlyResolvable);
     return {
       sourceReceipt: receipt,
       command: safeCommand.value,
@@ -235,8 +235,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   };
 }
 
-function receiptEvidenceTier(receipt: VerificationReceipt): VerificationEvidenceTier {
-  return hasIndependentHandle(receipt) ? "independent" : "supplied";
+function receiptEvidenceTier(independentlyResolvable: boolean): VerificationEvidenceTier {
+  return independentlyResolvable ? "independent" : "supplied";
 }
 
 function reviewFreshness(receipt: VerificationReceipt, nowMs: number, maxAgeSeconds: number): ReviewedReceipt["freshness"] {
@@ -255,14 +255,18 @@ function reviewFreshness(receipt: VerificationReceipt, nowMs: number, maxAgeSeco
     }
     return { status: "fresh", satisfied: true, recordedAtPresent, runIdPresent };
   }
-  if (runIdPresent && hasIndependentHandle(receipt)) {
+  if (runIdPresent && hasCiRunId(receipt)) {
     return { status: "independent_run_id", satisfied: true, recordedAtPresent, runIdPresent };
   }
   return { status: "missing", satisfied: false, recordedAtPresent, runIdPresent };
 }
 
-function hasIndependentHandle(receipt: VerificationReceipt): boolean {
-  return receipt.source === "ci" && (Boolean(receipt.recordedAt?.trim()) || Boolean(receipt.runId?.trim()));
+function hasIndependentHandle(receipt: VerificationReceipt, freshness: ReviewedReceipt["freshness"]): boolean {
+  return hasCiRunId(receipt) || (receipt.source === "ci" && freshness.status === "fresh");
+}
+
+function hasCiRunId(receipt: VerificationReceipt): boolean {
+  return receipt.source === "ci" && Boolean(receipt.runId?.trim());
 }
 
 function isFreshPassedReceipt(receipt: ReviewedReceipt | undefined): boolean {

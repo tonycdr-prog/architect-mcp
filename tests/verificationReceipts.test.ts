@@ -135,6 +135,28 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.claimedChecks[0].independentReceiptSupplied, false);
   });
 
+  it("does not count unusable timestamp-only CI receipts as independently resolvable", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["npm test", "npm run build", "npm run typecheck"],
+      receipts: [
+        receipt("npm test", { source: "ci", recordedAt: "not-a-date", summary: "CI job passed" }),
+        receipt("npm run build", { source: "ci", recordedAt: "2026-05-17T21:00:00.000Z", summary: "CI job passed" }),
+        receipt("npm run typecheck", { source: "ci", recordedAt: "2026-05-18T01:00:00.000Z", summary: "CI job passed" })
+      ],
+      now,
+      maxAgeSeconds: 60
+    });
+
+    assert.equal(report.status, "fail");
+    assert.equal(report.complete, false);
+    assert.equal(report.summary.evidenceTiers.independent, 0);
+    assert.equal(report.summary.evidenceTiers.supplied, 3);
+    assert.deepEqual(report.receipts.map((item) => item.evidenceTier), ["supplied", "supplied", "supplied"]);
+    assert.deepEqual(report.receipts.map((item) => item.independentlyResolvable), [false, false, false]);
+    assert.deepEqual(report.receipts.map((item) => item.freshness.status), ["invalid", "stale", "future"]);
+    assert.equal(report.claimedChecks.some((item) => item.independentReceiptSupplied), false);
+  });
+
   it("uses the freshest matching receipt when duplicate commands are supplied", () => {
     const report = reviewVerificationReceipts({
       requiredChecks: ["npm test"],
