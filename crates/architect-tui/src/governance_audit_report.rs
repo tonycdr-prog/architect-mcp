@@ -76,6 +76,7 @@ pub struct GovernanceMcpReview {
     pub status: String,
     pub gate_status: Option<String>,
     pub files_reviewed: Option<u64>,
+    pub scan_truncated: Option<bool>,
     pub errors: Option<u64>,
     pub warnings: Option<u64>,
     pub violation_count: Option<usize>,
@@ -98,6 +99,9 @@ pub(crate) fn print_text_report(report: &GovernanceAuditReport) {
             mcp_review.status,
             mcp_review.gate_status.as_deref().unwrap_or("unknown")
         );
+        if mcp_review.scan_truncated == Some(true) {
+            println!("mcp review: scan truncated");
+        }
     }
     for finding in &report.findings {
         println!(

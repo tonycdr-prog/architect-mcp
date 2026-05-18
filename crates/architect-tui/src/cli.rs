@@ -110,7 +110,7 @@ pub enum Commands {
         public_summary: bool,
         #[arg(long)]
         skip_mcp: bool,
-        #[arg(long, default_value_t = 1000)]
+        #[arg(long, default_value_t = 1000, value_parser = parse_max_files)]
         max_files: usize,
     },
     /// Combine smoke, governance, release, and external-evidence gates into a launch judge report.
@@ -214,6 +214,48 @@ pub enum Commands {
         #[arg(long)]
         issue: u64,
     },
+}
+
+fn parse_max_files(value: &str) -> Result<usize, String> {
+    let parsed = value
+        .parse::<usize>()
+        .map_err(|_| "max-files must be an integer from 1 to 5000".to_string())?;
+    if (1..=5000).contains(&parsed) {
+        Ok(parsed)
+    } else {
+        Err("max-files must be from 1 to 5000".to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn governance_audit_max_files_matches_mcp_schema_range() {
+        assert!(
+            Cli::try_parse_from(["architect-mcp-tui", "governance-audit", "--max-files", "0"])
+                .is_err()
+        );
+        assert!(
+            Cli::try_parse_from([
+                "architect-mcp-tui",
+                "governance-audit",
+                "--max-files",
+                "5001"
+            ])
+            .is_err()
+        );
+        assert!(
+            Cli::try_parse_from([
+                "architect-mcp-tui",
+                "governance-audit",
+                "--max-files",
+                "5000"
+            ])
+            .is_ok()
+        );
+    }
 }
 
 #[derive(Debug, Args)]

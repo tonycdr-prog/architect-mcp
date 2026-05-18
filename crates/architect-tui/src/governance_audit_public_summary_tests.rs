@@ -86,6 +86,7 @@ fn report_with_sensitive_details() -> GovernanceAuditReport {
             status: "passed".to_string(),
             gate_status: Some("pass".to_string()),
             files_reviewed: Some(42),
+            scan_truncated: Some(true),
             errors: Some(0),
             warnings: Some(1),
             violation_count: Some(1),

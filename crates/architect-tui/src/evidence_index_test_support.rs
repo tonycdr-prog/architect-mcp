@@ -84,6 +84,7 @@ pub(crate) fn governance_summary(status: GovernanceAuditStatus) -> GovernanceAud
             status: "passed".to_string(),
             gate_status: Some("pass".to_string()),
             files_reviewed: Some(42),
+            scan_truncated: Some(false),
             errors: Some(0),
             warnings: Some(1),
             violation_count: Some(0),

@@ -11,10 +11,11 @@ use crate::governance_audit_report::{
     print_text_report,
 };
 use crate::governance_audit_support::{
-    categories, deterministic_gates, error, governance_config_files, looks_secret_like,
-    package_scripts, read_to_string, smoke_evidence, status_for_findings, warning,
+    categories, deterministic_gates, error, package_scripts, read_to_string, smoke_evidence,
+    status_for_findings, warning,
 };
 use crate::governance_memory::memory_proposals;
+use crate::governance_secret_scan::{governance_config_files, looks_secret_like};
 
 #[derive(Debug, Clone)]
 pub struct GovernanceAuditOptions {
@@ -57,6 +58,7 @@ pub async fn build_governance_audit_report(
             status: "skipped".to_string(),
             gate_status: None,
             files_reviewed: None,
+            scan_truncated: None,
             errors: None,
             warnings: None,
             violation_count: None,
@@ -67,23 +69,7 @@ pub async fn build_governance_audit_report(
     };
 
     if let Some(review) = &mcp_review {
-        if review.status == "error" {
-            findings.push(warning(
-                "mcp-review",
-                "GOV_MCP_REVIEW_UNAVAILABLE",
-                "MCP repo review did not produce drift evidence.",
-                &review.detail,
-                "Run npm run build and retry governance-audit without --skip-mcp.",
-            ));
-        } else if review.gate_status.as_deref() == Some("fail") {
-            findings.push(warning(
-                "mcp-review",
-                "GOV_MCP_REVIEW_FAILED",
-                "MCP repo review reported blocking repo-structure findings.",
-                &review.detail,
-                "Inspect the MCP review violations before treating the repo as healthy.",
-            ));
-        }
+        push_mcp_review_findings(&mut findings, review);
     }
 
     let deterministic_gates = deterministic_gates(&workspace);
@@ -103,6 +89,38 @@ pub async fn build_governance_audit_report(
         memory_proposals,
         mcp_review,
         findings,
+    }
+}
+
+pub(crate) fn push_mcp_review_findings(
+    findings: &mut Vec<GovernanceFinding>,
+    review: &GovernanceMcpReview,
+) {
+    if review.status == "error" {
+        findings.push(warning(
+            "mcp-review",
+            "GOV_MCP_REVIEW_UNAVAILABLE",
+            "MCP repo review did not produce drift evidence.",
+            &review.detail,
+            "Run npm run build and retry governance-audit without --skip-mcp.",
+        ));
+    } else if matches!(review.gate_status.as_deref(), Some("fail" | "warn")) {
+        findings.push(warning(
+            "mcp-review",
+            "GOV_MCP_REVIEW_NOT_CLEAN",
+            "MCP repo review reported a non-clean repo-structure gate.",
+            &review.detail,
+            "Inspect the MCP review warnings or violations before treating the repo as healthy.",
+        ));
+    }
+    if review.scan_truncated == Some(true) {
+        findings.push(warning(
+            "mcp-review",
+            "GOV_MCP_REVIEW_TRUNCATED",
+            "MCP repo review scanned only part of the workspace.",
+            "review_local_workspace scan.truncated=true",
+            "Increase --max-files or narrow the workspace before treating governance evidence as complete.",
+        ));
     }
 }
 

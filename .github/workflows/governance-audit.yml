@@ -33,10 +33,28 @@ jobs:
         continue-on-error: true
         run: node bin/architect-mcp-tui.cjs governance-audit --public-summary > governance-audit-public-summary.json
       - name: Summarize public-safe evidence
+        if: always()
         run: |
           node <<'NODE'
           const fs = require("node:fs");
-          const report = JSON.parse(fs.readFileSync("governance-audit-public-summary.json", "utf8"));
+          let report = null;
+          try {
+            report = JSON.parse(fs.readFileSync("governance-audit-public-summary.json", "utf8"));
+          } catch {
+            const summary = [
+              "# Governance audit",
+              "",
+              "Status: failed",
+              "Read only: unknown",
+              "MCP gate: unknown",
+              "Files reviewed: unknown",
+              "",
+              "The governance audit command failed before a public-safe summary could be parsed.",
+              "Do not copy raw local paths, secrets, private repo names, raw file contents, or raw audit JSON into public issues."
+            ].join("\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+            process.exit(0);
+          }
           const categories = report.categories
             .filter((category) => category.summary !== "no findings")
             .map((category) => `- ${category.name}: ${category.status} (${category.summary})`)
@@ -55,6 +73,7 @@ jobs:
             `Read only: ${report.readOnly}`,
             `MCP gate: ${mcp.gateStatus || "unknown"}`,
             `Files reviewed: ${mcp.filesReviewed ?? "unknown"}`,
+            `Scan truncated: ${mcp.scanTruncated ?? "unknown"}`,
             `Finding errors: ${report.findingCounts.errors}`,
             `Finding warnings: ${report.findingCounts.warnings}`,
             `MCP errors: ${mcp.errors ?? "unknown"}`,
