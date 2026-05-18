@@ -1,3 +1,4 @@
+use crate::launch_stack_github::public_text;
 use crate::launch_stack_required_checks::missing_required_checks;
 
 #[test]
@@ -24,4 +25,17 @@ fn required_check_names_are_public_safe() {
         missing,
         vec!["publish [redacted-secret] from [redacted-local-path]"]
     );
+}
+
+#[test]
+fn public_text_preserves_github_urls_with_path_like_segments() {
+    let text = public_text(
+        "docs https://api.github.com/users/example repo https://github.com/example/tmp/pull/10 path=/tmp/workspace",
+        300,
+    );
+
+    assert!(text.contains("https://api.github.com/users/example"));
+    assert!(text.contains("https://github.com/example/tmp/pull/10"));
+    assert!(text.contains("[redacted-local-path]"));
+    assert!(!text.contains("/tmp/workspace"));
 }

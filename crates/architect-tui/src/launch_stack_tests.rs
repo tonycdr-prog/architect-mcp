@@ -250,12 +250,12 @@ fn launch_stack_redacts_local_paths_and_secret_shaped_text() {
         10,
         &json!({
             "number": 10,
-            "title": "uses /Users/example/private npm_TOKEN",
+            "title": "uses /Users/example/private npm_TOKEN path=/tmp/workspace (/private/tmp/proof)",
             "url": "https://github.com/example/repo/pull/10",
             "isDraft": false,
             "mergeStateStatus": "CLEAN",
             "statusCheckRollup": [
-                {"name": "verify /home/example", "status": "COMPLETED", "conclusion": "SUCCESS"}
+                {"name": "verify /home/example cache=/var/folders/build [artifact=/opt/project] win=C:/Users/example", "status": "COMPLETED", "conclusion": "SUCCESS"}
             ]
         }),
     );
@@ -263,8 +263,14 @@ fn launch_stack_redacts_local_paths_and_secret_shaped_text() {
 
     assert!(text.contains("[redacted-local-path]"));
     assert!(text.contains("[redacted-secret]"));
+    assert!(text.contains("https://github.com/example/repo/pull/10"));
     assert!(!text.contains("/Users/"));
     assert!(!text.contains("/home/"));
+    assert!(!text.contains("/tmp/"));
+    assert!(!text.contains("/private/"));
+    assert!(!text.contains("/var/"));
+    assert!(!text.contains("/opt/"));
+    assert!(!text.contains("C:/Users"));
     assert!(!text.contains("npm_TOKEN"));
 }
 

@@ -215,6 +215,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /unresolvedReviewThreadDetails/);
     assert.match(rustTui, /URL, path, line, author, and outdated metadata/);
     assert.match(rustTui, /omits raw review-thread text, diff hunks/);
+    assert.match(rustTui, /includes the supplied `repository` value plus GitHub PR, issue, and review-thread URL fields/);
+    assert.match(rustTui, /Do not paste full JSON from private repositories unless those identifiers are acceptable/);
     assert.match(rustTui, /mergeable=MERGEABLE/);
     assert.match(rustTui, /does not merge PRs, close issues, edit branches, tag releases, publish packages/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --markdown/);
@@ -284,7 +286,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#286 - Harden generated terminal evidence against spoofed or incomplete reports\]/);
+    assert.match(goal, /Active slice: \[#289 - Harden launch-stack public redaction and private-repo wording\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -328,6 +330,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#281\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/281\)/);
     assert.match(goal, /\[#283\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/283\)/);
     assert.match(goal, /\[#286\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/286\)/);
+    assert.match(goal, /\[#289\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/289\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -366,6 +369,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /TUI terminal-evidence fail-closed hardening for PR #170 review-thread debt/);
     assert.match(goal, /terminal QA issue-template placeholder hardening for PR #172 review-thread debt/);
     assert.match(goal, /generated terminal-evidence integrity hardening for PR #174 review-thread debt/);
+    assert.match(goal, /launch-stack public-redaction hardening for PR #180 review-thread debt/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -394,7 +398,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#279 in PR #280/);
     assert.match(goal, /#281 in PR #282/);
     assert.match(goal, /#283 in PR #285/);
-    assert.match(goal, /#286 in the current slice/);
+    assert.match(goal, /#286 in PR #287/);
+    assert.match(goal, /#289 in PR #290/);
     assert.match(goal, /unresolved review threads across older stacked PRs must be resolved/);
     assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
     assert.match(goal, /runtime `\/goal` remains active/);
