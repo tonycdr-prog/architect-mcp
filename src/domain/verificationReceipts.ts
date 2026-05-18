@@ -1,3 +1,6 @@
+import { publicSafeOptionalText, publicSafeSummary, publicSafeText } from "./publicSafetyText.js";
+export { publicSafeText } from "./publicSafetyText.js";
+
 export const verificationReceiptSources = [
   "local_terminal",
   "ci",
@@ -8,6 +11,14 @@ export const verificationReceiptSources = [
 
 export type VerificationReceiptSource = typeof verificationReceiptSources[number];
 export type VerificationReceiptStatus = "passed" | "failed" | "skipped" | "not_run";
+export type VerificationEvidenceTier = "supplied" | "independent";
+export type VerificationFreshnessStatus =
+  | "fresh"
+  | "independent_run_id"
+  | "missing"
+  | "stale"
+  | "future"
+  | "invalid";
 
 export type VerificationReceipt = {
   command: string;
@@ -39,6 +50,25 @@ type ReceiptFinding = {
   recommendation: string;
 };
 
+type ReviewedReceipt = {
+  sourceReceipt: VerificationReceipt;
+  command: string;
+  status: VerificationReceiptStatus;
+  source: VerificationReceiptSource;
+  evidenceTier: VerificationEvidenceTier;
+  independentlyResolvable: boolean;
+  freshness: {
+    status: VerificationFreshnessStatus;
+    satisfied: boolean;
+    recordedAtPresent: boolean;
+    runIdPresent: boolean;
+  };
+  recordedAtPresent: boolean;
+  runIdPresent: boolean;
+  publicSafeSummary: string;
+  redacted: boolean;
+};
+
 const DEFAULT_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export function reviewVerificationReceipts(input: VerificationReceiptReviewInput = {}) {
@@ -49,15 +79,21 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   const nowMs = parseTimestamp(input.now) ?? Date.now();
   const maxAgeSeconds = input.maxAgeSeconds ?? DEFAULT_MAX_AGE_SECONDS;
   const findings: ReceiptFinding[] = [];
-  const reviewedReceipts = receipts.map((receipt) => {
+  const reviewedReceipts: ReviewedReceipt[] = receipts.map((receipt) => {
     const safeCommand = publicSafeText(receipt.command);
     const safeSummary = publicSafeSummary(receipt.summary);
+    const freshness = reviewFreshness(receipt, nowMs, maxAgeSeconds);
+    const evidenceTier = receiptEvidenceTier(receipt.source);
     return {
+      sourceReceipt: receipt,
       command: safeCommand.value,
       status: receipt.status,
       source: receipt.source,
-      recordedAtPresent: Boolean(receipt.recordedAt),
-      runIdPresent: Boolean(receipt.runId),
+      evidenceTier,
+      independentlyResolvable: evidenceTier === "independent",
+      freshness,
+      recordedAtPresent: freshness.recordedAtPresent,
+      runIdPresent: freshness.runIdPresent,
       publicSafeSummary: safeSummary.value,
       redacted: safeCommand.redacted || safeSummary.redacted
     };
@@ -73,9 +109,9 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     };
   });
 
-  const receiptsByCommand = new Map<string, VerificationReceipt>();
-  for (const receipt of receipts) {
-    const key = normalizeKey(receipt.command);
+  const receiptsByCommand = new Map<string, ReviewedReceipt>();
+  for (const receipt of reviewedReceipts) {
+    const key = normalizeKey(receipt.sourceReceipt.command);
     if (key && !receiptsByCommand.has(key)) receiptsByCommand.set(key, receipt);
   }
 
@@ -98,8 +134,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     }
   }
 
-  for (const receipt of receipts) {
-    const safeCommand = publicSafeText(receipt.command).value;
+  for (const receipt of reviewedReceipts) {
+    const safeCommand = receipt.command;
     if (receipt.status === "failed") {
       findings.push({
         code: "VERIFY_RECEIPT002_FAILED",
@@ -116,22 +152,22 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
         recommendation: "State the command as skipped/not run, or run it before claiming it passed."
       });
     }
-    if (receipt.recordedAt) {
-      const recordedAtMs = parseTimestamp(receipt.recordedAt);
-      if (recordedAtMs === undefined || recordedAtMs > nowMs || nowMs - recordedAtMs > maxAgeSeconds * 1000) {
-        findings.push({
-          code: "VERIFY_RECEIPT005_STALE",
-          severity: "error",
-          message: `Verification receipt is stale or has an invalid timestamp: ${safeCommand}.`,
-          recommendation: "Attach fresh evidence from the current run, or use a current run id when timestamp redaction is required."
-        });
-      }
-    } else if (!receipt.runId) {
+    if (receipt.freshness.status === "missing") {
       findings.push({
         code: "VERIFY_RECEIPT004_FRESHNESS_UNKNOWN",
         severity: "warning",
-        message: `Verification receipt has no timestamp or run id: ${safeCommand}.`,
-        recommendation: "Include a public-safe timestamp or run id so reviewers can tell whether evidence is fresh."
+        message: receipt.runIdPresent
+          ? `Verification receipt run id is not independently resolvable for its source: ${safeCommand}.`
+          : `Verification receipt has no timestamp or independently resolvable run id: ${safeCommand}.`,
+        recommendation: "Include a public-safe timestamp for local, TUI, adapter, or manual receipts; run ids alone only prove freshness for independently resolvable sources such as CI."
+      });
+    }
+    if (receipt.freshness.status === "invalid" || receipt.freshness.status === "future" || receipt.freshness.status === "stale") {
+      findings.push({
+        code: "VERIFY_RECEIPT005_STALE",
+        severity: "error",
+        message: `Verification receipt is stale or has an invalid timestamp: ${safeCommand}.`,
+        recommendation: "Attach fresh evidence from the current run, or attach an independently resolvable CI receipt."
       });
     }
   }
@@ -151,18 +187,28 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   const errors = findings.filter((finding) => finding.severity === "error").length;
   const status = errors > 0 ? "fail" : findings.length > 0 ? "warn" : "pass";
   const matchedRequired = requiredReceiptMatches.filter((match) => match.receipt).length;
+  const freshMatchedRequired = requiredReceiptMatches.filter((match) => isFreshPassedReceipt(match.receipt)).length;
   const verificationSummary = summarizeVerificationRecords(verificationRecords);
+  const suppliedReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "supplied").length;
+  const independentReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "independent").length;
 
   return {
     status,
     valid: errors === 0,
-    complete: requiredChecks.length > 0 && matchedRequired === requiredChecks.length && status === "pass",
+    complete: requiredChecks.length > 0 && freshMatchedRequired === requiredChecks.length && status === "pass",
     summary: {
       required: requiredChecks.length,
       receipts: receipts.length,
       matchedRequired,
+      freshMatchedRequired,
       missingRequired: requiredChecks.length - matchedRequired,
+      missingFreshRequired: requiredChecks.length - freshMatchedRequired,
       verificationRecords: verificationSummary,
+      evidenceTiers: {
+        claimed: requiredChecks.length,
+        supplied: verificationRecords.length + suppliedReceipts,
+        independent: independentReceipts
+      },
       redacted: redactedCount,
       errors,
       warnings: findings.length - errors
@@ -172,13 +218,56 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
       return {
         check: safeCheck.value,
         receiptSupplied: Boolean(receiptsByCommand.get(normalizeKey(check))),
+        freshReceiptSupplied: isFreshPassedReceipt(receiptsByCommand.get(normalizeKey(check))),
+        independentReceiptSupplied: receiptsByCommand.get(normalizeKey(check))?.evidenceTier === "independent",
         redacted: safeCheck.redacted
       };
     }),
     verificationRecords: reviewedVerificationRecords,
-    receipts: reviewedReceipts,
+    receipts: reviewedReceipts.map((receipt) => ({
+      command: receipt.command,
+      status: receipt.status,
+      source: receipt.source,
+      evidenceTier: receipt.evidenceTier,
+      independentlyResolvable: receipt.independentlyResolvable,
+      freshness: receipt.freshness,
+      recordedAtPresent: receipt.recordedAtPresent,
+      runIdPresent: receipt.runIdPresent,
+      publicSafeSummary: receipt.publicSafeSummary,
+      redacted: receipt.redacted
+    })),
     findings
   };
+}
+
+function receiptEvidenceTier(source: VerificationReceiptSource): VerificationEvidenceTier {
+  return source === "ci" ? "independent" : "supplied";
+}
+
+function reviewFreshness(receipt: VerificationReceipt, nowMs: number, maxAgeSeconds: number): ReviewedReceipt["freshness"] {
+  const recordedAtPresent = Boolean(receipt.recordedAt);
+  const runIdPresent = Boolean(receipt.runId);
+  if (receipt.recordedAt) {
+    const recordedAtMs = parseTimestamp(receipt.recordedAt);
+    if (recordedAtMs === undefined) {
+      return { status: "invalid", satisfied: false, recordedAtPresent, runIdPresent };
+    }
+    if (recordedAtMs > nowMs) {
+      return { status: "future", satisfied: false, recordedAtPresent, runIdPresent };
+    }
+    if (nowMs - recordedAtMs > maxAgeSeconds * 1000) {
+      return { status: "stale", satisfied: false, recordedAtPresent, runIdPresent };
+    }
+    return { status: "fresh", satisfied: true, recordedAtPresent, runIdPresent };
+  }
+  if (runIdPresent && receiptEvidenceTier(receipt.source) === "independent") {
+    return { status: "independent_run_id", satisfied: true, recordedAtPresent, runIdPresent };
+  }
+  return { status: "missing", satisfied: false, recordedAtPresent, runIdPresent };
+}
+
+function isFreshPassedReceipt(receipt: ReviewedReceipt | undefined): boolean {
+  return Boolean(receipt && receipt.status === "passed" && receipt.freshness.satisfied);
 }
 
 function uniqueTrimmed(values: string[]): string[] {
@@ -202,38 +291,4 @@ function summarizeVerificationRecords(records: VerificationRecord[]) {
     failed: records.filter((record) => record.status === "failed").length,
     incomplete: records.filter((record) => record.status === "skipped" || record.status === "not_run").length
   };
-}
-
-function publicSafeOptionalText(value: string | undefined): { value: string | undefined; redacted: boolean } {
-  if (value === undefined) return { value: undefined, redacted: false };
-  return publicSafeSummary(value);
-}
-
-export function publicSafeText(value: string): { value: string; redacted: boolean } {
-  let redacted = false;
-  let safe = value.trim();
-  const replacements: Array<[RegExp, string]> = [
-    [/\b(?:npm|gh[pousr]|github_pat|sk|xox[baprs])_[A-Za-z0-9_=-]{16,}\b/g, "[redacted-token]"],
-    [/\b[A-Za-z0-9_-]{48,}\b/g, "[redacted-token]"],
-    [/(?:\/Users|\/home|\/private\/tmp|\/tmp|\/var\/folders|\/Volumes)\/[^\s,;)"']+/g, "[redacted-local-path]"],
-    [/\b[A-Za-z]:\\[^\s,;)"']+/g, "[redacted-local-path]"]
-  ];
-  for (const [pattern, replacement] of replacements) {
-    safe = safe.replace(pattern, () => {
-      redacted = true;
-      return replacement;
-    });
-  }
-  return { value: safe, redacted };
-}
-
-function publicSafeSummary(value: string): { value: string; redacted: boolean } {
-  if (containsRawOutput(value)) {
-    return { value: "[redacted-raw-output]", redacted: true };
-  }
-  return publicSafeText(value);
-}
-
-function containsRawOutput(value: string): boolean {
-  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/.test(value);
 }

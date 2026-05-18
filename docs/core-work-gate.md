@@ -43,7 +43,7 @@ The final response should be specific and evidence-backed:
 - Assumptions and remaining gaps.
 - No unsupported root-cause claims.
 
-Receipts help reviewers separate claimed verification text from attached execution evidence. They do not replace CI, terminal QA, or human review, and public summaries should omit raw logs, secrets, token-shaped values, and local paths.
+Receipts help reviewers separate claimed verification text from attached execution evidence. The review output treats required-check wording as claimed evidence, session records and local/TUI/adapter/manual receipts as supplied evidence, and CI receipts as independently resolvable evidence. Local, TUI, adapter, and manual receipts need a fresh `recordedAt` before they count as fresh matching evidence; a local `runId` alone is not independent proof. Receipts do not replace CI, terminal QA, release gates, or human review, and public summaries should omit raw logs, secrets, token-shaped values, and local paths.
 
 ## Direct-Client Sequence Receipts
 

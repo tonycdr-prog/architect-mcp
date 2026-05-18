@@ -48,6 +48,69 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.complete, true);
     assert.equal(report.summary.verificationRecords.passed, 1);
     assert.equal(report.summary.matchedRequired, 1);
+    assert.equal(report.summary.freshMatchedRequired, 1);
+    assert.equal(report.summary.evidenceTiers.supplied, 2);
+    assert.equal(report.receipts[0].evidenceTier, "supplied");
+    assert.equal(report.receipts[0].freshness.status, "fresh");
+    assert.equal(report.claimedChecks[0].freshReceiptSupplied, true);
+  });
+
+  it("downgrades supplied local receipts without recordedAt from complete fresh evidence", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["npm test"],
+      receipts: [receipt("npm test", { recordedAt: undefined })],
+      now
+    });
+
+    assert.equal(report.status, "warn");
+    assert.equal(report.complete, false);
+    assert.equal(report.summary.matchedRequired, 1);
+    assert.equal(report.summary.freshMatchedRequired, 0);
+    assert.equal(report.summary.missingFreshRequired, 1);
+    assert.equal(report.receipts[0].evidenceTier, "supplied");
+    assert.equal(report.receipts[0].freshness.status, "missing");
+    assert.equal(report.receipts[0].freshness.satisfied, false);
+    assert.equal(report.claimedChecks[0].receiptSupplied, true);
+    assert.equal(report.claimedChecks[0].freshReceiptSupplied, false);
+    assert.equal(report.findings.some((finding) => finding.code === "VERIFY_RECEIPT004_FRESHNESS_UNKNOWN"), true);
+  });
+
+  it("does not treat arbitrary local run ids as independent proof", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["npm test"],
+      receipts: [receipt("npm test", { recordedAt: undefined, runId: "local-run-284" })],
+      now
+    });
+
+    assert.equal(report.status, "warn");
+    assert.equal(report.complete, false);
+    assert.equal(report.summary.freshMatchedRequired, 0);
+    assert.equal(report.receipts[0].runIdPresent, true);
+    assert.equal(report.receipts[0].independentlyResolvable, false);
+    assert.equal(report.receipts[0].freshness.status, "missing");
+    assert.match(report.findings.find((finding) => finding.code === "VERIFY_RECEIPT004_FRESHNESS_UNKNOWN")?.message ?? "", /not independently resolvable/);
+  });
+
+  it("treats CI run id receipts as independent evidence when timestamps are absent", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["npm test"],
+      receipts: [receipt("npm test", {
+        source: "ci",
+        recordedAt: undefined,
+        runId: "ci-run-284",
+        summary: "CI job passed"
+      })],
+      now
+    });
+
+    assert.equal(report.status, "pass");
+    assert.equal(report.complete, true);
+    assert.equal(report.summary.freshMatchedRequired, 1);
+    assert.equal(report.summary.evidenceTiers.independent, 1);
+    assert.equal(report.receipts[0].evidenceTier, "independent");
+    assert.equal(report.receipts[0].independentlyResolvable, true);
+    assert.equal(report.receipts[0].freshness.status, "independent_run_id");
+    assert.equal(report.claimedChecks[0].independentReceiptSupplied, true);
   });
 
   it("redacts token-shaped values and local paths from public receipt summaries", () => {

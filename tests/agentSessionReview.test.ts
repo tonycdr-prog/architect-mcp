@@ -101,6 +101,8 @@ describe("reviewAgentSession", () => {
     assert.equal(report.status, "pass");
     assert.equal(section?.status, "pass");
     assert.match(JSON.stringify(section?.details), /matchedRequired/);
+    assert.match(JSON.stringify(section?.details), /evidenceTiers/);
+    assert.match(JSON.stringify(section?.details), /independent_run_id|fresh/);
   });
 
   it("does not leak raw verification notes through public-safe receipt review details", () => {

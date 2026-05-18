@@ -92,6 +92,14 @@
 - Checks: node --import tsx --test tests/verificationReceipts.test.ts tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if public summaries expose tokens or local paths, if receipt failures can be presented as passing evidence, or if missing optional receipts break existing clients.
 
+### 11a. Verification Receipt Evidence Tiers
+- Inputs: issue #284, issue #246 receipt boundary, final/session review tools, direct-client evidence semantics
+- Outputs: explicit claimed/supplied/independent evidence tiers, freshness status per receipt, local/TUI/adapter/manual timestamp requirements, CI run-id handling, docs update, goal ledger update
+- Allowed directories: src/domain, src/tools, tests, docs
+- Forbidden files: raw command logs, stdout/stderr payload storage, token-shaped fixtures, local-path fixtures outside redaction tests, CI replacement claims, terminal-QA replacement claims, release-gate replacement claims
+- Checks: node --import tsx --test tests/verificationReceipts.test.ts tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check
+- Stop after: stop if local or manual run ids alone count as independent proof, if stale copied output can satisfy fresh required evidence, if CI evidence is not distinguishable from agent-supplied evidence, or if public output exposes raw logs, secrets, token-shaped values, or private local paths.
+
 ### 12. Work-Gate Sequence Receipts
 - Inputs: issue #247, prompt-injection threat model, direct-client work-gate audit, verification receipt boundary
 - Outputs: read-only `create_work_gate_sequence_receipt` MCP tool, stricter direct-client sequence receipt helper, schema validation that keeps unknown gates reportable, docs update, goal ledger update

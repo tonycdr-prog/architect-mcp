@@ -286,7 +286,9 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: Stack landing from PR #150 through PR #306, plus \[#136 - Run post-release TUI terminal QA on Windows and Linux\]/);
+    assert.match(goal, /Active slice: \[#284 - Harden verification receipt evidence tiers and freshness\]/);
+    assert.match(goal, /stacked after PR #306/);
+    assert.match(goal, /launch boundary remains \[#136 - Run post-release TUI terminal QA on Windows and Linux\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -329,6 +331,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#279\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/279\)/);
     assert.match(goal, /\[#281\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/281\)/);
     assert.match(goal, /\[#283\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/283\)/);
+    assert.match(goal, /\[#284\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/284\)/);
     assert.match(goal, /\[#286\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/286\)/);
     assert.match(goal, /\[#289\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/289\)/);
     assert.match(goal, /\[#291\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/291\)/);
@@ -386,6 +389,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /terminal evidence provenance review-thread clearance for PR #231 review-thread debt/);
     assert.match(goal, /launch-stack schema compatibility hardening for PR #233 review-thread debt/);
     assert.match(goal, /remaining launch-readiness review-thread clearance for PR #235, PR #240, and PR #243 review-thread debt/);
+    assert.match(goal, /verification receipt evidence-tier hardening for issue #284/);
+    assert.match(goal, /Local, TUI, adapter, and manual receipts without `recordedAt` no longer count as fresh required evidence/);
     assert.match(goal, /published-package smoke now runs on schedule or manual dispatch/);
     assert.match(goal, /exports `ARCHITECT_MCP_WORKSPACE` under the temp smoke directory/);
     assert.match(goal, /docs distinguish install-smoke ARM64 coverage from live-QA coverage/);
