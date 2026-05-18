@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::path::Path;
 
 use serde::Serialize;
@@ -6,6 +6,8 @@ use serde_json::Value;
 
 use crate::launch_stack::LaunchStackPullRequest;
 use crate::launch_stack_github::{append_repo_args, pr_from_value, public_text, run_gh_json};
+
+pub(crate) const STACK_DISCOVERY_PR_FIELDS: &str = "number,headRefName,baseRefName,state";
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -51,39 +53,110 @@ fn discover_stack_from_pr(
     repo: Option<&str>,
     number: u64,
 ) -> Result<LaunchStackDiscovery, String> {
+    discover_stack_from_pr_with_runner(workspace, repo, number, &run_gh_json)
+}
+
+pub(crate) fn discover_stack_from_pr_with_runner<R>(
+    workspace: &Path,
+    repo: Option<&str>,
+    number: u64,
+    run_gh: &R,
+) -> Result<LaunchStackDiscovery, String>
+where
+    R: Fn(&Path, &[String]) -> Result<Value, String>,
+{
+    let mut current = fetch_stack_pr_by_number(workspace, repo, number, run_gh)?;
+    if current.state != "OPEN" {
+        return Err(format!(
+            "stack discovery: PR #{number} is not an open PR in the selected repository"
+        ));
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut pull_requests = Vec::new();
+    loop {
+        if !seen.insert(current.pr.number) {
+            return Err(format!(
+                "stack discovery: cycle detected while following PR #{}",
+                current.pr.number
+            ));
+        }
+        pull_requests.push(current.pr.number);
+        let base = current.base_ref_name.clone();
+        let matches = fetch_stack_prs_by_head(workspace, repo, &base, run_gh)?;
+        let matching_refs = matches.iter().collect::<Vec<_>>();
+        let Some(next) = choose_open_record_for_base(&base, &matching_refs)? else {
+            pull_requests.reverse();
+            return Ok(LaunchStackDiscovery {
+                from_pr: number,
+                pull_requests,
+                stopped_at_base: public_text(&base, 120),
+            });
+        };
+        current = next.clone();
+    }
+}
+
+fn fetch_stack_pr_by_number(
+    workspace: &Path,
+    repo: Option<&str>,
+    number: u64,
+    run_gh: &impl Fn(&Path, &[String]) -> Result<Value, String>,
+) -> Result<LaunchStackPrRecord, String> {
+    let mut args = vec![
+        "pr".to_string(),
+        "view".to_string(),
+        number.to_string(),
+        "--json".to_string(),
+        STACK_DISCOVERY_PR_FIELDS.to_string(),
+    ];
+    append_repo_args(&mut args, repo);
+    let value = run_gh(workspace, &args).map_err(|error| format!("stack discovery: {error}"))?;
+    Ok(pr_record_from_value(&value))
+}
+
+fn fetch_stack_prs_by_head(
+    workspace: &Path,
+    repo: Option<&str>,
+    head_ref_name: &str,
+    run_gh: &impl Fn(&Path, &[String]) -> Result<Value, String>,
+) -> Result<Vec<LaunchStackPrRecord>, String> {
     let mut args = vec![
         "pr".to_string(),
         "list".to_string(),
         "--state".to_string(),
         "all".to_string(),
+        "--head".to_string(),
+        head_ref_name.to_string(),
         "--limit".to_string(),
-        "200".to_string(),
+        "100".to_string(),
         "--json".to_string(),
-        "number,title,url,isDraft,mergeStateStatus,statusCheckRollup,headRefName,baseRefName,state"
-            .to_string(),
+        STACK_DISCOVERY_PR_FIELDS.to_string(),
     ];
     append_repo_args(&mut args, repo);
-    let value =
-        run_gh_json(workspace, &args).map_err(|error| format!("stack discovery: {error}"))?;
+    let value = run_gh(workspace, &args).map_err(|error| format!("stack discovery: {error}"))?;
     let Some(records) = value.as_array() else {
-        return Err("stack discovery: gh PR list JSON was not an array".to_string());
+        return Err("stack discovery: gh PR head lookup JSON was not an array".to_string());
     };
-    let records = records.iter().map(pr_record_from_value).collect::<Vec<_>>();
-    discover_stack_from_records(number, &records)
+    Ok(records.iter().map(pr_record_from_value).collect::<Vec<_>>())
 }
 
+#[cfg(test)]
 pub(crate) fn discover_stack_from_records(
     number: u64,
     records: &[LaunchStackPrRecord],
 ) -> Result<LaunchStackDiscovery, String> {
-    let mut by_number: BTreeMap<u64, &LaunchStackPrRecord> = BTreeMap::new();
-    let mut by_head_open: BTreeMap<&str, &LaunchStackPrRecord> = BTreeMap::new();
-    let mut by_head_any: BTreeMap<&str, &LaunchStackPrRecord> = BTreeMap::new();
+    let mut by_number: std::collections::BTreeMap<u64, &LaunchStackPrRecord> =
+        std::collections::BTreeMap::new();
+    let mut by_head: std::collections::BTreeMap<&str, Vec<&LaunchStackPrRecord>> =
+        std::collections::BTreeMap::new();
     for record in records {
-        by_head_any.insert(record.head_ref_name.as_str(), record);
+        by_head
+            .entry(record.head_ref_name.as_str())
+            .or_default()
+            .push(record);
         if record.state == "OPEN" {
             by_number.insert(record.pr.number, record);
-            by_head_open.insert(record.head_ref_name.as_str(), record);
         }
     }
 
@@ -104,13 +177,8 @@ pub(crate) fn discover_stack_from_records(
         }
         pull_requests.push(current.pr.number);
         let base = current.base_ref_name.clone();
-        let Some(next) = by_head_open.get(base.as_str()).copied() else {
-            if by_head_any.contains_key(base.as_str()) {
-                return Err(format!(
-                    "stack discovery: branch {} matches a PR head that is not open",
-                    public_text(&base, 120)
-                ));
-            }
+        let matches = by_head.get(base.as_str()).cloned().unwrap_or_default();
+        let Some(next) = choose_open_record_for_base(&base, &matches)? else {
             pull_requests.reverse();
             return Ok(LaunchStackDiscovery {
                 from_pr: number,
@@ -120,6 +188,38 @@ pub(crate) fn discover_stack_from_records(
         };
         current = next;
     }
+}
+
+fn choose_open_record_for_base<'a>(
+    base: &str,
+    records: &[&'a LaunchStackPrRecord],
+) -> Result<Option<&'a LaunchStackPrRecord>, String> {
+    let open_records = records
+        .iter()
+        .copied()
+        .filter(|record| record.state == "OPEN")
+        .collect::<Vec<_>>();
+    if open_records.len() > 1 {
+        let numbers = open_records
+            .iter()
+            .map(|record| format!("#{}", record.pr.number))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(format!(
+            "stack discovery: branch {} matches multiple open PR heads ({numbers})",
+            public_text(base, 120)
+        ));
+    }
+    if let Some(record) = open_records.first().copied() {
+        return Ok(Some(record));
+    }
+    if !records.is_empty() {
+        return Err(format!(
+            "stack discovery: branch {} matches a PR head that is not open",
+            public_text(base, 120)
+        ));
+    }
+    Ok(None)
 }
 
 pub(crate) fn pr_record_from_value(value: &Value) -> LaunchStackPrRecord {
