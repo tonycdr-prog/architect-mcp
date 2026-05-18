@@ -182,6 +182,69 @@ fn common_unix_absolute_paths_are_unsafe_terminal_evidence() {
     );
 }
 
+#[test]
+fn user_path_detection_uses_boundaries_consistently() {
+    let unsafe_file = write_evidence(
+        r##"{
+          "schemaVersion": 1,
+          "reports": [
+            {
+              "platform": "linux",
+              "status": "passed",
+              "environment": "local_terminal",
+              "source": "issue #136 linux summary",
+              "commandSummary": "terminal evidence passed on linux from /Users/tony/repo"
+            },
+            {
+              "platform": "windows",
+              "status": "passed",
+              "environment": "vm_or_cloud_terminal",
+              "source": "issue #136 windows summary",
+              "commandSummary": "terminal evidence passed on windows from C:\\Users\\tony\\repo"
+            }
+          ]
+        }"##,
+    );
+
+    let (unsafe_summary, unsafe_check) =
+        read_terminal_evidence(&[unsafe_file.path().to_path_buf()]);
+
+    assert_eq!(unsafe_check.status, LaunchJudgeCheckStatus::Failed);
+    assert!(
+        unsafe_summary
+            .issues
+            .iter()
+            .any(|issue| issue.contains("local-path content"))
+    );
+
+    let safe_file = write_evidence(
+        r##"{
+          "schemaVersion": 1,
+          "reports": [
+            {
+              "platform": "linux",
+              "status": "passed",
+              "environment": "local_terminal",
+              "source": "issue #136 linux summary",
+              "commandSummary": "terminal evidence passed on linux with abc/users/tony text"
+            },
+            {
+              "platform": "windows",
+              "status": "passed",
+              "environment": "vm_or_cloud_terminal",
+              "source": "issue #136 windows summary",
+              "commandSummary": "terminal evidence passed on windows with abcC:\\Users\\tony text"
+            }
+          ]
+        }"##,
+    );
+
+    let (safe_summary, safe_check) = read_terminal_evidence(&[safe_file.path().to_path_buf()]);
+
+    assert_eq!(safe_check.status, LaunchJudgeCheckStatus::Passed);
+    assert!(safe_summary.issues.is_empty());
+}
+
 fn valid_reports_with(schema_line: &str) -> String {
     format!(
         r##"{{

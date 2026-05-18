@@ -66,9 +66,7 @@ fn risky_key(key: &str) -> bool {
 fn contains_sensitive_text(text: &str) -> bool {
     let lower = text.to_ascii_lowercase();
     contains_unix_absolute_path(&lower)
-        || text.contains("/Users/")
-        || text.contains("C:\\Users\\")
-        || text.contains("C:/Users/")
+        || contains_windows_user_path(&lower)
         || text.contains("BEGIN PRIVATE KEY")
         || lower.contains("npm_")
         || lower.contains("ghp_")
@@ -79,6 +77,12 @@ fn contains_sensitive_text(text: &str) -> bool {
 
 fn contains_unix_absolute_path(text: &str) -> bool {
     ["/users/", "/home/", "/var/", "/private/", "/tmp/", "/opt/"]
+        .iter()
+        .any(|prefix| starts_at_path_boundary(text, prefix))
+}
+
+fn contains_windows_user_path(text: &str) -> bool {
+    ["c:\\users\\", "c:/users/"]
         .iter()
         .any(|prefix| starts_at_path_boundary(text, prefix))
 }
