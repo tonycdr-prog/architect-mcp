@@ -15,7 +15,7 @@ The human owns decisions. Agents propose and execute. architect-mcp governs.
 ## Tracking
 
 - Epic: [#142 - Evolve architect-mcp into an AI software delivery control plane](https://github.com/tonycdr-prog/architect-mcp/issues/142)
-- Active slice: [#253 - Clarify mergeable unstable PR launch readiness](https://github.com/tonycdr-prog/architect-mcp/issues/253)
+- Active slice: [#255 - Point terminal-evidence Markdown at a target issue](https://github.com/tonycdr-prog/architect-mcp/issues/255)
 - Runtime goal: Codex CLI `/goal`, backed by this document and the GitHub epic.
 
 Every implementation slice should have its own issue and PR. Every PR should link to the epic, list verification, record the judge result, and state remaining gaps.

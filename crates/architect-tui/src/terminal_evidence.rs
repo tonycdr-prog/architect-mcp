@@ -38,15 +38,12 @@ pub async fn run_terminal_evidence(
     config: TuiConfig,
     options: TerminalEvidenceOptions,
 ) -> Result<()> {
-    validate_output_mode(&options)?;
+    let issue_url = validate_output_mode(&options)?;
     let report = build_terminal_evidence(workspace, config, &options).await?;
     if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else if options.markdown {
-        print!(
-            "{}",
-            render_markdown(&report, options.issue_url.as_deref())?
-        );
+        print!("{}", render_markdown(&report, issue_url.as_deref())?);
     } else {
         print_text_report(&report);
     }
@@ -97,14 +94,17 @@ pub(crate) fn evidence_from_smoke(
     })
 }
 
-pub(crate) fn validate_output_mode(options: &TerminalEvidenceOptions) -> Result<()> {
+pub(crate) fn validate_output_mode(options: &TerminalEvidenceOptions) -> Result<Option<String>> {
     if options.json && options.markdown {
         anyhow::bail!("choose only one terminal-evidence output mode: --json or --markdown");
     }
     if let Some(issue_url) = options.issue_url.as_deref() {
-        validate_issue_url(issue_url)?;
+        if !options.markdown {
+            anyhow::bail!("--issue-url can only be used with --markdown");
+        }
+        return Ok(Some(validate_issue_url(issue_url)?));
     }
-    Ok(())
+    Ok(None)
 }
 
 pub(crate) fn render_markdown(
@@ -113,10 +113,7 @@ pub(crate) fn render_markdown(
 ) -> Result<String> {
     let json = serde_json::to_string_pretty(report)?;
     let target = match issue_url {
-        Some(issue_url) => {
-            let issue_url = validate_issue_url(issue_url)?;
-            format!("paste this comment manually into {issue_url}.")
-        }
+        Some(issue_url) => format!("paste this comment manually into {issue_url}."),
         None => "paste this comment manually into the Terminal QA issue.".to_string(),
     };
     Ok(format!(
