@@ -36,10 +36,8 @@ pub(crate) fn parse_waivers(raw_waivers: &[String]) -> (BTreeMap<u64, String>, V
 }
 
 fn parse_waiver(raw: &str) -> Result<(u64, String), String> {
-    let Some((number, reason)) = raw.split_once('=').or_else(|| raw.split_once(':')) else {
-        return Err(
-            "blocker waiver must use ISSUE=reason or ISSUE:reason with a public reason".to_string(),
-        );
+    let Some((number, reason)) = raw.split_once('=') else {
+        return Err("blocker waiver must use ISSUE=reason with a public reason".to_string());
     };
     let number = number
         .trim()
