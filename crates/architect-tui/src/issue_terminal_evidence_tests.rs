@@ -126,7 +126,7 @@ fn collector_warns_on_template_placeholder_evidence() {
         "body": "",
         "comments": [
             {
-                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"REPLACE with public issue or PR link for this real terminal run\",\"commandSummary\":\"REPLACE with commands that passed or failed on this real machine\",\"notes\":\"REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local\"},{\"platform\":\"windows\",\"status\":\"passed\",\"environment\":\"vm_or_cloud_terminal\",\"source\":\"issue #136 public-safe terminal QA report\",\"commandSummary\":\"architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized\",\"notes\":\"summary only, no raw logs\"}]}\n```"
+                "body": "```json\n{\"schemaVersion\":1,\"reports\":[{\"platform\":\"linux\",\"status\":\"passed\",\"environment\":\"local_terminal\",\"source\":\"REPLACE with public issue or PR link for this exact Linux terminal run\",\"commandSummary\":\"REPLACE with commands that passed or failed on this real Linux machine\",\"notes\":\"REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local\"},{\"platform\":\"windows\",\"status\":\"passed\",\"environment\":\"vm_or_cloud_terminal\",\"source\":\"REPLACE with public issue or PR link for this exact Windows terminal run\",\"commandSummary\":\"REPLACE with commands that passed or failed on this real Windows machine\",\"notes\":\"REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local\"}]}\n```"
             }
         ]
     });
