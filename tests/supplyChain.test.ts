@@ -286,7 +286,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#295 - Harden launch-stack stack discovery lookup and API visibility\]/);
+    assert.match(goal, /Active slice: \[#297 - Harden launch-readiness public summary redaction and private-repo wording\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -334,6 +334,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#291\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/291\)/);
     assert.match(goal, /\[#293\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/293\)/);
     assert.match(goal, /\[#295\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/295\)/);
+    assert.match(goal, /\[#297\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/297\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -376,6 +377,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /issue terminal-evidence collector hardening for PR #184 review-thread debt/);
     assert.match(goal, /launch-stack waiver parser hardening for PR #188 review-thread debt/);
     assert.match(goal, /targeted stack-discovery lookup hardening for PR #192 review-thread debt/);
+    assert.match(goal, /launch-readiness public-summary redaction\/docs hardening for PR #196 review-thread debt/);
+    assert.match(goal, /quoted and punctuated local paths are covered through public-summary regression tests/);
+    assert.match(goal, /supplied `repository` value/);
+    assert.match(goal, /PR #298 launch-stack is `go`/);
+    assert.match(goal, /PR #196 launch-stack is now `go`/);
     assert.match(goal, /sourcePath now reflects issue body, comments, or body plus comments/);
     assert.match(goal, /PR #184 launch-stack is now `go`/);
     assert.match(goal, /PR #292 launch-stack is `go`/);
@@ -383,7 +389,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /unmatched waivers are covered through `build_launch_stack_report`/);
     assert.match(goal, /PR #294 launch-stack is `go`/);
     assert.match(goal, /PR #188 launch-stack is now `go`/);
-    assert.match(goal, /duplicate open head-branch matches fail closed/);
+    assert.match(goal, /duplicate open head matches fail closed/);
     assert.match(goal, /targeted read-only head-branch lookups/);
     assert.match(goal, /PR #296 launch-stack is `go`/);
     assert.match(goal, /PR #192 launch-stack is now `go`/);
@@ -420,7 +426,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#291 in PR #292/);
     assert.match(goal, /#293 in PR #294/);
     assert.match(goal, /#295 in PR #296/);
-    assert.match(goal, /unresolved review threads on PRs #196, #229, #231, #233, #235, #240, and #243/);
+    assert.match(goal, /#297 in PR #298/);
+    assert.match(goal, /unresolved review threads on PRs #229, #231, #233, #235, #240, and #243/);
     assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
