@@ -5,11 +5,14 @@ use crate::governance_audit_public_summary::{
     GovernanceAuditPublicMemorySummary, GovernanceAuditPublicSummary,
 };
 use crate::governance_audit_report::GovernanceAuditStatus;
-use crate::launch_judge_report::LaunchJudgeResult;
+use crate::launch_judge_report::{
+    LaunchJudgeResult, LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
+};
 use crate::launch_readiness_public_summary::{
     LaunchReadinessPublicMissingRequiredCheck, LaunchReadinessPublicStack,
     LaunchReadinessPublicStatusCounts, LaunchReadinessPublicSummary,
-    LaunchReadinessPublicTerminalEvidence, LaunchReadinessPublicUnresolvedReviewThreads,
+    LaunchReadinessPublicTerminalEvidence, LaunchReadinessPublicTerminalEvidenceReport,
+    LaunchReadinessPublicUnresolvedReviewThreads,
 };
 
 #[test]
@@ -55,6 +58,46 @@ fn evidence_index_markdown_shows_unresolved_review_threads_without_raw_text() {
     assert!(!markdown.contains("body"));
 }
 
+#[test]
+fn evidence_index_markdown_shows_terminal_evidence_provenance_without_raw_text() {
+    let mut launch = launch_summary_with_missing_required_checks();
+    launch.terminal_evidence.report_count = 2;
+    launch.terminal_evidence.platforms = vec!["linux".to_string(), "windows".to_string()];
+    launch.terminal_evidence.reports = vec![
+        LaunchReadinessPublicTerminalEvidenceReport {
+            platform: "linux".to_string(),
+            status: LaunchJudgeTerminalEvidenceStatus::Passed,
+            environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
+            collected_at: Some("2026-05-18".to_string()),
+        },
+        LaunchReadinessPublicTerminalEvidenceReport {
+            platform: "windows".to_string(),
+            status: LaunchJudgeTerminalEvidenceStatus::Passed,
+            environment: Some(LaunchJudgeTerminalEvidenceEnvironment::VmOrCloudTerminal),
+            collected_at: Some("2026-05-18".to_string()),
+        },
+    ];
+    let report =
+        build_evidence_index_report_from_public_summaries_at(launch, governance_summary(), 1);
+
+    let markdown = render_markdown(&report);
+
+    assert!(markdown.contains("- Terminal evidence provenance:"));
+    assert!(markdown.contains(
+        "  - `linux`: status `passed`, environment `local_terminal`, collectedAt `2026-05-18`"
+    ));
+    assert!(
+        markdown.contains(
+            "  - `windows`: status `passed`, environment `vm_or_cloud_terminal`, collectedAt `2026-05-18`"
+        )
+    );
+    assert!(!markdown.contains("commandSummary"));
+    assert!(!markdown.contains("notes"));
+    assert!(!markdown.contains("source"));
+    assert!(!markdown.contains("stdout"));
+    assert!(!markdown.contains("stderr"));
+}
+
 fn launch_summary_with_missing_required_checks() -> LaunchReadinessPublicSummary {
     LaunchReadinessPublicSummary {
         schema_version: 1,
@@ -90,6 +133,7 @@ fn launch_summary_with_missing_required_checks() -> LaunchReadinessPublicSummary
             issue: None,
             report_count: 0,
             platforms: Vec::new(),
+            reports: Vec::new(),
             issues: Vec::new(),
         },
         terminal_evidence_waiver: None,

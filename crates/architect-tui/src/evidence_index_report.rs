@@ -119,6 +119,13 @@ fn sanitize_launch_readiness_summary(
         missing.names = public_strings(&missing.names, 120);
     }
     summary.terminal_evidence.platforms = public_strings(&summary.terminal_evidence.platforms, 80);
+    for report in &mut summary.terminal_evidence.reports {
+        report.platform = public_text(&report.platform, 80);
+        report.collected_at = report
+            .collected_at
+            .as_deref()
+            .map(|collected_at| public_text(collected_at, 80));
+    }
     summary.terminal_evidence.issues = public_strings(&summary.terminal_evidence.issues, 320);
     if let Some(waiver) = &mut summary.terminal_evidence_waiver {
         waiver.reason = public_text(&waiver.reason, 240);
