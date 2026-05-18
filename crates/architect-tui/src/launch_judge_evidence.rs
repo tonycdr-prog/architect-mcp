@@ -14,7 +14,7 @@ use crate::terminal_evidence_environment::validate_report_environment;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TerminalEvidenceEnvelope {
-    pub(crate) schema_version: Option<u8>,
+    pub(crate) schema_version: u8,
     pub(crate) reports: Vec<LaunchJudgeTerminalEvidenceReport>,
 }
 
@@ -53,9 +53,8 @@ pub(crate) fn read_terminal_evidence(
         let file_name = public_file_name(path);
         match read_terminal_evidence_file(path, &file_name) {
             Ok(mut envelope) => {
-                if let Some(version) = envelope.schema_version
-                    && version != 1
-                {
+                if envelope.schema_version != 1 {
+                    hard_failure = true;
                     issues.push(format!(
                         "{file_name}: terminal evidence schemaVersion must be 1"
                     ));
@@ -132,6 +131,12 @@ pub(crate) fn build_terminal_evidence_summary(
     if hard_failure {
         return failed(summary, "terminal evidence file could not be validated");
     }
+    if summary.issues.iter().any(|issue| issue_fails_closed(issue)) {
+        return failed(
+            summary,
+            "terminal evidence schema or platform data is invalid",
+        );
+    }
     if summary.issues.iter().any(|issue| issue.contains("failed")) {
         return failed(summary, "terminal evidence includes failed platform QA");
     }
@@ -158,6 +163,13 @@ pub(crate) fn build_terminal_evidence_summary(
             None,
         ),
     )
+}
+
+fn issue_fails_closed(issue: &str) -> bool {
+    issue.contains("schemaVersion")
+        || issue.contains("schema is invalid")
+        || issue.contains("must be linux or windows")
+        || issue.contains("is duplicated")
 }
 
 fn public_file_name(path: &Path) -> String {
