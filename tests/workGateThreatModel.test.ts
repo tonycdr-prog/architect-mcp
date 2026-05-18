@@ -6,7 +6,10 @@ import {
   WORK_GATE_BOUNDARIES,
   WORK_GATE_BYPASS_CASES,
   classifyWorkGateBoundary,
-  evaluateBypassCase
+  evaluateBypassCase,
+  validateThreatModelReferences,
+  type WorkGateBoundary,
+  type WorkGateBypassCase
 } from "../src/domain/workGateThreatModel.js";
 
 describe("work gate threat model", () => {
@@ -31,11 +34,43 @@ describe("work gate threat model", () => {
   it("documents public-safe bypass classes that cannot be claimed as fully prevented by architect-mcp alone", () => {
     assert.equal(WORK_GATE_BYPASS_CASES.length >= 3, true);
     assert.equal(WORK_GATE_BYPASS_CASES.every((testCase) => testCase.publicSafe), true);
+    assert.deepEqual(validateThreatModelReferences().findings, []);
 
     for (const testCase of WORK_GATE_BYPASS_CASES) {
       assert.equal(testCase.reproducibleSteps.length >= 3, true, `${testCase.id} needs reproducible steps`);
       assert.equal(evaluateBypassCase(testCase.id).protectedByArchitectMcpAlone, false, `${testCase.id} should not be overclaimed`);
     }
+  });
+
+  it("fails closed when bypass cases reference unknown source or boundary ids", () => {
+    const invalidCase: WorkGateBypassCase = {
+      ...WORK_GATE_BYPASS_CASES[0],
+      id: "invalid-cross-reference",
+      untrustedSources: ["issue-pr-text", "issue-pr-typo"],
+      affectedBoundaryIds: ["core-mcp-tools", "missing-boundary"]
+    };
+    const review = validateThreatModelReferences([invalidCase]);
+
+    assert.equal(review.valid, false);
+    assert.deepEqual(review.findings.map((finding) => finding.field), ["untrustedSources", "affectedBoundaryIds"]);
+    assert.match(review.findings[0].message, /unknown untrusted input source issue-pr-typo/);
+    assert.match(review.findings[1].message, /unknown work-gate boundary missing-boundary/);
+  });
+
+  it("includes reference findings in bypass evaluation before claiming coverage", () => {
+    const boundaryIds = WORK_GATE_BOUNDARIES
+      .filter((boundary) => boundary.id !== "core-mcp-tools")
+      .map((boundary) => boundary.id);
+
+    const referenceReview = validateThreatModelReferences(WORK_GATE_BYPASS_CASES, {
+      boundaries: WORK_GATE_BOUNDARIES.filter((boundary) => boundary.id !== "core-mcp-tools")
+    });
+
+    assert.equal(boundaryIds.includes("core-mcp-tools"), false);
+    assert.equal(referenceReview.valid, false);
+    assert.equal(referenceReview.findings.some((finding) =>
+      finding.field === "affectedBoundaryIds" && finding.id === "core-mcp-tools"
+    ), true);
   });
 
   it("covers the main untrusted input paths agents see during repository work", () => {
@@ -53,7 +88,11 @@ describe("work gate threat model", () => {
     const llms = readFileSync("llms.txt", "utf8");
 
     for (const boundary of WORK_GATE_BOUNDARIES) {
-      assert.match(doc, new RegExp(`\\b${boundary.id}\\b`));
+      const row = gateBoundaryRow(doc, boundary);
+
+      assert.match(row, new RegExp(`\\b${boundary.id}\\b`));
+      assert.match(row, new RegExp(`\\b${boundary.enforcement}\\b`));
+      assert.match(row, expectedBoundaryLimitationPattern(boundary.id));
     }
     for (const testCase of WORK_GATE_BYPASS_CASES) {
       assert.match(doc, new RegExp(`\\b${testCase.id}\\b`));
@@ -68,3 +107,27 @@ describe("work gate threat model", () => {
     assert.match(llms, /docs\/prompt-injection-threat-model\.md/);
   });
 });
+
+function gateBoundaryRow(doc: string, boundary: WorkGateBoundary): string {
+  const row = doc.split("\n").find((line) => line.startsWith(`| \`${boundary.id}\``));
+
+  assert.equal(typeof row, "string", `${boundary.id} must have a dedicated gate-boundary table row`);
+  return row as string;
+}
+
+function expectedBoundaryLimitationPattern(id: string): RegExp {
+  const patterns: Record<string, RegExp> = {
+    "core-mcp-tools": /cannot force a client to call every tool or stop editing/,
+    "tui-pre-adapter-flow": /cannot stop edits made outside the TUI/,
+    "tui-adapter-execution": /separate shell commands outside the TUI/,
+    "tui-promotion": /not direct workspace edits/,
+    "final-response-review": /cannot prove a command ran unless external evidence is supplied/,
+    "release-check": /does not prove manual terminal QA or unconfigured workflows/,
+    "memory-policy": /not enforcement unless the host or memory tool enforces/,
+    "direct-shell-files": /does not sandbox the shell or filesystem by itself/
+  };
+
+  const pattern = patterns[id];
+  assert.ok(pattern, `${id} needs an expected limitation pattern`);
+  return pattern;
+}

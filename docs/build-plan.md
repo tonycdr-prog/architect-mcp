@@ -63,7 +63,7 @@
 ### 8. Prompt Injection And Gate Bypass Threat Model
 - Inputs: issue #242, existing work-gate docs, TUI approval/promotion behavior, security reporting policy
 - Outputs: public-safe threat-model doc, advisory-versus-enforced gate classification, reproducible bypass fixtures, follow-up issue links, goal ledger update
-- Allowed directories: src/domain, tests, docs
+- Allowed directories: src/domain, tests, docs, top-level public docs (README.md, llms.txt)
 - Forbidden files: exploit payloads, secrets, private repository data, cloud moderation dependencies, changes that claim MCP tools sandbox direct shell or file mutation
 - Checks: node --import tsx --test tests/workGateThreatModel.test.ts, node --import tsx --test tests/supplyChain.test.ts, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if public docs overclaim that report-only MCP tools prevent prompt injection, direct file edits, selective tool calls, or fabricated verification evidence without TUI, host, CI, or human enforcement.
