@@ -1,24 +1,12 @@
 import { publicSafeOptionalText, publicSafeSummary, publicSafeText } from "./publicSafetyText.js";
 export { publicSafeText } from "./publicSafetyText.js";
 
-export const verificationReceiptSources = [
-  "local_terminal",
-  "ci",
-  "tui",
-  "adapter",
-  "manual"
-] as const;
+export const verificationReceiptSources = ["local_terminal", "ci", "tui", "adapter", "manual"] as const;
 
 export type VerificationReceiptSource = typeof verificationReceiptSources[number];
 export type VerificationReceiptStatus = "passed" | "failed" | "skipped" | "not_run";
 export type VerificationEvidenceTier = "supplied" | "independent";
-export type VerificationFreshnessStatus =
-  | "fresh"
-  | "independent_run_id"
-  | "missing"
-  | "stale"
-  | "future"
-  | "invalid";
+export type VerificationFreshnessStatus = "fresh" | "independent_run_id" | "missing" | "stale" | "future" | "invalid";
 
 export type VerificationReceipt = {
   command: string;
@@ -29,11 +17,7 @@ export type VerificationReceipt = {
   runId?: string;
 };
 
-export type VerificationRecord = {
-  check: string;
-  status: VerificationReceiptStatus;
-  note?: string;
-};
+export type VerificationRecord = { check: string; status: VerificationReceiptStatus; note?: string };
 
 export type VerificationReceiptReviewInput = {
   requiredChecks?: string[];
@@ -83,14 +67,15 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     const safeCommand = publicSafeText(receipt.command);
     const safeSummary = publicSafeSummary(receipt.summary);
     const freshness = reviewFreshness(receipt, nowMs, maxAgeSeconds);
-    const evidenceTier = receiptEvidenceTier(receipt.source);
+    const independentlyResolvable = hasIndependentHandle(receipt);
+    const evidenceTier = receiptEvidenceTier(receipt);
     return {
       sourceReceipt: receipt,
       command: safeCommand.value,
       status: receipt.status,
       source: receipt.source,
       evidenceTier,
-      independentlyResolvable: evidenceTier === "independent",
+      independentlyResolvable,
       freshness,
       recordedAtPresent: freshness.recordedAtPresent,
       runIdPresent: freshness.runIdPresent,
@@ -109,20 +94,29 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     };
   });
 
-  const receiptsByCommand = new Map<string, ReviewedReceipt>();
+  const receiptsByCommand = new Map<string, ReviewedReceipt[]>();
   for (const receipt of reviewedReceipts) {
     const key = normalizeKey(receipt.sourceReceipt.command);
-    if (key && !receiptsByCommand.has(key)) receiptsByCommand.set(key, receipt);
+    if (!key) continue;
+    const matches = receiptsByCommand.get(key) ?? [];
+    matches.push(receipt);
+    receiptsByCommand.set(key, matches);
   }
+  const freshPassedCommands = new Set(
+    reviewedReceipts
+      .filter((receipt) => isFreshPassedReceipt(receipt))
+      .map((receipt) => normalizeKey(receipt.sourceReceipt.command))
+      .filter(Boolean)
+  );
 
   const requiredReceiptMatches = requiredChecks.map((check) => {
-    const receipt = receiptsByCommand.get(normalizeKey(check));
-    return { check, receipt };
+    const receipts = receiptsByCommand.get(normalizeKey(check)) ?? [];
+    return { check, receipts };
   });
 
   if (receiptsWereSupplied) {
-    for (const { check, receipt } of requiredReceiptMatches) {
-      if (!receipt) {
+    for (const { check, receipts } of requiredReceiptMatches) {
+      if (receipts.length === 0) {
         const safeCheck = publicSafeText(check);
         findings.push({
           code: "VERIFY_RECEIPT001_MISSING",
@@ -152,7 +146,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
         recommendation: "State the command as skipped/not run, or run it before claiming it passed."
       });
     }
-    if (receipt.freshness.status === "missing") {
+    const hasFreshPassedSibling = freshPassedCommands.has(normalizeKey(receipt.sourceReceipt.command));
+    if (receipt.freshness.status === "missing" && !hasFreshPassedSibling) {
       findings.push({
         code: "VERIFY_RECEIPT004_FRESHNESS_UNKNOWN",
         severity: "warning",
@@ -162,7 +157,7 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
         recommendation: "Include a public-safe timestamp for local, TUI, adapter, or manual receipts; run ids alone only prove freshness for independently resolvable sources such as CI."
       });
     }
-    if (receipt.freshness.status === "invalid" || receipt.freshness.status === "future" || receipt.freshness.status === "stale") {
+    if ((receipt.freshness.status === "invalid" || receipt.freshness.status === "future" || receipt.freshness.status === "stale") && !hasFreshPassedSibling) {
       findings.push({
         code: "VERIFY_RECEIPT005_STALE",
         severity: "error",
@@ -186,8 +181,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
 
   const errors = findings.filter((finding) => finding.severity === "error").length;
   const status = errors > 0 ? "fail" : findings.length > 0 ? "warn" : "pass";
-  const matchedRequired = requiredReceiptMatches.filter((match) => match.receipt).length;
-  const freshMatchedRequired = requiredReceiptMatches.filter((match) => isFreshPassedReceipt(match.receipt)).length;
+  const matchedRequired = requiredReceiptMatches.filter((match) => match.receipts.length > 0).length;
+  const freshMatchedRequired = requiredReceiptMatches.filter((match) => match.receipts.some(isFreshPassedReceipt)).length;
   const verificationSummary = summarizeVerificationRecords(verificationRecords);
   const suppliedReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "supplied").length;
   const independentReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "independent").length;
@@ -217,9 +212,9 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
       const safeCheck = publicSafeText(check);
       return {
         check: safeCheck.value,
-        receiptSupplied: Boolean(receiptsByCommand.get(normalizeKey(check))),
-        freshReceiptSupplied: isFreshPassedReceipt(receiptsByCommand.get(normalizeKey(check))),
-        independentReceiptSupplied: receiptsByCommand.get(normalizeKey(check))?.evidenceTier === "independent",
+        receiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).length > 0,
+        freshReceiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).some(isFreshPassedReceipt),
+        independentReceiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).some((receipt) => receipt.independentlyResolvable),
         redacted: safeCheck.redacted
       };
     }),
@@ -240,8 +235,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   };
 }
 
-function receiptEvidenceTier(source: VerificationReceiptSource): VerificationEvidenceTier {
-  return source === "ci" ? "independent" : "supplied";
+function receiptEvidenceTier(receipt: VerificationReceipt): VerificationEvidenceTier {
+  return hasIndependentHandle(receipt) ? "independent" : "supplied";
 }
 
 function reviewFreshness(receipt: VerificationReceipt, nowMs: number, maxAgeSeconds: number): ReviewedReceipt["freshness"] {
@@ -260,10 +255,14 @@ function reviewFreshness(receipt: VerificationReceipt, nowMs: number, maxAgeSeco
     }
     return { status: "fresh", satisfied: true, recordedAtPresent, runIdPresent };
   }
-  if (runIdPresent && receiptEvidenceTier(receipt.source) === "independent") {
+  if (runIdPresent && hasIndependentHandle(receipt)) {
     return { status: "independent_run_id", satisfied: true, recordedAtPresent, runIdPresent };
   }
   return { status: "missing", satisfied: false, recordedAtPresent, runIdPresent };
+}
+
+function hasIndependentHandle(receipt: VerificationReceipt): boolean {
+  return receipt.source === "ci" && (Boolean(receipt.recordedAt?.trim()) || Boolean(receipt.runId?.trim()));
 }
 
 function isFreshPassedReceipt(receipt: ReviewedReceipt | undefined): boolean {
