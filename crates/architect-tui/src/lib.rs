@@ -12,6 +12,8 @@ mod adapter_probe_command;
 mod adapter_pty;
 mod adapter_review;
 mod approval;
+#[cfg(test)]
+mod approval_gate_evidence_tests;
 mod approval_reason;
 #[cfg(test)]
 mod approval_tests;
