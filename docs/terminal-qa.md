@@ -4,7 +4,17 @@ Use this page when testing `architect-mcp-tui` in a real terminal outside CI. Th
 
 Do not paste secrets, tokens, private repository names, private file contents, or customer data into public issues.
 
-## One-Command Smoke
+## One-Command Public Evidence
+
+The preferred public evidence command on Linux and Windows is:
+
+```bash
+architect-mcp-tui terminal-evidence --json > terminal-evidence.json
+```
+
+It runs the smoke checks internally and writes a launch-judge-compatible summary. Public reports should paste this summary, not the raw smoke JSON. The command auto-detects Linux and Windows; use `--platform linux` or `--platform windows` only when a maintainer asks you to summarize already-verified external evidence.
+
+## Local Troubleshooting Smoke
 
 The preferred smoke command is:
 
@@ -51,6 +61,8 @@ node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
 architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
+# Linux only:
+architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 ```
 
 If the command exits non-zero, keep `architect-mcp-tui-smoke.json` locally if it was written and paste only the shortest useful terminal error into the issue.
@@ -75,6 +87,7 @@ node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
 architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
+architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 if ($LASTEXITCODE -ne 0) { Write-Host "smoke exited with code $LASTEXITCODE" }
 ```
 
@@ -98,6 +111,7 @@ node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
 architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
+architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 ```
 
 Manual fallback commands:
@@ -135,13 +149,13 @@ Do not run adapter execution in a public repository unless you are intentionally
 
 ## Report Results
 
-For successful terminal QA, open a Terminal QA report and paste a public-safe launch judge evidence summary. Maintainers should be able to save the JSON as `terminal-evidence.json` and run:
+For successful Linux or Windows terminal QA, open a Terminal QA report and paste the public-safe output from `architect-mcp-tui terminal-evidence --json`. Maintainers should be able to save the JSON as `terminal-evidence.json` and run:
 
 ```bash
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 ```
 
-Use this evidence shape:
+The generated evidence has this shape:
 
 ```json
 {

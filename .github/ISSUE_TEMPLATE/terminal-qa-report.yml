@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for testing in a real terminal. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
+        Thanks for testing in a real terminal. On Linux and Windows, run `architect-mcp-tui terminal-evidence --json` and paste that public-safe summary below. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
   - type: dropdown
     id: platform
     attributes:
@@ -45,7 +45,7 @@ body:
     id: launch-judge-evidence
     attributes:
       label: Launch judge terminal evidence JSON
-      description: Paste a public-safe summary that can be saved as terminal-evidence.json and passed to architect-mcp-tui launch-judge --terminal-evidence. Do not paste raw smoke JSON.
+      description: Required for Linux and Windows launch-readiness reports. Paste the public-safe output from architect-mcp-tui terminal-evidence --json, or a maintainer-normalized equivalent that can be saved as terminal-evidence.json and passed to architect-mcp-tui launch-judge --terminal-evidence. Do not paste raw smoke JSON.
       render: json
       value: |
         {
@@ -55,13 +55,13 @@ body:
               "platform": "linux",
               "status": "passed",
               "source": "issue #136 public-safe terminal QA report",
-              "commandSummary": "architect-mcp-tui --help, config adapters --json, and gate-only run --jsonl passed",
+              "commandSummary": "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized",
               "notes": "summary only, no raw logs"
             }
           ]
         }
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: result
     attributes:

@@ -1,8 +1,7 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
 use architect_tui::acp::run_acp_stdio;
 use architect_tui::adapter::print_adapter_table;
+use architect_tui::cli::{Cli, Commands};
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
 use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
@@ -10,117 +9,11 @@ use architect_tui::launch_judge::{LaunchJudgeOptions, run_launch_judge};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
 use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
 use architect_tui::smoke::{SmokeOptions, run_smoke};
+use architect_tui::terminal_evidence::{TerminalEvidenceOptions, run_terminal_evidence};
 use architect_tui::ui::run_interactive;
 use architect_tui::walkthrough::{WalkthroughOptions, run_walkthrough};
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use tracing_subscriber::EnvFilter;
-
-#[derive(Debug, Parser)]
-#[command(name = "architect-mcp-tui")]
-#[command(about = "Ratatui agent client for architect-mcp work-gate workflows.")]
-struct Cli {
-    #[arg(long, global = true, env = "ARCHITECT_MCP_TUI_CONFIG")]
-    config: Option<PathBuf>,
-    #[arg(long, global = true, env = "ARCHITECT_MCP_WORKSPACE")]
-    workspace: Option<PathBuf>,
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Debug, Subcommand)]
-enum Commands {
-    /// Run a scriptable headless prompt through the work gate and one adapter.
-    Run {
-        #[arg(long)]
-        prompt: String,
-        #[arg(long, default_value = "codex")]
-        adapter: String,
-        #[arg(long)]
-        jsonl: bool,
-        #[arg(long, default_value_t = 1)]
-        concurrency: usize,
-        #[arg(long)]
-        execute: bool,
-    },
-    /// Serve an Agent Client Protocol endpoint over stdio.
-    Acp {
-        #[arg(long)]
-        stdio: bool,
-    },
-    /// Manage architect-mcp-tui configuration.
-    Config {
-        #[command(subcommand)]
-        command: ConfigCommand,
-    },
-    /// Run a secret-safe terminal QA smoke report.
-    Smoke {
-        #[arg(long)]
-        json: bool,
-        #[arg(long, default_value = SmokeOptions::DEFAULT_PROMPT)]
-        prompt: String,
-        #[arg(long)]
-        skip_gate: bool,
-    },
-    /// Run a scripted interactive command-palette walkthrough in a throwaway workspace.
-    Walkthrough {
-        #[arg(long)]
-        json: bool,
-        #[arg(long)]
-        keep_workspace: bool,
-    },
-    /// Run a local-only real-adapter promotion smoke in a disposable git workspace.
-    PromotionSmoke {
-        #[arg(long)]
-        json: bool,
-        #[arg(long, default_value = "codex")]
-        adapter: String,
-        #[arg(long)]
-        keep_workspace: bool,
-        #[arg(long, default_value_t = 600)]
-        timeout_seconds: u64,
-    },
-    /// Run a repo-foundry smoke; live GitHub creation requires explicit confirmation.
-    FoundrySmoke {
-        #[arg(long)]
-        json: bool,
-        #[arg(long)]
-        owner: String,
-        #[arg(long)]
-        repo: Option<String>,
-        #[arg(long)]
-        execute: bool,
-        #[arg(long)]
-        confirm_private_repo_mutation: bool,
-        #[arg(long)]
-        keep_workspace: bool,
-    },
-    /// Run a read-only governance and drift audit for the current workspace.
-    GovernanceAudit {
-        #[arg(long)]
-        json: bool,
-        #[arg(long)]
-        skip_mcp: bool,
-        #[arg(long, default_value_t = 1000)]
-        max_files: usize,
-    },
-    /// Combine smoke, governance, release, and external-evidence gates into a launch judge report.
-    LaunchJudge {
-        #[arg(long)]
-        json: bool,
-        #[arg(long)]
-        skip_mcp: bool,
-        #[arg(long)]
-        skip_smoke: bool,
-        #[arg(long)]
-        run_release_check: bool,
-        #[arg(long)]
-        require_clean_git: bool,
-        #[arg(long, default_value_t = 1000)]
-        max_files: usize,
-        #[arg(long)]
-        terminal_evidence: Option<PathBuf>,
-    },
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -177,6 +70,28 @@ async fn main() -> Result<()> {
                     json,
                     prompt,
                     skip_gate,
+                },
+            )
+            .await?;
+        }
+        Some(Commands::TerminalEvidence {
+            json,
+            prompt,
+            skip_gate,
+            platform,
+            source,
+            notes,
+        }) => {
+            run_terminal_evidence(
+                workspace,
+                config,
+                TerminalEvidenceOptions {
+                    json,
+                    prompt,
+                    skip_gate,
+                    platform,
+                    source,
+                    notes,
                 },
             )
             .await?;
