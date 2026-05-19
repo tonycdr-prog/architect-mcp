@@ -146,6 +146,8 @@ pub enum Commands {
         blockers: Vec<u64>,
         #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
         waived_blockers: Vec<String>,
+        #[arg(long = "required-check")]
+        required_checks: Vec<String>,
     },
     /// Combine launch-stack and public terminal-evidence issue state into one readiness report.
     LaunchReadiness {
@@ -163,6 +165,8 @@ pub enum Commands {
         blockers: Vec<u64>,
         #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
         waived_blockers: Vec<String>,
+        #[arg(long = "required-check")]
+        required_checks: Vec<String>,
         #[arg(long)]
         terminal_evidence_issue: Option<u64>,
         #[arg(long = "waive-terminal-evidence", value_name = "ISSUE=REASON")]
@@ -188,6 +192,8 @@ pub enum Commands {
         blockers: Vec<u64>,
         #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
         waived_blockers: Vec<String>,
+        #[arg(long = "required-check")]
+        required_checks: Vec<String>,
         #[arg(long)]
         terminal_evidence_issue: Option<u64>,
         #[arg(long = "waive-terminal-evidence", value_name = "ISSUE=REASON")]

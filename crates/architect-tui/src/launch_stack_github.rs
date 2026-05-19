@@ -7,11 +7,13 @@ use crate::launch_stack::{
     LaunchStackCheckSummary, LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest,
 };
 use crate::launch_stack_pr_status::{pr_next_action, pr_status};
+use crate::launch_stack_required_checks::apply_required_checks;
 
 pub(crate) fn fetch_pr(
     workspace: &Path,
     repo: Option<&str>,
     number: u64,
+    required_checks: &[String],
 ) -> Result<LaunchStackPullRequest, String> {
     let mut args = vec![
         "pr".to_string(),
@@ -22,7 +24,11 @@ pub(crate) fn fetch_pr(
     ];
     append_repo_args(&mut args, repo);
     let value = run_gh_json(workspace, &args).map_err(|error| format!("PR #{number}: {error}"))?;
-    Ok(pr_from_value(number, &value))
+    Ok(pr_from_value_with_required_checks(
+        number,
+        &value,
+        required_checks,
+    ))
 }
 
 pub(crate) fn fetch_issue(
@@ -44,6 +50,14 @@ pub(crate) fn fetch_issue(
 }
 
 pub(crate) fn pr_from_value(fallback_number: u64, value: &Value) -> LaunchStackPullRequest {
+    pr_from_value_with_required_checks(fallback_number, value, &[])
+}
+
+pub(crate) fn pr_from_value_with_required_checks(
+    fallback_number: u64,
+    value: &Value,
+    required_checks: &[String],
+) -> LaunchStackPullRequest {
     let number = value
         .get("number")
         .and_then(Value::as_u64)
@@ -63,7 +77,8 @@ pub(crate) fn pr_from_value(fallback_number: u64, value: &Value) -> LaunchStackP
         .map(str::trim)
         .filter(|decision| !decision.is_empty())
         .map(|decision| public_text(&decision.to_ascii_uppercase(), 80));
-    let checks = summarize_checks(value.get("statusCheckRollup"));
+    let mut checks = summarize_checks(value.get("statusCheckRollup"));
+    apply_required_checks(&mut checks, required_checks);
     let status = pr_status(
         is_draft,
         review_decision.as_deref(),
@@ -140,8 +155,10 @@ pub(crate) fn summarize_checks(value: Option<&Value>) -> LaunchStackCheckSummary
         passed: 0,
         pending: 0,
         failed: 0,
+        names: Vec::new(),
         pending_names: Vec::new(),
         failed_names: Vec::new(),
+        missing_required_names: Vec::new(),
     };
     let Some(items) = value.and_then(Value::as_array) else {
         return summary;
@@ -152,6 +169,7 @@ pub(crate) fn summarize_checks(value: Option<&Value>) -> LaunchStackCheckSummary
             item.get("name").and_then(Value::as_str).unwrap_or("check"),
             120,
         );
+        summary.names.push(name.clone());
         let status = item
             .get("status")
             .and_then(Value::as_str)

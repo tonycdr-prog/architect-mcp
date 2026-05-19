@@ -105,9 +105,15 @@ mod launch_stack_merge_plan_tests;
 mod launch_stack_output;
 mod launch_stack_pr_status;
 #[cfg(test)]
+mod launch_stack_required_check_integration_tests;
+mod launch_stack_required_checks;
+#[cfg(test)]
+mod launch_stack_required_checks_tests;
+#[cfg(test)]
 mod launch_stack_review_decision_tests;
 #[cfg(test)]
 mod launch_stack_tests;
+mod launch_stack_waivers;
 pub mod mcp;
 mod mcp_client;
 pub mod orchestrator;

@@ -7,6 +7,7 @@ pub(crate) fn pr_status(
     checks: &LaunchStackCheckSummary,
 ) -> LaunchStackItemStatus {
     if checks.failed > 0
+        || !checks.missing_required_names.is_empty()
         || is_hard_merge_block(merge_state_status)
         || is_changes_requested(review_decision)
     {
@@ -37,6 +38,12 @@ pub(crate) fn pr_next_action(
         LaunchStackItemStatus::Failed if is_changes_requested(review_decision) => Some(format!(
             "resolve requested changes on PR #{number} before launch stack can be go"
         )),
+        LaunchStackItemStatus::Failed if !checks.missing_required_names.is_empty() => {
+            Some(format!(
+                "restore required checks on PR #{number}: {}",
+                checks.missing_required_names.join(", ")
+            ))
+        }
         LaunchStackItemStatus::Failed if checks.failed > 0 => Some(format!(
             "fix failing checks on PR #{number} before launch stack can be go"
         )),

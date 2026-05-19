@@ -195,6 +195,7 @@ async fn main() -> Result<()> {
             prs,
             blockers,
             waived_blockers,
+            required_checks,
         }) => run_launch_stack(
             &workspace,
             LaunchStackOptions {
@@ -205,6 +206,7 @@ async fn main() -> Result<()> {
                 prs,
                 blockers,
                 waived_blockers,
+                required_checks,
             },
         )?,
         Some(Commands::LaunchReadiness {
@@ -215,6 +217,7 @@ async fn main() -> Result<()> {
             prs,
             blockers,
             waived_blockers,
+            required_checks,
             terminal_evidence_issue,
             terminal_evidence_waivers,
         }) => run_launch_readiness(
@@ -227,6 +230,7 @@ async fn main() -> Result<()> {
                 prs,
                 blockers,
                 waived_blockers,
+                required_checks,
                 terminal_evidence_issue,
                 terminal_evidence_waivers,
             },
@@ -241,6 +245,7 @@ async fn main() -> Result<()> {
             prs,
             blockers,
             waived_blockers,
+            required_checks,
             terminal_evidence_issue,
             terminal_evidence_waivers,
             skip_mcp,
@@ -259,6 +264,7 @@ async fn main() -> Result<()> {
                     prs,
                     blockers,
                     waived_blockers,
+                    required_checks,
                     terminal_evidence_issue,
                     terminal_evidence_waivers,
                     skip_mcp,

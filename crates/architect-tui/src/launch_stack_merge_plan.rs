@@ -59,6 +59,12 @@ pub(crate) fn render_launch_stack_merge_plan(report: &LaunchStackReport) -> Vec<
             if let Some(action) = &pr.next_action {
                 lines.push(format!("   next: {}", public_text(action, 180)));
             }
+            if !pr.checks.missing_required_names.is_empty() {
+                lines.push(format!(
+                    "   missing required checks: {}",
+                    public_text(&pr.checks.missing_required_names.join(", "), 220)
+                ));
+            }
         }
     }
 

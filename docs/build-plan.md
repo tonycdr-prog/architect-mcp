@@ -29,12 +29,12 @@
 - Stop after: stop if review gate fails.
 
 ### 4. Launch Checklist Evidence
-- Inputs: discovered PR stack, PR review decisions, blocker issues, terminal QA issue state, terminal evidence provenance
-- Outputs: read-only launch-stack merge plan, public-safe evidence summary, review-aware/provenance-aware launch gate, goal ledger update
+- Inputs: discovered PR stack, PR review decisions, explicit required check names, blocker issues, terminal QA issue state, terminal evidence provenance
+- Outputs: read-only launch-stack merge plan, public-safe evidence summary, review-aware/provenance-aware launch gate, required-check absence detection, goal ledger update
 - Allowed directories: crates/architect-tui/src, crates/architect-tui/tests, docs, tests
 - Forbidden files: GitHub mutation scripts, auto-merge flows, release tagging, package publishing
 - Checks: cargo fmt --check, cargo clippy --workspace --all-targets -- -D warnings, cargo test --workspace, npm run release:check
-- Stop after: stop if requested PR changes are unresolved, required review is incomplete, #136 terminal evidence is missing, #136 evidence lacks manual local/VM provenance, or there is no explicit maintainer waiver.
+- Stop after: stop if requested PR changes are unresolved, required review is incomplete, any explicit required check is missing, #136 terminal evidence is missing, #136 evidence lacks manual local/VM provenance, or there is no explicit maintainer waiver.
 
 ### 5. Repo-Foundry Public Evidence
 - Inputs: repo-foundry smoke report, private repo verification, draft PR verification, command outcomes, retention decision

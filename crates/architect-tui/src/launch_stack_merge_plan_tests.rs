@@ -2,7 +2,9 @@ use serde_json::json;
 
 use crate::launch_stack::{LaunchStackOptions, build_report_from_items, run_launch_stack};
 use crate::launch_stack_discovery::LaunchStackDiscovery;
-use crate::launch_stack_github::{issue_from_value, pr_from_value};
+use crate::launch_stack_github::{
+    issue_from_value, pr_from_value, pr_from_value_with_required_checks,
+};
 use crate::launch_stack_merge_plan::render_launch_stack_merge_plan;
 
 #[test]
@@ -174,6 +176,32 @@ fn merge_plan_shows_review_decision_holds() {
 }
 
 #[test]
+fn merge_plan_shows_missing_required_checks() {
+    let pr = pr_from_value_with_required_checks(
+        10,
+        &json!({
+            "number": 10,
+            "title": "ready except missing platform check",
+            "url": "https://github.com/example/repo/pull/10",
+            "isDraft": false,
+            "reviewDecision": "APPROVED",
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+        &["live-qa (windows-latest)".to_string()],
+    );
+    let report = build_report_from_items(None, vec![pr], Vec::new(), Vec::new());
+
+    let text = render_launch_stack_merge_plan(&report).join("\n");
+
+    assert!(text.contains("PR #10 [hold] ready except missing platform check"));
+    assert!(text.contains("missing required checks: live-qa (windows-latest)"));
+    assert!(text.contains("restore required checks on PR #10"));
+}
+
+#[test]
 fn merge_plan_keeps_public_safe_text() {
     let pr = pr_from_value(
         10,
@@ -217,6 +245,7 @@ fn merge_plan_rejects_ambiguous_json_mode_before_lookup() {
             prs: Vec::new(),
             blockers: Vec::new(),
             waived_blockers: Vec::new(),
+            required_checks: Vec::new(),
         },
     )
     .expect_err("ambiguous output mode should fail");

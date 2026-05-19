@@ -9,6 +9,9 @@ use crate::launch_stack_discovery::{LaunchStackDiscovery, resolve_launch_stack_p
 use crate::launch_stack_github::{fetch_issue, fetch_pr, public_text};
 use crate::launch_stack_merge_plan::print_launch_stack_merge_plan;
 use crate::launch_stack_output::print_launch_stack_text_report;
+use crate::launch_stack_waivers::apply_waivers;
+
+pub(crate) use crate::launch_stack_waivers::parse_waivers;
 
 #[derive(Debug, Clone)]
 pub struct LaunchStackOptions {
@@ -19,6 +22,7 @@ pub struct LaunchStackOptions {
     pub prs: Vec<u64>,
     pub blockers: Vec<u64>,
     pub waived_blockers: Vec<String>,
+    pub required_checks: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -64,8 +68,10 @@ pub struct LaunchStackCheckSummary {
     pub passed: usize,
     pub pending: usize,
     pub failed: usize,
+    pub names: Vec<String>,
     pub pending_names: Vec<String>,
     pub failed_names: Vec<String>,
+    pub missing_required_names: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -121,7 +127,12 @@ pub fn build_launch_stack_report(
     );
     findings.extend(discovery_findings);
     for number in pr_numbers {
-        match fetch_pr(workspace, options.repo.as_deref(), number) {
+        match fetch_pr(
+            workspace,
+            options.repo.as_deref(),
+            number,
+            &options.required_checks,
+        ) {
             Ok(pr) => prs.push(pr),
             Err(error) => findings.push(error),
         }
@@ -245,53 +256,4 @@ fn build_report_from_items_with_waivers_and_discovery(
             .collect(),
         next_actions,
     }
-}
-
-fn apply_waivers(blocker_issues: &mut [LaunchStackIssue], waivers: &BTreeMap<u64, String>) {
-    for issue in blocker_issues {
-        if issue.status == LaunchStackItemStatus::Warning
-            && issue.state == "OPEN"
-            && let Some(reason) = waivers.get(&issue.number)
-        {
-            issue.status = LaunchStackItemStatus::Waived;
-            issue.waiver_reason = Some(reason.clone());
-            issue.next_action = None;
-        }
-    }
-}
-
-pub(crate) fn parse_waivers(raw_waivers: &[String]) -> (BTreeMap<u64, String>, Vec<String>) {
-    let mut waivers = BTreeMap::new();
-    let mut findings = Vec::new();
-    for raw in raw_waivers {
-        match parse_waiver(raw) {
-            Ok((number, reason)) => {
-                if waivers.insert(number, reason).is_some() {
-                    findings.push(format!("duplicate waiver supplied for issue #{number}"));
-                }
-            }
-            Err(error) => findings.push(error),
-        }
-    }
-    (waivers, findings)
-}
-
-fn parse_waiver(raw: &str) -> Result<(u64, String), String> {
-    let Some((number, reason)) = raw.split_once('=').or_else(|| raw.split_once(':')) else {
-        return Err(
-            "blocker waiver must use ISSUE=reason or ISSUE:reason with a public reason".to_string(),
-        );
-    };
-    let number = number
-        .trim()
-        .trim_start_matches('#')
-        .parse::<u64>()
-        .map_err(|_| "blocker waiver issue number must be numeric".to_string())?;
-    let reason = public_text(reason, 240);
-    if reason.is_empty() {
-        return Err(format!(
-            "blocker waiver for issue #{number} needs a public reason"
-        ));
-    }
-    Ok((number, reason))
 }
