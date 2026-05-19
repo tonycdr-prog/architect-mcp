@@ -146,6 +146,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /macos-14/);
     assert.match(workflow, /windows-latest/);
     assert.match(workflow, /npm run tui:live-qa/);
+    assert.match(workflow, /terminal-evidence --json/);
+    assert.match(workflow, /GITHUB_STEP_SUMMARY/);
+    assert.match(workflow, /manual issue #136 terminal QA still required/);
     assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --public-summary --skip-mcp --skip-smoke/);
     assert.doesNotMatch(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
@@ -158,6 +161,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /public-safe JSON summary/);
     assert.match(rustTui, /terminal-evidence freeform source text, command summaries, notes/);
     assert.match(rustTui, /conditional_go/);
+    const tuiLiveQa = readFileSync("docs/tui-live-qa.md", "utf8");
+    assert.match(tuiLiveQa, /hosted CI baseline evidence/);
+    assert.match(tuiLiveQa, /not a substitute for the real post-release terminal QA tracked in #136/);
   });
 
   it("runs recurring governance audit with pinned actions and public-safe summaries", () => {

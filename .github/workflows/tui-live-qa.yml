@@ -40,3 +40,20 @@ jobs:
         run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
       - name: Run TUI live QA smoke
         run: npm run tui:live-qa
+      - name: Generate public terminal evidence summary
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          node bin/architect-mcp-tui.cjs terminal-evidence --json \
+            --source "GitHub Actions TUI live QA ${RUNNER_OS} run ${GITHUB_RUN_ID}" \
+            --notes "CI hosted runner evidence only; manual issue #136 terminal QA still required" \
+            > terminal-evidence.json
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const evidence = fs.readFileSync("terminal-evidence.json", "utf8").trim();
+          const os = process.env.RUNNER_OS || "unknown";
+          fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `## Public terminal evidence (${os})\n\nHosted CI evidence is a baseline only; manual issue #136 terminal QA is still required.\n\n\`\`\`json\n${evidence}\n\`\`\`\n`
+          );
+          NODE
