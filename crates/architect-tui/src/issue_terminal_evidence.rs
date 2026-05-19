@@ -250,7 +250,7 @@ fn build_report_from_summary(
     let mut next_actions = check.next_action.into_iter().collect::<Vec<_>>();
     if blocks.is_empty() {
         next_actions.push(
-            "ask Linux and Windows testers to post public-safe terminal-evidence JSON".to_string(),
+            "ask Linux and Windows testers to post output from architect-mcp-tui terminal-evidence --markdown".to_string(),
         );
     }
     let merged_evidence = if terminal_evidence.reports.is_empty() {

@@ -11,6 +11,7 @@ use crate::smoke_types::{
 use crate::terminal_evidence::{
     TerminalEvidenceOptions, evidence_from_smoke, render_markdown, validate_output_mode,
 };
+use crate::terminal_evidence_date::unix_days_to_date;
 
 #[test]
 fn evidence_from_smoke_outputs_public_safe_summary() {
@@ -30,6 +31,7 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
             notes: Some(
                 "/home/example/private interactive resize and exit passed npm_secret".to_string(),
             ),
+            collected_at: Some("2026-05-17".to_string()),
         },
     )
     .expect("terminal evidence");
@@ -42,6 +44,7 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
         report.status,
         LaunchJudgeTerminalEvidenceStatus::PassedWithWarnings
     );
+    assert_eq!(report.collected_at.as_deref(), Some("2026-05-17"));
     assert!(report.command_summary.contains("approval_required"));
     assert!(
         report
@@ -78,6 +81,7 @@ fn evidence_from_smoke_rejects_unsupported_auto_platform() {
             platform: None,
             source: None,
             notes: None,
+            collected_at: None,
         },
     )
     .expect_err("macos is not launch terminal evidence");
@@ -98,6 +102,7 @@ fn terminal_evidence_markdown_is_ready_for_issue_comments() {
             platform: None,
             source: Some("issue #136 Windows terminal report".to_string()),
             notes: Some("resize, mouse, and exit checks passed".to_string()),
+            collected_at: Some("2026-05-17".to_string()),
         },
     )
     .expect("terminal evidence");
@@ -106,6 +111,7 @@ fn terminal_evidence_markdown_is_ready_for_issue_comments() {
     assert!(markdown.contains("```json"));
     assert!(markdown.contains("\"schemaVersion\": 1"));
     assert!(markdown.contains("\"platform\": \"windows\""));
+    assert!(markdown.contains("\"collectedAt\": \"2026-05-17\""));
     assert!(markdown.contains("This command does not create, edit, or close GitHub issues"));
     assert_eq!(extract_json_blocks(&markdown).len(), 1);
     assert!(!markdown.contains("/Users/"));
@@ -124,10 +130,69 @@ fn terminal_evidence_rejects_ambiguous_output_modes() {
         platform: None,
         source: None,
         notes: None,
+        collected_at: None,
     })
     .expect_err("ambiguous output mode should fail");
 
     assert!(error.to_string().contains("--json or --markdown"));
+}
+
+#[test]
+fn terminal_evidence_rejects_invalid_collected_at_override_without_echoing_input() {
+    let smoke = smoke_report(SmokeStatus::Passed, "linux");
+    let error = evidence_from_smoke(
+        &smoke,
+        &TerminalEvidenceOptions {
+            json: true,
+            markdown: false,
+            prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
+            skip_gate: false,
+            platform: None,
+            source: None,
+            notes: None,
+            collected_at: Some("/home/example/private 2026-99-99 npm_secret".to_string()),
+        },
+    )
+    .expect_err("invalid collectedAt override should fail");
+
+    let message = error.to_string();
+    assert!(message.contains("--collected-at must use YYYY-MM-DD"));
+    assert!(!message.contains("/home/"));
+    assert!(!message.contains("npm_"));
+}
+
+#[test]
+fn terminal_evidence_defaults_collected_at_to_utc_date() {
+    let smoke = smoke_report(SmokeStatus::Passed, "linux");
+    let evidence = evidence_from_smoke(
+        &smoke,
+        &TerminalEvidenceOptions {
+            json: true,
+            markdown: false,
+            prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
+            skip_gate: false,
+            platform: None,
+            source: None,
+            notes: None,
+            collected_at: None,
+        },
+    )
+    .expect("terminal evidence");
+
+    let collected_at = evidence.reports[0]
+        .collected_at
+        .as_deref()
+        .expect("collectedAt should be populated");
+    assert_eq!(collected_at.len(), 10);
+    assert_eq!(&collected_at[4..5], "-");
+    assert_eq!(&collected_at[7..8], "-");
+}
+
+#[test]
+fn unix_days_to_date_uses_utc_calendar_dates() {
+    assert_eq!(unix_days_to_date(0), "1970-01-01");
+    assert_eq!(unix_days_to_date(20_225), "2025-05-17");
+    assert_eq!(unix_days_to_date(20_590), "2026-05-17");
 }
 
 fn smoke_report(status: SmokeStatus, os: &str) -> SmokeReport {

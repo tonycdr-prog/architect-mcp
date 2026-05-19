@@ -109,6 +109,12 @@ fn collector_warns_when_issue_has_no_terminal_evidence() {
             .iter()
             .any(|action| action.contains("Linux and Windows testers"))
     );
+    assert!(
+        report
+            .next_actions
+            .iter()
+            .any(|action| action.contains("terminal-evidence --markdown"))
+    );
 }
 
 #[test]

@@ -104,6 +104,7 @@ pub mod smoke;
 mod smoke_report;
 mod smoke_types;
 pub mod terminal_evidence;
+mod terminal_evidence_date;
 #[cfg(test)]
 mod terminal_evidence_tests;
 pub mod ui;

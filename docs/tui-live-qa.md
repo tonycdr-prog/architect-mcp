@@ -2,7 +2,7 @@
 
 Use this page for release-candidate validation that cannot be proven by unit tests alone. Do not publish a TUI release until the clean release gate passes and the platform smoke matrix is green or explicitly waived.
 
-For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). Linux and Windows Terminal QA reports should include public-safe launch judge evidence generated with `architect-mcp-tui terminal-evidence --markdown`, collected with `architect-mcp-tui collect-terminal-evidence --json`, and consumable with `architect-mcp-tui launch-judge --terminal-evidence`; they should not include raw smoke JSON, raw stdout/stderr logs, absolute local paths, cache paths, private repo names, or tokens. For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
+For public tester commands and issue templates, use [Terminal QA](./terminal-qa.md). Linux and Windows Terminal QA reports should include public-safe launch judge evidence generated with `architect-mcp-tui terminal-evidence --markdown`, including the generated `collectedAt` date, collected with `architect-mcp-tui collect-terminal-evidence --json`, and consumable with `architect-mcp-tui launch-judge --terminal-evidence`; they should not include raw smoke JSON, raw stdout/stderr logs, absolute local paths, cache paths, private repo names, or tokens. For maintained-repo drift and governance reports, use [Governance Audit](./governance-audit.md).
 
 ## Automated Matrix
 
