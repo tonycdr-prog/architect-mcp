@@ -76,6 +76,8 @@ pub enum Commands {
         notes: Option<String>,
         #[arg(long, value_name = "YYYY-MM-DD")]
         collected_at: Option<String>,
+        #[arg(long, value_name = "URL")]
+        issue_url: Option<String>,
     },
     /// Run a scripted interactive command-palette walkthrough in a throwaway workspace.
     Walkthrough {

@@ -35,6 +35,7 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
                 "/home/example/private interactive resize and exit passed npm_secret".to_string(),
             ),
             collected_at: Some("2026-05-17".to_string()),
+            issue_url: None,
         },
     )
     .expect("terminal evidence");
@@ -90,6 +91,7 @@ fn evidence_from_smoke_rejects_unsupported_auto_platform() {
             source: None,
             notes: None,
             collected_at: None,
+            issue_url: None,
         },
     )
     .expect_err("macos is not launch terminal evidence");
@@ -112,11 +114,12 @@ fn terminal_evidence_markdown_is_ready_for_issue_comments() {
             source: Some("issue #136 Windows terminal report".to_string()),
             notes: Some("resize, mouse, and exit checks passed".to_string()),
             collected_at: Some("2026-05-17".to_string()),
+            issue_url: None,
         },
     )
     .expect("terminal evidence");
 
-    let markdown = render_markdown(&evidence).expect("markdown");
+    let markdown = render_markdown(&evidence, None).expect("markdown");
     assert!(markdown.contains("```json"));
     assert!(markdown.contains("\"schemaVersion\": 1"));
     assert!(markdown.contains("\"platform\": \"windows\""));
@@ -142,6 +145,7 @@ fn terminal_evidence_rejects_ambiguous_output_modes() {
         source: None,
         notes: None,
         collected_at: None,
+        issue_url: None,
     })
     .expect_err("ambiguous output mode should fail");
 
@@ -163,6 +167,7 @@ fn terminal_evidence_rejects_invalid_collected_at_override_without_echoing_input
             source: None,
             notes: None,
             collected_at: Some("/home/example/private 2026-99-99 npm_secret".to_string()),
+            issue_url: None,
         },
     )
     .expect_err("invalid collectedAt override should fail");
@@ -188,6 +193,7 @@ fn terminal_evidence_defaults_collected_at_to_utc_date() {
             source: None,
             notes: None,
             collected_at: None,
+            issue_url: None,
         },
     )
     .expect("terminal evidence");

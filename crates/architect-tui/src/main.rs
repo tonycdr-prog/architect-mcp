@@ -90,6 +90,7 @@ async fn main() -> Result<()> {
             source,
             notes,
             collected_at,
+            issue_url,
         }) => {
             run_terminal_evidence(
                 workspace,
@@ -104,6 +105,7 @@ async fn main() -> Result<()> {
                     source,
                     notes,
                     collected_at,
+                    issue_url,
                 },
             )
             .await?;

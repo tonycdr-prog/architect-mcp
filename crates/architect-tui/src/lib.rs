@@ -141,6 +141,9 @@ mod terminal_evidence_environment;
 #[cfg(test)]
 mod terminal_evidence_environment_tests;
 #[cfg(test)]
+mod terminal_evidence_hardening_tests;
+mod terminal_evidence_issue_url;
+#[cfg(test)]
 mod terminal_evidence_tests;
 pub mod ui;
 pub mod untrusted_input;
