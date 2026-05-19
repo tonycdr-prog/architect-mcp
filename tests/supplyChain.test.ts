@@ -214,6 +214,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
     assert.match(rustTui, /Untrusted input labeling is metadata, not prompt-injection prevention/);
     assert.match(rustTui, /adapter prompt includes an untrusted-input policy notice/);
+    assert.match(rustTui, /Promotion approval stays blocked until adapter evidence, isolated-worktree evidence, changed-file evidence, passed verification, `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` are all recorded\./);
+    assert.match(rustTui, /Overrides can bypass adapter-run, review, and verification blockers; they never replace isolated-worktree evidence or changed-file evidence\./);
     assert.match(rustTui, /--collected-at YYYY-MM-DD/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
@@ -268,7 +270,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#267 - Harden threat-model cross-reference and docs alignment checks\]/);
+    assert.match(goal, /Active slice: \[#269 - Clarify TUI promotion readiness gate evidence\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -303,6 +305,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#263\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/263\)/);
     assert.match(goal, /\[#265\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/265\)/);
     assert.match(goal, /\[#267\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/267\)/);
+    assert.match(goal, /\[#269\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/269\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -332,6 +335,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /unresolved review-thread handoff details/);
     assert.match(goal, /direct-client public-safety hardening for review-thread debt/);
     assert.match(goal, /threat-model cross-reference hardening for PR #248 review-thread debt/);
+    assert.match(goal, /TUI promotion-readiness evidence hardening for PR #155 review-thread debt/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -351,7 +355,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#261 in PR #262/);
     assert.match(goal, /#263 in PR #264/);
     assert.match(goal, /#265 in PR #266/);
-    assert.match(goal, /#267 in the current slice/);
+    assert.match(goal, /#267 in PR #268/);
+    assert.match(goal, /#269 in the current slice/);
     assert.match(goal, /unresolved review threads across older stacked PRs must be resolved/);
     assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
     assert.match(goal, /runtime `\/goal` remains active/);

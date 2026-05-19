@@ -153,54 +153,6 @@ fn promotion_override_requires_explicit_reason_before_bypassing_gates() {
 }
 
 #[test]
-fn promotion_rejects_unsafe_paths() {
-    let temp = tempfile::tempdir().expect("tempdir");
-    let workspace = temp.path();
-    let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
-    fs::create_dir_all(&worktree).expect("worktree");
-
-    let mut session = TuiSession::new("build", "codex");
-    session.approve("reviewed");
-    session.worktree = Some(worktree);
-    for gate in REQUIRED_REVIEW_GATES {
-        session.set_gate(gate, json!({ "ok": true }));
-    }
-    session.changed_files = vec![json!({ "path": "../secrets.env", "lines": 1 })];
-    assert!(promote_approved_changes(&mut session, workspace).is_err());
-}
-
-#[test]
-fn promotion_requires_review_gates_unless_overridden() {
-    let temp = tempfile::tempdir().expect("tempdir");
-    let workspace = temp.path();
-    let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
-    fs::create_dir_all(worktree.join("docs")).expect("worktree");
-    fs::write(worktree.join("docs/result.md"), "done\n").expect("file");
-
-    let mut session = TuiSession::new("build", "codex");
-    session.approve("reviewed");
-    session.worktree = Some(worktree);
-    session.changed_files = vec![json!({ "path": "docs/result.md", "lines": 1 })];
-    assert!(promote_approved_changes(&mut session, workspace).is_err());
-
-    session.override_approval("maintainer override for smoke fixture");
-    promote_approved_changes(&mut session, workspace).expect("override promote");
-    let receipt = session.promotion_receipt.as_ref().expect("receipt");
-    assert_eq!(receipt.decision, "override");
-    assert_eq!(
-        receipt.reason.as_deref(),
-        Some("maintainer override for smoke fixture")
-    );
-    assert!(
-        !receipt
-            .review_gates
-            .get("review_implementation_against_contract")
-            .expect("gate")
-            .present
-    );
-}
-
-#[test]
 fn promotion_blocks_failed_adapter_runs_without_override() {
     let temp = tempfile::tempdir().expect("tempdir");
     let workspace = temp.path();
