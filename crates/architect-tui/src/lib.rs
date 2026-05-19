@@ -7,6 +7,9 @@ mod adapter_pty;
 mod adapter_review;
 mod approval;
 pub mod arena;
+mod brief;
+#[cfg(test)]
+mod brief_tests;
 pub mod config;
 mod config_template;
 mod gate_calls;

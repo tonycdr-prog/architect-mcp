@@ -3,6 +3,7 @@ use serde_json::{Value, json};
 use tokio::io::{AsyncWriteExt, stdout};
 use uuid::Uuid;
 
+use crate::brief::brief_from_prompt;
 use crate::gate_calls::call_gate;
 use crate::headless_adapter::run_ready_adapter;
 use crate::headless_events::{JsonlEvent, emit, emit_complete, emit_skip, emit_workflow};
@@ -138,7 +139,7 @@ async fn grill<W: AsyncWriteExt + Unpin>(
         "grill_me",
         "clarify task before edits",
         json!({
-            "brief": { "idea": options.prompt.clone() },
+            "brief": brief_from_prompt(&options.prompt),
             "includeContract": true,
             "includeArtifacts": true
         }),

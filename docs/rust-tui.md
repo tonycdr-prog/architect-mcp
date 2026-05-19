@@ -32,7 +32,10 @@ The command palette supports the guarded app-building path:
 
 ```text
 new app <idea>
-answer users=home cooks
+answer users=home cooks need controlled agent help
+answer coreFlows=grill brief; review plan; promote reviewed changes
+answer stack=frontend=Rust Ratatui; backend=TypeScript MCP
+answer verification=cargo test --workspace; npm run release:check
 grill
 contract
 review plan
@@ -50,6 +53,8 @@ session review
 ```
 
 Sessions are persisted under `.architect-mcp/tui/sessions/<id>.json` without secrets.
+
+Use `answer key=value` to fill grill blockers before rerunning `grill`. List-like fields accept semicolon-separated values, for example `coreFlows=grill; review; promote` and `verification=cargo test; npm run release:check`. Stack and repo layout answers accept key pairs, for example `stack=frontend=Rust Ratatui; backend=TypeScript MCP` and `repoLayout=tui=crates/architect-tui/src; docs=docs`.
 
 Headless JSONL run:
 

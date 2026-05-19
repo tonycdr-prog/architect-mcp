@@ -5,10 +5,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::arena::ArenaCandidateRecord;
+use crate::brief::{apply_brief_answer, brief_from_prompt};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -67,7 +68,7 @@ impl TuiSession {
             prompt: prompt.clone(),
             adapter: adapter.into(),
             phase: SessionPhase::Created,
-            brief: json!({ "idea": prompt }),
+            brief: brief_from_prompt(&prompt),
             gates: BTreeMap::new(),
             verification: BTreeMap::new(),
             worktree: None,
@@ -83,10 +84,7 @@ impl TuiSession {
     }
 
     pub fn set_answer(&mut self, key: &str, value: &str) {
-        if !self.brief.is_object() {
-            self.brief = json!({});
-        }
-        self.brief[key] = json!(value);
+        apply_brief_answer(&mut self.brief, key, value);
         self.updated_at = unix_timestamp();
     }
 
@@ -195,5 +193,39 @@ mod tests {
         assert!(session.can_promote());
         session.mark_promoted();
         assert_eq!(session.approval_status, ApprovalStatus::Promoted);
+    }
+
+    #[test]
+    fn answers_shape_project_brief_for_live_grill() {
+        let mut session = TuiSession::new("build controlled TUI", "codex");
+        session.set_answer("users", "maintainers need to control agents");
+        session.set_answer("coreFlows", "grill; review plan; promote");
+        session.set_answer(
+            "verification",
+            "cargo test --workspace; npm run release:check",
+        );
+        session.set_answer("stack", "frontend=Rust Ratatui; backend=TypeScript MCP");
+        session.set_answer(
+            "repoLayout",
+            "tui=crates/architect-tui/src; tests=crates/architect-tui/tests",
+        );
+
+        assert_eq!(session.brief["users"], "maintainers need to control agents");
+        assert_eq!(
+            session.brief["coreFlows"].as_array().expect("flows").len(),
+            3
+        );
+        assert_eq!(
+            session.brief["verification"]
+                .as_array()
+                .expect("verification")
+                .len(),
+            2
+        );
+        assert_eq!(session.brief["stack"]["backend"], "TypeScript MCP");
+        assert_eq!(
+            session.brief["repoLayout"]["pathMap"]["tui"][0],
+            "crates/architect-tui/src"
+        );
     }
 }

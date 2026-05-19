@@ -35,27 +35,28 @@ pub(crate) fn verification_checks(grill_value: &Value, build_plan: &Value) -> Ve
         grill_value.get("updatedBrief").unwrap_or(&Value::Null),
         "verification",
     );
-    if checks.is_empty() {
-        checks.extend(
-            build_plan
-                .get("slices")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .flat_map(|slice| {
-                    slice
-                        .get("checks")
-                        .and_then(Value::as_array)
-                        .into_iter()
-                        .flatten()
-                })
-                .filter_map(Value::as_str)
-                .map(ToString::to_string),
-        );
-    }
+    checks.extend(build_plan_checks(build_plan));
     checks.sort();
     checks.dedup();
     checks
+}
+
+fn build_plan_checks(build_plan: &Value) -> Vec<String> {
+    build_plan
+        .get("slices")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .flat_map(|slice| {
+            slice
+                .get("checks")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .filter_map(Value::as_str)
+        .map(ToString::to_string)
+        .collect()
 }
 
 pub(crate) fn likely_files(build_plan: &Value) -> Vec<String> {
@@ -149,5 +150,36 @@ fn collect_artifact_files(grill_value: &Value, files: &mut BTreeMap<String, Valu
                 "responsibilities": ["repo artifact"]
             })
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verification_checks_merge_brief_and_generated_plan_checks() {
+        let grill = json!({
+            "updatedBrief": {
+                "verification": ["cargo test --workspace"]
+            }
+        });
+        let plan = json!({
+            "slices": [
+                { "checks": ["cargo test --workspace", "review_repo_structure"] },
+                { "checks": ["npm run release:check"] }
+            ]
+        });
+
+        let checks = verification_checks(&grill, &plan);
+
+        assert_eq!(
+            checks,
+            vec![
+                "cargo test --workspace",
+                "npm run release:check",
+                "review_repo_structure"
+            ]
+        );
     }
 }

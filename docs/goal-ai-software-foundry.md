@@ -81,10 +81,13 @@ A slice is `no-go` when:
 | --- | --- | --- |
 | 2026-05-16 | [#141](https://github.com/tonycdr-prog/architect-mcp/pull/141) merged terminal QA smoke workflow after green CI, install-smoke, and live-QA workflows. | `go` as baseline terminal QA evidence. |
 | 2026-05-16 | Codex CLI `/goal` accepted the concise evolved objective. | Runtime goal created; detailed spec lives in this document. |
+| 2026-05-16 | [#143](https://github.com/tonycdr-prog/architect-mcp/issues/143) structured-intake slice: TUI prompts and `answer key=value` commands now shape live `grill_me` briefs, generated build-plan checks are merged into contract verification, and a live headless ready prompt reached `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` with passing review gates before stopping at adapter approval. Verification: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `architect-mcp-tui smoke --json`, and `npm run release:check`. | `conditional go`: intake and gate alignment work; full interactive adapter execution, diff review, verification capture, session review, and promotion remain for later #143/#144 slices. |
 
 ## Current Slice Notes
 
-The next implementation slice is [#143](https://github.com/tonycdr-prog/architect-mcp/issues/143). The desired outcome is a TUI path that behaves like a real operator control loop, not a demo flow: clear gate states, approval pauses, session persistence, adapter execution only after approval, diff inspection, verification capture, and final/session review before promotion.
+The active implementation slice is [#143](https://github.com/tonycdr-prog/architect-mcp/issues/143). The desired outcome is a TUI path that behaves like a real operator control loop, not a demo flow: clear gate states, approval pauses, session persistence, adapter execution only after approval, diff inspection, verification capture, and final/session review before promotion.
+
+Current partial status: structured prompts and interactive answers can now produce the typed brief shape required by live `grill_me`, and generated plan checks are included in the pre-edit contract so the TUI can review its own live build plan. This does not complete #143 by itself; the remaining work is full interactive adapter execution, diff review, verification capture, final/session review, and manual promotion.
 
 Before claiming #143 complete, run the TUI checks and the clean release gate:
 
