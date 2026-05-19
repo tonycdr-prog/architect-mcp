@@ -48,7 +48,7 @@ fn failed_release_check_is_no_go_blocker() {
 
 #[test]
 fn missing_terminal_evidence_is_conditional() {
-    let (summary, check) = read_terminal_evidence(None);
+    let (summary, check) = read_terminal_evidence(&[]);
 
     assert!(!summary.supplied);
     assert_eq!(summary.reports.len(), 0);
@@ -85,7 +85,7 @@ fn complete_terminal_evidence_passes() {
     }"##;
 
     let file = write_evidence(evidence);
-    let (summary, check) = read_terminal_evidence(Some(file.path()));
+    let (summary, check) = read_terminal_evidence(&[file.path().to_path_buf()]);
 
     assert!(summary.supplied);
     assert_eq!(summary.issues.len(), 0);
@@ -94,6 +94,53 @@ fn complete_terminal_evidence_passes() {
         summary.reports[0].status,
         LaunchJudgeTerminalEvidenceStatus::Passed
     );
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Passed);
+}
+
+#[test]
+fn multiple_terminal_evidence_files_are_merged() {
+    let linux = write_evidence(
+        r##"{
+          "schemaVersion": 1,
+          "reports": [
+            {
+              "platform": "linux",
+              "status": "passed",
+              "source": "issue #136 linux public-safe summary",
+              "commandSummary": "architect-mcp-tui terminal-evidence --json passed on linux"
+            }
+          ]
+        }"##,
+    );
+    let windows = write_evidence(
+        r##"{
+          "schemaVersion": 1,
+          "reports": [
+            {
+              "platform": "windows",
+              "status": "passed",
+              "source": "issue #136 windows public-safe summary",
+              "commandSummary": "architect-mcp-tui terminal-evidence --json passed on windows"
+            }
+          ]
+        }"##,
+    );
+
+    let (summary, check) =
+        read_terminal_evidence(&[linux.path().to_path_buf(), windows.path().to_path_buf()]);
+
+    assert!(summary.supplied);
+    assert_eq!(
+        summary
+            .source_path
+            .as_deref()
+            .unwrap_or_default()
+            .matches('/')
+            .count(),
+        0
+    );
+    assert_eq!(summary.issues.len(), 0);
+    assert_eq!(summary.reports.len(), 2);
     assert_eq!(check.status, LaunchJudgeCheckStatus::Passed);
 }
 
@@ -112,7 +159,7 @@ fn missing_platform_terminal_evidence_stays_conditional() {
     }"##;
 
     let file = write_evidence(evidence);
-    let (summary, check) = read_terminal_evidence(Some(file.path()));
+    let (summary, check) = read_terminal_evidence(&[file.path().to_path_buf()]);
 
     assert_eq!(check.status, LaunchJudgeCheckStatus::Warning);
     assert!(summary.issues.iter().any(|issue| issue.contains("windows")));
@@ -139,7 +186,7 @@ fn failed_terminal_evidence_is_no_go() {
     }"##;
 
     let file = write_evidence(evidence);
-    let (summary, check) = read_terminal_evidence(Some(file.path()));
+    let (summary, check) = read_terminal_evidence(&[file.path().to_path_buf()]);
 
     assert_eq!(check.status, LaunchJudgeCheckStatus::Failed);
     assert!(summary.issues.iter().any(|issue| issue.contains("failed")));
@@ -167,7 +214,7 @@ fn unsafe_terminal_evidence_fails_closed() {
     }"##;
 
     let file = write_evidence(evidence);
-    let (summary, check) = read_terminal_evidence(Some(file.path()));
+    let (summary, check) = read_terminal_evidence(&[file.path().to_path_buf()]);
 
     assert_eq!(check.status, LaunchJudgeCheckStatus::Failed);
     assert!(

@@ -15,7 +15,7 @@ The human owns decisions. Agents propose and execute. architect-mcp governs.
 ## Tracking
 
 - Epic: [#142 - Evolve architect-mcp into an AI software delivery control plane](https://github.com/tonycdr-prog/architect-mcp/issues/142)
-- Active slice: [#171 - Align terminal QA reports with launch judge evidence schema](https://github.com/tonycdr-prog/architect-mcp/issues/171)
+- Active slice: [#175 - Allow launch judge to consume multiple terminal evidence files](https://github.com/tonycdr-prog/architect-mcp/issues/175)
 - Runtime goal: Codex CLI `/goal`, backed by this document and the GitHub epic.
 
 Every implementation slice should have its own issue and PR. Every PR should link to the epic, list verification, record the judge result, and state remaining gaps.
@@ -107,12 +107,13 @@ A slice is `no-go` when:
 | 2026-05-17 | [#169](https://github.com/tonycdr-prog/architect-mcp/issues/169) launch evidence slice: `architect-mcp-tui launch-judge --terminal-evidence <file>` consumes a public-safe Linux/Windows terminal evidence JSON summary, keeps absent or incomplete evidence as `conditional_go`, and fails closed on unsafe raw log fields, absolute local paths, secret-shaped strings, duplicate platforms, unsupported platforms, or failed platform QA. | `conditional go`: the judge can now consume external terminal evidence safely; final launch still depends on real Linux/Windows evidence and landing the stacked TUI PRs. |
 | 2026-05-17 | [#171](https://github.com/tonycdr-prog/architect-mcp/issues/171) terminal QA reporting slice: public Terminal QA docs and the GitHub issue form now ask for launch-judge-compatible public-safe evidence summaries instead of raw smoke JSON, keeping local cache paths, raw stdout/stderr, private repo names, tokens, and full environment dumps out of public reports. | `conditional go`: the public evidence collection path now matches the launch judge schema; real Linux/Windows terminal evidence is still required for final launch go. |
 | 2026-05-17 | [#173](https://github.com/tonycdr-prog/architect-mcp/issues/173) generated terminal evidence slice: `architect-mcp-tui terminal-evidence --json` now runs the TUI smoke internally and emits launch-judge-compatible public-safe evidence, mapping smoke status to `passed`, `passed_with_warnings`, or `failed` while omitting raw JSONL, stdout/stderr logs, local binary/cache paths, private repo names, and home-directory paths. | `conditional go`: evidence generation is now command-backed and release-gated; final launch still depends on real Linux/Windows terminal evidence produced on those platforms and landing the stacked PRs. |
+| 2026-05-17 | [#175](https://github.com/tonycdr-prog/architect-mcp/issues/175) multi-file evidence slice: `architect-mcp-tui launch-judge --terminal-evidence <file>` now accepts repeated evidence files, merges separately generated Linux and Windows reports, keeps `sourcePath` filename-only, and preserves the existing fail-closed validation for unsafe fields, local paths, secret-shaped strings, duplicate platforms, failed platform QA, and missing platforms. | `conditional go`: maintainers no longer need to hand-merge public evidence JSON; final launch still depends on real Linux/Windows terminal evidence from target platforms and landing the stacked PRs. |
 
 ## Current Slice Notes
 
-The active implementation slice is [#173](https://github.com/tonycdr-prog/architect-mcp/issues/173). The desired outcome is a public-safe `architect-mcp-tui terminal-evidence --json` command that generates launch-judge-compatible evidence summaries without requiring testers or maintainers to hand-write JSON.
+The active implementation slice is [#175](https://github.com/tonycdr-prog/architect-mcp/issues/175). The desired outcome is for `architect-mcp-tui launch-judge` to consume separately generated Linux and Windows terminal evidence files without requiring maintainers to hand-merge JSON arrays.
 
-Current partial status: `architect-mcp-tui launch-judge --terminal-evidence` exists in the stacked #169 slice, and #171 aligned the public reporting docs around that schema. This slice adds the producer side: `terminal-evidence` runs the smoke checks, produces one public-safe report for Linux or Windows, and updates the npm shim/docs/tests so stale binaries and hand-written evidence are less likely.
+Current partial status: #169 added single-file launch evidence ingestion, #171 aligned public reporting around the schema, and #173 added the producer command. This slice adds the maintainer path for separate Linux and Windows files: repeat `--terminal-evidence` and let the judge merge and validate the reports.
 
 Before claiming a TUI slice complete, run the relevant TUI checks and the clean release gate:
 

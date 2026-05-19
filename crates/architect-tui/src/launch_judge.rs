@@ -20,7 +20,7 @@ pub struct LaunchJudgeOptions {
     pub run_release_check: bool,
     pub require_clean_git: bool,
     pub max_files: usize,
-    pub terminal_evidence: Option<PathBuf>,
+    pub terminal_evidence: Vec<PathBuf>,
 }
 
 pub async fn run_launch_judge(
@@ -80,7 +80,7 @@ pub async fn build_launch_judge_report(
     };
     let git_clean = git_clean_check(&workspace, options.require_clean_git);
     let (terminal_evidence, terminal_evidence_check) =
-        read_terminal_evidence(options.terminal_evidence.as_deref());
+        read_terminal_evidence(&options.terminal_evidence);
     build_report(
         &workspace,
         governance_audit,

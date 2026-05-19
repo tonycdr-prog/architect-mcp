@@ -1,9 +1,10 @@
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::launch_judge_evidence_safety::collect_unsafe_content;
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeTerminalEvidenceReport,
     LaunchJudgeTerminalEvidenceStatus, LaunchJudgeTerminalEvidenceSummary, check,
@@ -17,9 +18,9 @@ struct TerminalEvidenceEnvelope {
 }
 
 pub(crate) fn read_terminal_evidence(
-    path: Option<&Path>,
+    paths: &[PathBuf],
 ) -> (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck) {
-    let Some(path) = path else {
+    if paths.is_empty() {
         let summary = LaunchJudgeTerminalEvidenceSummary {
             supplied: false,
             source_path: None,
@@ -37,13 +38,13 @@ pub(crate) fn read_terminal_evidence(
                 ),
             ),
         );
-    };
+    }
 
-    let source_path = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("provided terminal evidence")
-        .to_string();
+    let source_path = paths
+        .iter()
+        .map(|path| public_file_name(path))
+        .collect::<Vec<_>>()
+        .join(", ");
     let mut summary = LaunchJudgeTerminalEvidenceSummary {
         supplied: true,
         source_path: Some(source_path),
@@ -51,56 +52,34 @@ pub(crate) fn read_terminal_evidence(
         issues: Vec::new(),
     };
 
-    let text = match std::fs::read_to_string(path) {
-        Ok(text) => text,
-        Err(error) => {
-            summary
-                .issues
-                .push(format!("terminal evidence file could not be read: {error}"));
-            return failed(summary, "terminal evidence file could not be read");
+    let mut reports = Vec::new();
+    let mut hard_failure = false;
+    for path in paths {
+        let file_name = public_file_name(path);
+        match read_terminal_evidence_file(path, &file_name) {
+            Ok(mut envelope) => {
+                if let Some(version) = envelope.schema_version
+                    && version != 1
+                {
+                    summary.issues.push(format!(
+                        "{file_name}: terminal evidence schemaVersion must be 1"
+                    ));
+                }
+                reports.append(&mut envelope.reports);
+            }
+            Err(mut issues) => {
+                hard_failure = true;
+                summary.issues.append(&mut issues);
+            }
         }
-    };
-
-    let value: Value = match serde_json::from_str(&text) {
-        Ok(value) => value,
-        Err(error) => {
-            summary.issues.push(format!(
-                "terminal evidence JSON could not be parsed: {error}"
-            ));
-            return failed(summary, "terminal evidence JSON could not be parsed");
-        }
-    };
-
-    collect_unsafe_content(&value, "$", &mut summary.issues);
-    if !summary.issues.is_empty() {
-        return failed(
-            summary,
-            "terminal evidence contains unsafe public-sharing content",
-        );
     }
 
-    let envelope: TerminalEvidenceEnvelope = match serde_json::from_value(value) {
-        Ok(input) => input,
-        Err(error) => {
-            summary
-                .issues
-                .push(format!("terminal evidence schema is invalid: {error}"));
-            return failed(summary, "terminal evidence schema is invalid");
-        }
-    };
-
-    if let Some(version) = envelope.schema_version
-        && version != 1
-    {
-        summary
-            .issues
-            .push("terminal evidence schemaVersion must be 1".to_string());
-    }
-
-    let mut reports = envelope.reports;
     normalize_and_validate_reports(&mut reports, &mut summary.issues);
     summary.reports = reports;
 
+    if hard_failure {
+        return failed(summary, "terminal evidence file could not be validated");
+    }
     if summary.issues.iter().any(|issue| issue.contains("failed")) {
         return failed(summary, "terminal evidence includes failed platform QA");
     }
@@ -127,6 +106,45 @@ pub(crate) fn read_terminal_evidence(
             None,
         ),
     )
+}
+
+fn read_terminal_evidence_file(
+    path: &Path,
+    file_name: &str,
+) -> Result<TerminalEvidenceEnvelope, Vec<String>> {
+    let text = std::fs::read_to_string(path).map_err(|error| {
+        vec![format!(
+            "{file_name}: terminal evidence file could not be read: {error}"
+        )]
+    })?;
+
+    let value: Value = serde_json::from_str(&text).map_err(|error| {
+        vec![format!(
+            "{file_name}: terminal evidence JSON could not be parsed: {error}"
+        )]
+    })?;
+
+    let mut issues = Vec::new();
+    collect_unsafe_content(&value, "$", &mut issues);
+    if !issues.is_empty() {
+        return Err(issues
+            .into_iter()
+            .map(|issue| format!("{file_name}: {issue}"))
+            .collect());
+    }
+
+    serde_json::from_value(value).map_err(|error| {
+        vec![format!(
+            "{file_name}: terminal evidence schema is invalid: {error}"
+        )]
+    })
+}
+
+fn public_file_name(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("provided terminal evidence")
+        .to_string()
 }
 
 fn normalize_and_validate_reports(
@@ -201,82 +219,6 @@ fn normalize_and_validate_reports(
             ));
         }
     }
-}
-
-fn collect_unsafe_content(value: &Value, path: &str, issues: &mut Vec<String>) {
-    match value {
-        Value::Object(map) => {
-            for (key, value) in map {
-                let child_path = format!("{path}.{key}");
-                if risky_key(key) {
-                    issues.push(format!(
-                        "terminal evidence contains raw or private field at {child_path}"
-                    ));
-                }
-                collect_unsafe_content(value, &child_path, issues);
-            }
-        }
-        Value::Array(values) => {
-            for (index, value) in values.iter().enumerate() {
-                collect_unsafe_content(value, &format!("{path}[{index}]"), issues);
-            }
-        }
-        Value::String(text) => {
-            if text.len() > 2_000 {
-                issues.push(format!(
-                    "terminal evidence string at {path} is too long for public-safe summary"
-                ));
-            }
-            if text.lines().count() > 8 {
-                issues.push(format!(
-                    "terminal evidence string at {path} looks like raw multiline output"
-                ));
-            }
-            if contains_sensitive_text(text) {
-                issues.push(format!(
-                    "terminal evidence string at {path} contains secret-shaped or local-path content"
-                ));
-            }
-        }
-        Value::Null | Value::Bool(_) | Value::Number(_) => {}
-    }
-}
-
-fn risky_key(key: &str) -> bool {
-    let key = key.to_ascii_lowercase();
-    matches!(
-        key.as_str(),
-        "stdout"
-            | "stderr"
-            | "raw"
-            | "log"
-            | "logs"
-            | "rawlog"
-            | "rawlogs"
-            | "localpath"
-            | "privatepath"
-            | "privaterepo"
-    ) || key.contains("stdout")
-        || key.contains("stderr")
-        || key.contains("raw_log")
-        || key.contains("rawlog")
-        || key.contains("local_path")
-        || key.contains("localpath")
-        || key.contains("private_repo")
-        || key.contains("privaterepo")
-}
-
-fn contains_sensitive_text(text: &str) -> bool {
-    let lower = text.to_ascii_lowercase();
-    text.contains("/Users/")
-        || text.contains("C:\\Users\\")
-        || text.contains("C:/Users/")
-        || text.contains("BEGIN PRIVATE KEY")
-        || lower.contains("npm_")
-        || lower.contains("ghp_")
-        || lower.contains("github_pat_")
-        || lower.contains("sk-")
-        || lower.contains("xoxb-")
 }
 
 fn failed(

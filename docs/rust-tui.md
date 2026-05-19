@@ -216,6 +216,7 @@ Launch judge:
 architect-mcp-tui launch-judge --json
 architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
+architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 ```
 
 This command combines the read-only governance audit, terminal smoke, release-gate evidence, git worktree state, and external terminal evidence into one `go`, `conditional_go`, or `no_go` report. By default it does not run `npm run release:check`; missing release-gate execution is a `conditional_go` warning with a next action. Use `--run-release-check` when collecting release-sensitive evidence. Use `--skip-mcp` or `--skip-smoke` only when documenting why the judge report is intentionally partial. A `no_go` result exits non-zero; `conditional_go` exits zero so maintainers can inspect incomplete external evidence without breaking static CI.
@@ -229,7 +230,7 @@ architect-mcp-tui terminal-evidence --json --platform linux > terminal-evidence.
 
 `terminal-evidence` runs the terminal smoke internally, maps the smoke result into the launch judge evidence schema, and omits raw JSONL, stdout/stderr logs, local binary paths, cache paths, private repo names, and token-shaped values. It auto-detects Linux and Windows; use `--platform` only when summarizing already-verified external evidence or when a maintainer is exercising the command surface outside a launch platform.
 
-`--terminal-evidence` accepts the generated public-safe JSON summary of manual Linux and Windows terminal QA. It is intentionally not a raw log importer: files with `stdout`, `stderr`, raw log fields, absolute local paths, or secret-shaped strings fail closed. Use short summaries and public issue or PR references:
+`--terminal-evidence` accepts generated public-safe JSON summary files for manual Linux and Windows terminal QA. Pass it more than once when Linux and Windows reports were generated on separate machines; the launch judge merges the reports and validates the combined evidence. It is intentionally not a raw log importer: files with `stdout`, `stderr`, raw log fields, absolute local paths, or secret-shaped strings fail closed. Use short summaries and public issue or PR references:
 
 ```json
 {
