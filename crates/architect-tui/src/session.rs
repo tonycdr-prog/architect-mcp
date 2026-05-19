@@ -11,6 +11,8 @@ use uuid::Uuid;
 use crate::arena::ArenaCandidateRecord;
 use crate::brief::{apply_brief_answer, brief_from_prompt};
 use crate::foundry::RepoFoundryPlan;
+use crate::foundry_execution::RepoFoundryExecution;
+use crate::foundry_stage::RepoFoundryStage;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -36,10 +38,6 @@ pub enum ApprovalStatus {
     Rejected,
     Promoted,
     Override,
-}
-
-fn default_approval_status() -> ApprovalStatus {
-    ApprovalStatus::Pending
 }
 
 const ADAPTER_RUN_GATES: &[&str] = &[
@@ -89,10 +87,14 @@ pub struct TuiSession {
     #[serde(default)]
     pub foundry_plan: Option<RepoFoundryPlan>,
     #[serde(default)]
+    pub foundry_stage: Option<RepoFoundryStage>,
+    #[serde(default)]
+    pub foundry_execution: Option<RepoFoundryExecution>,
+    #[serde(default)]
     pub foundry_approved: bool,
     #[serde(default)]
     pub foundry_approval_reason: Option<String>,
-    #[serde(default = "default_approval_status")]
+    #[serde(default)]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
     pub created_at: u64,
@@ -127,6 +129,8 @@ impl TuiSession {
             mcp_install_approved: false,
             mcp_install_approval_reason: None,
             foundry_plan: None,
+            foundry_stage: None,
+            foundry_execution: None,
             foundry_approved: false,
             foundry_approval_reason: None,
             approval_status: ApprovalStatus::Pending,
@@ -219,6 +223,8 @@ impl TuiSession {
 
     pub fn clear_foundry_state(&mut self) {
         self.foundry_plan = None;
+        self.foundry_stage = None;
+        self.foundry_execution = None;
         self.foundry_approved = false;
         self.foundry_approval_reason = None;
         self.updated_at = unix_timestamp();

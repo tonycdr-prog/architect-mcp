@@ -1,0 +1,276 @@
+use std::fs;
+use std::path::{Component, Path, PathBuf};
+use std::process::Command;
+
+use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, to_string_pretty};
+
+use crate::foundry::{RepoFoundryPlan, repo_target};
+use crate::session::TuiSession;
+
+const BOOTSTRAP_BRANCH: &str = "architect/bootstrap";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoFoundryStage {
+    pub path: PathBuf,
+    pub bootstrap_branch: String,
+    pub artifacts_written: usize,
+    pub pr_body_path: PathBuf,
+}
+
+pub fn stage_repo_foundry_plan(workspace: &Path, session: &TuiSession) -> Result<RepoFoundryStage> {
+    let plan = session
+        .foundry_plan
+        .as_ref()
+        .context("run foundry plan before foundry stage")?;
+    let root = workspace
+        .join(".architect-mcp")
+        .join("foundry")
+        .join(&session.id)
+        .join(&plan.repo_name);
+    prepare_clean_stage_root(workspace, &root)?;
+    fs::create_dir_all(&root).with_context(|| format!("failed to create {}", root.display()))?;
+
+    run_git(&root, &["init"])?;
+    run_git(
+        &root,
+        &["config", "user.email", "architect-mcp@example.invalid"],
+    )?;
+    run_git(&root, &["config", "user.name", "architect-mcp foundry"])?;
+    run_git(&root, &["checkout", "-B", "main"])?;
+    run_git(
+        &root,
+        &[
+            "commit",
+            "--allow-empty",
+            "-m",
+            "Initialize private app repository",
+        ],
+    )?;
+    run_git(&root, &["checkout", "-B", BOOTSTRAP_BRANCH])?;
+
+    let mut written = 0;
+    for artifact in &plan.artifacts {
+        let path = safe_join(&root, &artifact.path)?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        fs::write(&path, artifact_content(plan, session, &artifact.path))
+            .with_context(|| format!("failed to write {}", path.display()))?;
+        written += 1;
+    }
+    let pr_body_path = safe_join(&root, "docs/first-pr-draft.md")?;
+    if let Some(parent) = pr_body_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&pr_body_path, first_pr_body(plan, session))?;
+    written += 1;
+
+    run_git(&root, &["add", "."])?;
+    run_git(&root, &["commit", "-m", "Bootstrap governed app scaffold"])?;
+
+    Ok(RepoFoundryStage {
+        path: root,
+        bootstrap_branch: BOOTSTRAP_BRANCH.to_string(),
+        artifacts_written: written,
+        pr_body_path,
+    })
+}
+
+fn prepare_clean_stage_root(workspace: &Path, root: &Path) -> Result<()> {
+    let allowed_root = workspace.join(".architect-mcp").join("foundry");
+    let allowed_root = allowed_root
+        .canonicalize()
+        .or_else(|_| {
+            fs::create_dir_all(&allowed_root)?;
+            allowed_root.canonicalize()
+        })
+        .with_context(|| format!("failed to prepare {}", allowed_root.display()))?;
+    let parent = root
+        .parent()
+        .context("foundry stage path must have a parent directory")?;
+    fs::create_dir_all(parent)
+        .with_context(|| format!("failed to prepare {}", parent.display()))?;
+    let canonical_parent = parent
+        .canonicalize()
+        .with_context(|| format!("failed to inspect {}", parent.display()))?;
+    if !canonical_parent.starts_with(&allowed_root) {
+        bail!("refusing to stage repo outside .architect-mcp/foundry");
+    }
+    if let Ok(metadata) = fs::symlink_metadata(root) {
+        if metadata.file_type().is_symlink() {
+            bail!("refusing to clean symlinked foundry path");
+        }
+        let canonical = root
+            .canonicalize()
+            .with_context(|| format!("failed to inspect {}", root.display()))?;
+        if !canonical.starts_with(&allowed_root) {
+            bail!("refusing to clean foundry path outside .architect-mcp/foundry");
+        }
+        fs::remove_dir_all(root).with_context(|| format!("failed to clean {}", root.display()))?;
+    }
+    Ok(())
+}
+
+fn artifact_content(plan: &RepoFoundryPlan, session: &TuiSession, path: &str) -> String {
+    match path {
+        "AGENTS.md" => agents_md(plan),
+        "README.md" => readme_md(plan),
+        ".env.example" => {
+            "# Commit-safe environment template.\n# Add real values in local .env files only.\n"
+                .to_string()
+        }
+        "docs/architecture-contract.md" => gate_markdown(session, "create_pre_edit_contract"),
+        "docs/build-plan.md" => build_plan_md(session),
+        ".github/workflows/ci.yml" => ci_workflow(plan),
+        ".github/ISSUE_TEMPLATE/bug_report.md" => issue_template(),
+        ".github/pull_request_template.md" => pull_request_template(),
+        "docs/data-boundary.md" => data_boundary_md(),
+        _ => format!("# {}\n\nGenerated by architect-mcp foundry.\n", path),
+    }
+}
+
+fn agents_md(plan: &RepoFoundryPlan) -> String {
+    format!(
+        "# AGENTS.md\n\nThis repo was bootstrapped through architect-mcp foundry.\n\n## Guardrails\n- Start with `grill_me` before implementation.\n- Keep generated app changes behind a pre-edit contract.\n- Run verification before final/session review.\n- Do not commit secrets or raw local MCP config values.\n\n## Verification\n{}\n",
+        plan.verification
+            .iter()
+            .map(|check| format!("- `{check}`"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    )
+}
+
+fn readme_md(plan: &RepoFoundryPlan) -> String {
+    format!(
+        "# {}\n\nPrivate app repository generated through architect-mcp foundry.\n\n## Verification\n{}\n",
+        plan.repo_name,
+        plan.verification
+            .iter()
+            .map(|check| format!("- `{check}`"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    )
+}
+
+fn gate_markdown(session: &TuiSession, gate: &str) -> String {
+    let Some(value) = session.gates.get(gate) else {
+        return format!("# {gate}\n\nGate output was not recorded.\n");
+    };
+    if let Some(markdown) = value
+        .get("contract")
+        .and_then(|contract| contract.get("markdown"))
+        .and_then(Value::as_str)
+    {
+        return markdown.to_string();
+    }
+    format!(
+        "# {gate}\n\n```json\n{}\n```\n",
+        to_string_pretty(value).unwrap_or_else(|_| "{}".to_string())
+    )
+}
+
+fn build_plan_md(session: &TuiSession) -> String {
+    let plan = session
+        .gates
+        .get("grill_me")
+        .and_then(|value| value.get("buildPlan"))
+        .cloned()
+        .unwrap_or(Value::Null);
+    format!(
+        "# Build Plan\n\n```json\n{}\n```\n",
+        to_string_pretty(&plan).unwrap_or_else(|_| "null".to_string())
+    )
+}
+
+fn ci_workflow(plan: &RepoFoundryPlan) -> String {
+    let commands = if plan.verification.is_empty() {
+        "echo \"No verification commands configured\"".to_string()
+    } else {
+        plan.verification.join("\n")
+    };
+    format!(
+        "name: CI\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Verify\n        run: |\n{}\n",
+        indent(&commands, 10)
+    )
+}
+
+fn issue_template() -> String {
+    "---\nname: Bug report\nabout: Report a reproducible problem\n---\n\n## What happened\n\n## Expected behavior\n\n## Verification\n\n## Environment\n".to_string()
+}
+
+fn pull_request_template() -> String {
+    "## Summary\n\n## Work Gate Evidence\n- Grill:\n- Contract:\n- Plan review:\n- File-plan review:\n\n## Verification\n\n## Assumptions\n\n## Remaining Gaps\n".to_string()
+}
+
+fn data_boundary_md() -> String {
+    "# Data Boundary\n\nDocument database ownership, migrations, server-only access, and rollback before implementation.\n".to_string()
+}
+
+fn first_pr_body(plan: &RepoFoundryPlan, session: &TuiSession) -> String {
+    let target = repo_target(plan.owner.as_deref(), &plan.repo_name);
+    format!(
+        "# {}\n\nTarget repo: `{target}`\n\n## Evidence\n- `grill_me`: {}\n- `create_pre_edit_contract`: {}\n- `review_build_plan`: {}\n- `review_proposed_file_plan`: {}\n\n## Verification Required\n{}\n\n## Remaining Gaps\n- Replace pending verification lines with actual command output before marking ready.\n",
+        plan.first_pr.title,
+        has_gate(session, "grill_me"),
+        has_gate(session, "create_pre_edit_contract"),
+        has_gate(session, "review_build_plan"),
+        has_gate(session, "review_proposed_file_plan"),
+        plan.verification
+            .iter()
+            .map(|check| format!("- `{check}`: pending"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    )
+}
+
+fn has_gate(session: &TuiSession, gate: &str) -> &'static str {
+    if session.gates.contains_key(gate) {
+        "recorded"
+    } else {
+        "missing"
+    }
+}
+
+fn indent(value: &str, spaces: usize) -> String {
+    let prefix = " ".repeat(spaces);
+    value
+        .lines()
+        .map(|line| format!("{prefix}{line}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {
+    let path = Path::new(relative);
+    if path.is_absolute() {
+        bail!("foundry artifact path must be relative: {relative}");
+    }
+    let mut out = root.to_path_buf();
+    for component in path.components() {
+        match component {
+            Component::Normal(value) => out.push(value),
+            _ => bail!("foundry artifact path contains unsafe component: {relative}"),
+        }
+    }
+    Ok(out)
+}
+
+fn run_git(cwd: &Path, args: &[&str]) -> Result<()> {
+    let output = Command::new("git")
+        .current_dir(cwd)
+        .args(args)
+        .output()
+        .with_context(|| format!("failed to spawn git {}", args.join(" ")))?;
+    if output.status.success() {
+        return Ok(());
+    }
+    bail!(
+        "git {} failed: {}",
+        args.join(" "),
+        String::from_utf8_lossy(&output.stderr)
+    )
+}

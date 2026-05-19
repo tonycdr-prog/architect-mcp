@@ -44,7 +44,7 @@ async fn foundry_plan_defaults_private_and_requires_file_review() {
     assert_eq!(plan.owner.as_deref(), Some("tonycdr-prog"));
     assert!(!session.foundry_approved);
     assert!(plan.mutation_commands.iter().any(|command| command
-        == "gh repo create tonycdr-prog/launchpad --private --source . --remote origin"));
+        == "gh repo create tonycdr-prog/launchpad --private --source <staged-repo> --remote origin"));
     assert!(
         plan.first_pr
             .body_sections
@@ -54,7 +54,7 @@ async fn foundry_plan_defaults_private_and_requires_file_review() {
 }
 
 #[tokio::test]
-async fn foundry_create_is_approval_gated_and_dry_run_only() {
+async fn foundry_create_is_approval_gated_and_preview_only_by_default() {
     let Some((orchestrator, temp)) = fake_mcp_orchestrator() else {
         return;
     };
@@ -93,9 +93,63 @@ async fn foundry_create_is_approval_gated_and_dry_run_only() {
     let transcript = update.transcript.join("\n");
     assert!(transcript.contains("dry-run only; no GitHub mutation performed"));
     assert!(transcript.contains(
-        "would run: gh repo create tonycdr-prog/launchpad --private --source . --remote origin"
+        "would run: gh repo create tonycdr-prog/launchpad --private --source <staged-repo> --remote origin"
     ));
     assert!(!temp.path().join("launchpad").exists());
+}
+
+#[tokio::test]
+async fn foundry_stage_materializes_scaffold_and_consumes_approval() {
+    let Some((orchestrator, temp)) = fake_mcp_orchestrator() else {
+        return;
+    };
+    let mut engine = InteractiveWorkflowEngine::new(orchestrator);
+
+    engine
+        .apply_input("new app ready private repo app")
+        .await
+        .expect("new app");
+    run_gate_to_file_review(&mut engine).await;
+    engine
+        .apply_input("foundry plan launchpad owner=tonycdr-prog")
+        .await
+        .expect("foundry plan");
+    let blocked = engine
+        .apply_input("foundry stage")
+        .await
+        .expect_err("approval required");
+    assert!(
+        blocked
+            .to_string()
+            .contains("approve local repo staging before foundry stage")
+    );
+    engine
+        .apply_input("foundry approve reviewed local scaffold writes")
+        .await
+        .expect("approve stage");
+    let update = engine.apply_input("foundry stage").await.expect("stage");
+    let transcript = update.transcript.join("\n");
+    assert!(transcript.contains("foundry staged repo:"));
+    let session = update.session.expect("session");
+    assert!(!session.foundry_approved);
+    let stage = session.foundry_stage.expect("stage");
+    assert!(stage.path.starts_with(temp.path()));
+    assert!(stage.path.join("AGENTS.md").exists());
+    assert!(stage.path.join("README.md").exists());
+    assert!(stage.path.join(".env.example").exists());
+    assert!(stage.path.join(".github/workflows/ci.yml").exists());
+    assert!(stage.path.join("docs/first-pr-draft.md").exists());
+    assert_eq!(git_current_branch(&stage.path), "architect/bootstrap");
+
+    let create_blocked = engine
+        .apply_input("foundry create --execute")
+        .await
+        .expect_err("second approval required");
+    assert!(
+        create_blocked
+            .to_string()
+            .contains("approve repo creation before foundry create")
+    );
 }
 
 #[tokio::test]
@@ -124,7 +178,23 @@ async fn foundry_state_clears_when_brief_changes() {
         .expect("answer");
     let session = update.session.expect("session");
     assert!(session.foundry_plan.is_none());
+    assert!(session.foundry_stage.is_none());
     assert!(!session.foundry_approved);
+}
+
+fn git_current_branch(path: &std::path::Path) -> String {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .args(["branch", "--show-current"])
+        .output()
+        .expect("git branch");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
 async fn run_gate_to_file_review(engine: &mut InteractiveWorkflowEngine) {

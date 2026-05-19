@@ -180,10 +180,16 @@ The command palette exposes an early repo-foundry planning flow for new app sess
 foundry plan <repo-name> [owner=name]
 foundry status
 foundry approve <reason>
+foundry stage
 foundry create
+foundry create --execute
 ```
 
-`foundry plan` is available only after `review files` has passed. It creates a private-by-default GitHub repo plan with required scaffold artifacts for `AGENTS.md`, `README.md`, `.env.example`, architecture and build-plan docs, CI, issue template, and PR template. `foundry approve <reason>` is a separate approval from adapter execution or promotion approval. `foundry create` currently renders a dry-run preview of the `gh repo create --private`, push, and draft PR commands; it performs no GitHub mutation. Changing clarified answers clears stale foundry state so repo plans cannot silently survive a changed brief.
+`foundry plan` is available only after `review files` has passed. It creates a private-by-default GitHub repo plan with required scaffold artifacts for `AGENTS.md`, `README.md`, `.env.example`, architecture and build-plan docs, CI, issue template, and PR template. `foundry approve <reason>` is a separate approval from adapter execution or promotion approval.
+
+`foundry stage` requires approval and materializes the generated app scaffold into `.architect-mcp/foundry/<session>/<repo>` as a separate git repository with `main` and `architect/bootstrap` branches. Staging consumes the approval, so live GitHub creation requires another explicit `foundry approve <reason>`.
+
+`foundry create` without flags renders a preview and performs no GitHub mutation. `foundry create --execute` requires a staged repo plus fresh approval, then runs the private `gh repo create`, pushes `main` and `architect/bootstrap`, and opens a draft PR using the staged evidence body. Changing clarified answers clears stale foundry state so repo plans cannot silently survive a changed brief.
 
 ## Config
 

@@ -15,6 +15,8 @@ mod brief_tests;
 pub mod config;
 mod config_template;
 pub mod foundry;
+pub mod foundry_execution;
+pub mod foundry_stage;
 mod gate_calls;
 mod headless;
 mod headless_adapter;

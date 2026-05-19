@@ -51,6 +51,7 @@ pub fn build_repo_foundry_plan(
     let verification = foundry_verification(session);
     let target = repo_target(owner.as_deref(), &repo_name);
     let artifact_paths = artifact_plan(session);
+    let first_pr_title = format!("[architect-mcp] Bootstrap {repo_name}");
     Ok(RepoFoundryPlan {
         repo_name: repo_name.clone(),
         owner,
@@ -59,7 +60,7 @@ pub fn build_repo_foundry_plan(
         artifacts: artifact_paths,
         verification,
         first_pr: FoundryPullRequestPlan {
-            title: format!("[architect-mcp] Bootstrap {repo_name}"),
+            title: first_pr_title.clone(),
             body_sections: vec![
                 "Work gate evidence: grill, contract, build-plan review, and file-plan review passed before repo creation.".to_string(),
                 "Verification evidence must be copied from actual command output before the PR is opened.".to_string(),
@@ -68,9 +69,12 @@ pub fn build_repo_foundry_plan(
             draft: true,
         },
         mutation_commands: vec![
-            format!("gh repo create {target} --private --source . --remote origin"),
-            "git push -u origin main".to_string(),
-            "gh pr create --draft --fill".to_string(),
+            format!(
+                "gh repo create {target} --private --source <staged-repo> --remote origin"
+            ),
+            "git -C <staged-repo> push -u origin main".to_string(),
+            "git -C <staged-repo> push -u origin architect/bootstrap".to_string(),
+            format!("gh -R {target} pr create --draft --base main --head architect/bootstrap --title \"{first_pr_title}\" --body-file <staged-repo>/docs/first-pr-draft.md"),
         ],
         approval_required_for: vec![
             "create private GitHub repository".to_string(),
@@ -93,7 +97,9 @@ pub fn render_foundry_create_preview(plan: &RepoFoundryPlan) -> Vec<String> {
             .iter()
             .map(|command| format!("would run: {command}")),
     );
-    lines.push("next: run the generated verification before opening the first PR".to_string());
+    lines.push(
+        "next: foundry stage, then approve again before foundry create --execute".to_string(),
+    );
     lines
 }
 
@@ -111,7 +117,7 @@ pub fn foundry_plan_lines(plan: &RepoFoundryPlan) -> Vec<String> {
             .take(8)
             .map(|artifact| format!("artifact: {}", artifact.path)),
     );
-    lines.push("next: foundry approve <reason>, then foundry create".to_string());
+    lines.push("next: foundry approve <reason>, then foundry stage".to_string());
     lines
 }
 
@@ -126,6 +132,14 @@ pub fn foundry_status_lines(session: &TuiSession) -> Vec<String> {
     lines.push(format!("foundry approved: {}", session.foundry_approved));
     if let Some(reason) = &session.foundry_approval_reason {
         lines.push(format!("approval reason: {reason}"));
+    }
+    if let Some(stage) = &session.foundry_stage {
+        lines.push(format!("staged repo: {}", stage.path.display()));
+        lines.push(format!("staged artifacts: {}", stage.artifacts_written));
+    }
+    if let Some(execution) = &session.foundry_execution {
+        lines.push(format!("github execution: {}", execution.status));
+        lines.push(format!("commands run: {}", execution.commands.len()));
     }
     lines
 }
@@ -244,7 +258,7 @@ fn validate_owner(value: &str) -> Result<String> {
     Ok(value.to_string())
 }
 
-fn repo_target(owner: Option<&str>, repo_name: &str) -> String {
+pub fn repo_target(owner: Option<&str>, repo_name: &str) -> String {
     owner
         .map(|owner| format!("{owner}/{repo_name}"))
         .unwrap_or_else(|| repo_name.to_string())

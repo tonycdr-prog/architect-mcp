@@ -81,7 +81,15 @@ fn parses_command_palette_actions() {
     );
     assert_eq!(
         parse_workflow_command("foundry create"),
-        WorkflowCommand::FoundryCreate
+        WorkflowCommand::FoundryCreate { execute: false }
+    );
+    assert_eq!(
+        parse_workflow_command("foundry create --execute"),
+        WorkflowCommand::FoundryCreate { execute: true }
+    );
+    assert_eq!(
+        parse_workflow_command("foundry stage"),
+        WorkflowCommand::FoundryStage
     );
     assert_eq!(
         parse_workflow_command("diff file docs/live-qa.md"),

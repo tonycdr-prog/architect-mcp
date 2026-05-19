@@ -69,7 +69,8 @@ impl InteractiveWorkflowEngine {
             }
             WorkflowCommand::FoundryStatus => self.foundry_status(),
             WorkflowCommand::FoundryApprove(reason) => self.foundry_approve(&reason),
-            WorkflowCommand::FoundryCreate => self.foundry_create(),
+            WorkflowCommand::FoundryStage => self.foundry_stage(),
+            WorkflowCommand::FoundryCreate { execute } => self.foundry_create(execute),
             WorkflowCommand::VerificationStatus => self.verification_status(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)
