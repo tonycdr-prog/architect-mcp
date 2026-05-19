@@ -310,6 +310,18 @@ describe("MCP tool responses", () => {
       ), false);
       assert.equal(auditResult.report.gate.status === "pass" || auditResult.report.gate.status === "warn", true);
 
+      const windowsPathReview = await callJson(client, "review_repo_structure", {
+        files: [
+          {
+            path: "src\\app.ts",
+            lines: 1
+          }
+        ],
+        mode: "audit"
+      });
+      assert.equal(windowsPathReview.report.coverage.filesReviewed, 1);
+      assert.equal(windowsPathReview.report.coverage.topScannedDirectories[0]?.directory, "src");
+
       const validationResult = await callJson(client, "validate_architecture_contract", {
         contract: generateContract(cleanMcpServerFixture.brief, ["mcp-server"])
       });
@@ -771,7 +783,8 @@ describe("MCP tool responses", () => {
   it("refuses local workspace scans outside cwd unless explicitly allowed", async () => {
     const { client, close } = await connectTestClient();
     const outsideRoot = mkdtempSync(join(tmpdir(), "architect-mcp-outside-"));
-    writeFileSync(join(outsideRoot, "sample.ts"), "export const ok = true;\n", "utf8");
+    writeFileSync(join(outsideRoot, "a.ts"), "export const ok = true;\n", "utf8");
+    writeFileSync(join(outsideRoot, "z.ts"), "export const ok = true;\n", "utf8");
     try {
       const refused = await callToolRaw(client, "review_local_workspace", {
         rootPath: outsideRoot
@@ -781,9 +794,16 @@ describe("MCP tool responses", () => {
 
       const allowed = await callJson(client, "review_local_workspace", {
         rootPath: outsideRoot,
+        maxFiles: 1,
         allowOutsideCwd: true
       });
       assert.equal(allowed.filesReviewed, 1);
+      assert.equal(allowed.scan.truncated, true);
+      assert.equal(allowed.report.coverage.scanTruncated, true);
+      assert.equal(allowed.report.coverage.filesReviewed, 1);
+      assert.equal(allowed.report.coverage.maxFiles, 1);
+      assert.equal(allowed.report.coverage.topScannedDirectories[0]?.directory, "(root)");
+      assert.equal(allowed.report.summary.coverageCaveats.length, 1);
     } finally {
       await close();
     }

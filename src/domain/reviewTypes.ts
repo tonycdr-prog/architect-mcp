@@ -44,6 +44,14 @@ export type ReviewOptions = {
   maxDetailedFindings?: number;
   summarizeLineWarningsBelow?: number;
   gate?: ReviewGateOptions;
+  scan?: ReviewScanCoverageInput;
+};
+
+export type ReviewScanCoverageInput = {
+  filesReviewed?: number;
+  maxFiles?: number;
+  truncated?: boolean;
+  topScannedDirectories?: ReviewScannedDirectoryCoverage[];
 };
 
 export type ReviewGateOptions = {
@@ -77,16 +85,49 @@ export type ReviewReport = {
   mode: ReviewMode;
   gate: ReviewGate;
   summary: {
+    totalFindings: number;
     errors: number;
     warnings: number;
     shown: number;
     suppressed: number;
     noiseSuppressed: number;
     baselineSuppressed: number;
+    coverageCaveats: string[];
   };
+  coverage: ReviewCoverage;
   groups: ReviewGroup[];
   priorityFindings: ReviewViolation[];
   violations: ReviewViolation[];
+};
+
+export type ReviewCoverage = {
+  totalFindings: number;
+  eligibleFindings: number;
+  detailedFindings: number;
+  suppressedFindings: number;
+  ignoredFindings: number;
+  baselineFindings: number;
+  groupedLineWarnings: number;
+  modeFilteredFindings: number;
+  maxDetailedFindings: number;
+  detailedFindingsTruncated: boolean;
+  scanTruncated: boolean;
+  filesReviewed?: number;
+  maxFiles?: number;
+  topScannedDirectories: ReviewScannedDirectoryCoverage[];
+  findingHistogram: ReviewFindingHistogramEntry[];
+  caveats: string[];
+};
+
+export type ReviewFindingHistogramEntry = {
+  code: FindingCode;
+  severity: ReviewViolation["severity"];
+  count: number;
+};
+
+export type ReviewScannedDirectoryCoverage = {
+  directory: string;
+  files: number;
 };
 
 export type ReviewGate = {
