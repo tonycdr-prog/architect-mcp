@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -5,7 +6,7 @@ use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::foundry::{RepoFoundryPlan, repo_target};
-use crate::foundry_stage::RepoFoundryStage;
+use crate::foundry_stage::{RepoFoundryStage, canonical_existing_foundry_stage_path};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -197,79 +198,52 @@ fn tail(value: &str) -> String {
     format!("[truncated]\n{}", &value[start..])
 }
 
-pub fn ensure_staged_repo_exists(stage: &RepoFoundryStage) -> Result<()> {
-    if !Path::new(&stage.path).join(".git").exists() {
+pub fn ensure_staged_repo_exists(
+    workspace: &Path,
+    session_id: &str,
+    plan: &RepoFoundryPlan,
+    stage: &RepoFoundryStage,
+) -> Result<()> {
+    let metadata = fs::symlink_metadata(&stage.path)
+        .with_context(|| format!("failed to inspect {}", stage.path.display()))?;
+    if metadata.file_type().is_symlink() {
+        bail!("refusing to execute symlinked foundry stage path");
+    }
+    if !metadata.is_dir() {
+        bail!("foundry stage path is not a directory");
+    }
+    let canonical_stage = stage
+        .path
+        .canonicalize()
+        .with_context(|| format!("failed to inspect {}", stage.path.display()))?;
+    let canonical_expected =
+        canonical_existing_foundry_stage_path(workspace, session_id, &plan.repo_name)
+            .with_context(|| "run foundry stage before foundry create --execute")?;
+    if canonical_stage != canonical_expected {
+        bail!("refusing to execute unexpected foundry stage path");
+    }
+    let git_path = canonical_stage.join(".git");
+    if !git_path.exists() {
         bail!("run foundry stage before foundry create --execute");
     }
+    validate_pr_body_path(&canonical_stage, &stage.pr_body_path)?;
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::foundry::{FoundryPullRequestPlan, RepoFoundryPlan, RepoVisibility};
-    use crate::foundry_stage::RepoFoundryStage;
-
-    #[test]
-    fn command_specs_are_private_and_pr_based() {
-        let plan = sample_plan();
-        let stage = sample_stage();
-        let commands = foundry_command_specs(&plan, &stage);
-        assert_eq!(commands[0].program, "gh");
-        assert_eq!(
-            commands[0].args[0..4],
-            ["repo", "create", "owner/app", "--private"]
-        );
-        assert!(commands[0].args.contains(&"--source".to_string()));
-        assert!(
-            commands[2]
-                .args
-                .contains(&"architect/bootstrap".to_string())
-        );
-        assert_eq!(commands[3].args[0..4], ["-R", "owner/app", "pr", "create"]);
-        assert!(commands[3].args.contains(&"--draft".to_string()));
+fn validate_pr_body_path(canonical_stage: &Path, pr_body_path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(pr_body_path)
+        .with_context(|| format!("failed to inspect {}", pr_body_path.display()))?;
+    if metadata.file_type().is_symlink() {
+        bail!("refusing to execute with symlinked foundry PR body path");
     }
-
-    #[test]
-    fn execution_uses_runner_and_stops_on_failure() {
-        let plan = sample_plan();
-        let stage = sample_stage();
-        let result = execute_repo_foundry_plan_with_runner(&plan, &stage, |spec| {
-            Ok(FoundryCommandOutput {
-                exit_code: i32::from(spec.program == "git"),
-                stdout: "ok".to_string(),
-                stderr: "nope".to_string(),
-            })
-        })
-        .expect("execution result");
-        assert_eq!(result.status, "failed");
-        assert_eq!(result.commands.len(), 2);
+    if !metadata.is_file() {
+        bail!("foundry PR body path is not a file");
     }
-
-    fn sample_plan() -> RepoFoundryPlan {
-        RepoFoundryPlan {
-            repo_name: "app".to_string(),
-            owner: Some("owner".to_string()),
-            visibility: RepoVisibility::Private,
-            default_branch: "main".to_string(),
-            artifacts: Vec::new(),
-            verification: vec!["npm test".to_string()],
-            first_pr: FoundryPullRequestPlan {
-                title: "Bootstrap".to_string(),
-                body_sections: vec!["Evidence".to_string()],
-                draft: true,
-            },
-            mutation_commands: Vec::new(),
-            approval_required_for: Vec::new(),
-        }
+    let canonical_pr_body = pr_body_path
+        .canonicalize()
+        .with_context(|| format!("failed to inspect {}", pr_body_path.display()))?;
+    if !canonical_pr_body.starts_with(canonical_stage) {
+        bail!("refusing to execute with PR body outside staged foundry repo");
     }
-
-    fn sample_stage() -> RepoFoundryStage {
-        RepoFoundryStage {
-            path: PathBuf::from("/tmp/stage"),
-            bootstrap_branch: "architect/bootstrap".to_string(),
-            artifacts_written: 1,
-            pr_body_path: PathBuf::from("/tmp/stage/docs/first-pr-draft.md"),
-        }
-    }
+    Ok(())
 }

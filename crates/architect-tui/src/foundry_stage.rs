@@ -24,11 +24,7 @@ pub fn stage_repo_foundry_plan(workspace: &Path, session: &TuiSession) -> Result
         .foundry_plan
         .as_ref()
         .context("run foundry plan before foundry stage")?;
-    let root = workspace
-        .join(".architect-mcp")
-        .join("foundry")
-        .join(&session.id)
-        .join(&plan.repo_name);
+    let root = expected_foundry_stage_path(workspace, &session.id, &plan.repo_name)?;
     prepare_clean_stage_root(workspace, &root)?;
     fs::create_dir_all(&root).with_context(|| format!("failed to create {}", root.display()))?;
 
@@ -79,23 +75,50 @@ pub fn stage_repo_foundry_plan(workspace: &Path, session: &TuiSession) -> Result
     })
 }
 
-fn prepare_clean_stage_root(workspace: &Path, root: &Path) -> Result<()> {
-    let allowed_root = workspace.join(".architect-mcp").join("foundry");
-    let allowed_root = allowed_root
+pub(crate) fn expected_foundry_stage_path(
+    workspace: &Path,
+    session_id: &str,
+    repo_name: &str,
+) -> Result<PathBuf> {
+    let session_id = validated_path_component("foundry session id", session_id)?;
+    let repo_name = validated_path_component("foundry repo name", repo_name)?;
+    Ok(workspace
+        .join(".architect-mcp")
+        .join("foundry")
+        .join(session_id)
+        .join(repo_name))
+}
+
+pub(crate) fn canonical_existing_foundry_stage_path(
+    workspace: &Path,
+    session_id: &str,
+    repo_name: &str,
+) -> Result<PathBuf> {
+    let expected_path = expected_foundry_stage_path(workspace, session_id, repo_name)?;
+    reject_symlinked_existing_path(
+        &workspace.join(".architect-mcp"),
+        ".architect-mcp directory",
+    )?;
+    reject_symlinked_existing_path(
+        &workspace.join(".architect-mcp").join("foundry"),
+        ".architect-mcp/foundry directory",
+    )?;
+    let parent = expected_path
+        .parent()
+        .context("foundry stage path must have a parent directory")?;
+    reject_symlinked_existing_path(parent, "foundry session directory")?;
+    reject_symlinked_existing_path(&expected_path, "foundry stage path")?;
+    expected_path
         .canonicalize()
-        .or_else(|_| {
-            fs::create_dir_all(&allowed_root)?;
-            allowed_root.canonicalize()
-        })
-        .with_context(|| format!("failed to prepare {}", allowed_root.display()))?;
+        .with_context(|| format!("failed to inspect {}", expected_path.display()))
+}
+
+fn prepare_clean_stage_root(workspace: &Path, root: &Path) -> Result<()> {
+    let allowed_root = prepare_foundry_root(workspace)?;
     let parent = root
         .parent()
         .context("foundry stage path must have a parent directory")?;
-    fs::create_dir_all(parent)
-        .with_context(|| format!("failed to prepare {}", parent.display()))?;
-    let canonical_parent = parent
-        .canonicalize()
-        .with_context(|| format!("failed to inspect {}", parent.display()))?;
+    let canonical_parent = prepare_stage_parent(parent)?;
     if !canonical_parent.starts_with(&allowed_root) {
         bail!("refusing to stage repo outside .architect-mcp/foundry");
     }
@@ -112,6 +135,83 @@ fn prepare_clean_stage_root(workspace: &Path, root: &Path) -> Result<()> {
         fs::remove_dir_all(root).with_context(|| format!("failed to clean {}", root.display()))?;
     }
     Ok(())
+}
+
+fn prepare_foundry_root(workspace: &Path) -> Result<PathBuf> {
+    let app_root = workspace.join(".architect-mcp");
+    prepare_non_symlinked_directory(&app_root, ".architect-mcp directory")?;
+    let foundry_root = app_root.join("foundry");
+    prepare_non_symlinked_directory(&foundry_root, ".architect-mcp/foundry directory")?;
+    let canonical_app_root = app_root
+        .canonicalize()
+        .with_context(|| format!("failed to inspect {}", app_root.display()))?;
+    let canonical_foundry_root = foundry_root
+        .canonicalize()
+        .with_context(|| format!("failed to inspect {}", foundry_root.display()))?;
+    if !canonical_foundry_root.starts_with(&canonical_app_root) {
+        bail!("refusing to use foundry root outside .architect-mcp");
+    }
+    Ok(canonical_foundry_root)
+}
+
+fn prepare_non_symlinked_directory(path: &Path, label: &str) -> Result<()> {
+    if let Ok(metadata) = fs::symlink_metadata(path) {
+        if metadata.file_type().is_symlink() {
+            bail!("refusing to use symlinked {label}");
+        }
+        if !metadata.is_dir() {
+            bail!("{label} is not a directory");
+        }
+        return Ok(());
+    }
+    fs::create_dir_all(path).with_context(|| format!("failed to prepare {}", path.display()))?;
+    reject_symlinked_existing_path(path, label)?;
+    Ok(())
+}
+
+fn prepare_stage_parent(parent: &Path) -> Result<PathBuf> {
+    if let Ok(metadata) = fs::symlink_metadata(parent) {
+        if metadata.file_type().is_symlink() {
+            bail!("refusing to prepare symlinked foundry parent");
+        }
+        return parent
+            .canonicalize()
+            .with_context(|| format!("failed to inspect {}", parent.display()));
+    }
+    fs::create_dir_all(parent)
+        .with_context(|| format!("failed to prepare {}", parent.display()))?;
+    let metadata = fs::symlink_metadata(parent)
+        .with_context(|| format!("failed to inspect {}", parent.display()))?;
+    if metadata.file_type().is_symlink() {
+        bail!("refusing to prepare symlinked foundry parent");
+    }
+    parent
+        .canonicalize()
+        .with_context(|| format!("failed to inspect {}", parent.display()))
+}
+
+fn reject_symlinked_existing_path(path: &Path, label: &str) -> Result<()> {
+    let metadata = fs::symlink_metadata(path)
+        .with_context(|| format!("failed to inspect {}", path.display()))?;
+    if metadata.file_type().is_symlink() {
+        bail!("refusing to use symlinked {label}");
+    }
+    Ok(())
+}
+
+fn validated_path_component<'a>(label: &str, value: &'a str) -> Result<&'a str> {
+    if value.is_empty() {
+        bail!("{label} cannot be blank");
+    }
+    let path = Path::new(value);
+    if path.is_absolute() {
+        bail!("{label} must be a single relative path component");
+    }
+    let mut components = path.components();
+    match (components.next(), components.next()) {
+        (Some(Component::Normal(_)), None) => Ok(value),
+        _ => bail!("{label} contains unsafe path component"),
+    }
 }
 
 fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {

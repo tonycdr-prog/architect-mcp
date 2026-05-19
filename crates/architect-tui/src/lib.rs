@@ -36,6 +36,8 @@ mod evidence_index_tests;
 pub mod foundry;
 mod foundry_artifacts;
 pub mod foundry_execution;
+#[cfg(test)]
+mod foundry_execution_tests;
 pub mod foundry_smoke;
 mod foundry_smoke_github;
 mod foundry_smoke_public_summary;
@@ -48,6 +50,8 @@ mod foundry_smoke_script;
 mod foundry_smoke_tests;
 pub mod foundry_stage;
 mod foundry_stage_content;
+#[cfg(test)]
+mod foundry_stage_tests;
 mod gate_calls;
 pub mod governance_audit;
 mod governance_audit_mcp;
