@@ -93,6 +93,8 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
         #[arg(long)]
+        public_summary: bool,
+        #[arg(long)]
         owner: String,
         #[arg(long)]
         repo: Option<String>,

@@ -14,6 +14,7 @@ async fn foundry_smoke_dry_run_stages_repo_without_github_execution() {
         config,
         &FoundrySmokeOptions {
             json: true,
+            public_summary: false,
             owner: "tonycdr-prog".to_string(),
             repo: Some("architect-mcp-foundry-dry-run".to_string()),
             execute: false,
@@ -41,6 +42,32 @@ async fn foundry_smoke_dry_run_stages_repo_without_github_execution() {
             .commands
             .iter()
             .any(|command| command.command == "foundry create")
+    );
+}
+
+#[tokio::test]
+async fn foundry_smoke_live_requires_private_repo_mutation_confirmation() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let error = build_foundry_smoke_report(
+        temp.path().to_path_buf(),
+        TuiConfig::default(),
+        &FoundrySmokeOptions {
+            json: true,
+            public_summary: false,
+            owner: "tonycdr-prog".to_string(),
+            repo: Some("architect-mcp-foundry-live-guard".to_string()),
+            execute: true,
+            confirm_private_repo_mutation: false,
+            keep_workspace: false,
+        },
+    )
+    .await
+    .expect_err("missing confirmation should fail closed");
+
+    assert!(
+        error
+            .to_string()
+            .contains("--confirm-private-repo-mutation")
     );
 }
 

@@ -123,10 +123,14 @@ Repo-foundry smoke:
 
 ```bash
 architect-mcp-tui foundry-smoke --owner <github-owner> --json
+architect-mcp-tui foundry-smoke --owner <github-owner> --public-summary
 architect-mcp-tui foundry-smoke --owner <github-owner> --repo <repo-name> --execute --confirm-private-repo-mutation --json --keep-workspace
+architect-mcp-tui foundry-smoke --owner <github-owner> --repo <repo-name> --execute --confirm-private-repo-mutation --public-summary --keep-workspace
 ```
 
 Without `--execute`, this drives the command-palette work gate through grill, contract, plan review, file-plan review, private repo planning, local staging, and create preview only. With `--execute`, it first requires `--confirm-private-repo-mutation`, refuses to reuse an existing GitHub repo, creates a private repo, pushes `main` and `architect/bootstrap`, opens the first draft PR, verifies the repo is private, and reports the retained evidence URLs.
+
+Use `--public-summary` for PR comments, issue updates, and release evidence. It emits compact JSON that keeps status, dry-run versus live mode, mutation requirements, staged artifact counts, private repo verification, draft PR verification, command pass/fail counts, retention guidance, findings, and next actions. It omits workspace paths, staged repo paths, private repo target names/URLs, raw command strings, stdout/stderr tails, raw command transcripts, raw MCP payloads, and token-shaped values. Keep `--json` local when you need full diagnostics.
 
 ## Work Gate
 
@@ -201,7 +205,7 @@ foundry create --execute
 
 `foundry create` without flags renders a preview and performs no GitHub mutation. `foundry create --execute` requires a staged repo plus fresh approval, then runs the private `gh repo create`, pushes `main` and `architect/bootstrap`, and opens a draft PR using the staged evidence body. Changing clarified answers clears stale foundry state so repo plans cannot silently survive a changed brief.
 
-`architect-mcp-tui foundry-smoke --owner <github-owner> --json` is the repeatable dry-run QA path for the repo-foundry flow. Live GitHub creation is intentionally noisier: `--execute --confirm-private-repo-mutation` must both be present, and the command fails closed if the target repository already exists.
+`architect-mcp-tui foundry-smoke --owner <github-owner> --json` is the repeatable dry-run QA path for the repo-foundry flow. Add `--public-summary` when the result is going into a public issue, PR, or release note; the summary preserves mutation boundaries and verification counts without exposing local paths, private targets, command text, command transcripts, or stdout/stderr tails. Live GitHub creation is intentionally noisier: `--execute --confirm-private-repo-mutation` must both be present, and the command fails closed if the target repository already exists.
 
 Governance audit:
 

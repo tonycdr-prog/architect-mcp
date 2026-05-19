@@ -167,6 +167,9 @@ pub(crate) fn public_text(value: &str, max_len: usize) -> String {
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
         .join(" ");
+    if is_private_key_material(&normalized) {
+        return "[redacted-secret]".to_string();
+    }
     let mut text = normalized
         .split_whitespace()
         .map(redact_token)
@@ -263,6 +266,7 @@ fn redact_token(token: &str) -> String {
         || lower.contains("github_pat_")
         || lower.contains("sk-")
         || lower.contains("xoxb-")
+        || is_private_key_material(token)
     {
         "[redacted-secret]".to_string()
     } else if lower.starts_with("/")
@@ -274,4 +278,9 @@ fn redact_token(token: &str) -> String {
     } else {
         token.to_string()
     }
+}
+
+fn is_private_key_material(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.contains("begin") && lower.contains("private") && lower.contains("key")
 }

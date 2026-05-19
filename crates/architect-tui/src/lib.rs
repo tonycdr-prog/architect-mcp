@@ -31,6 +31,10 @@ pub mod foundry;
 mod foundry_artifacts;
 pub mod foundry_execution;
 pub mod foundry_smoke;
+mod foundry_smoke_github;
+mod foundry_smoke_public_summary;
+#[cfg(test)]
+mod foundry_smoke_public_summary_tests;
 mod foundry_smoke_report;
 mod foundry_smoke_script;
 #[cfg(test)]

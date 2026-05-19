@@ -1,13 +1,15 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use anyhow::{Context, Result};
-use serde_json::Value;
 use uuid::Uuid;
 
 use crate::config::TuiConfig;
 use crate::foundry::repo_target;
+use crate::foundry_smoke_github::{
+    ensure_repo_absent, foundry_github_verification_passed, verify_github_target,
+};
+use crate::foundry_smoke_public_summary::print_foundry_smoke_public_summary;
 pub use crate::foundry_smoke_report::{
     FoundryGithubVerification, FoundrySmokeCommandReport, FoundrySmokeReport, FoundrySmokeStatus,
 };
@@ -21,6 +23,7 @@ use crate::promotion_smoke_workspace::init_git_workspace;
 #[derive(Debug, Clone)]
 pub struct FoundrySmokeOptions {
     pub json: bool,
+    pub public_summary: bool,
     pub owner: String,
     pub repo: Option<String>,
     pub execute: bool,
@@ -33,10 +36,17 @@ pub async fn run_foundry_smoke(
     config: TuiConfig,
     options: FoundrySmokeOptions,
 ) -> Result<()> {
+    if options.json && options.public_summary {
+        anyhow::bail!("--json and --public-summary are mutually exclusive");
+    }
     let report = build_foundry_smoke_report(source_workspace, config, &options).await;
     match &report {
+        Ok(report) if options.public_summary => print_foundry_smoke_public_summary(report)?,
         Ok(report) if options.json => println!("{}", serde_json::to_string_pretty(report)?),
         Ok(report) => print_text_report(report),
+        Err(error) if options.public_summary => {
+            print_foundry_smoke_public_summary(&failed_report(&options, error))?;
+        }
         Err(error) if options.json => {
             println!(
                 "{}",
@@ -203,84 +213,6 @@ pub(crate) fn foundry_status(
             Some("foundry smoke did not produce required staging/execution evidence".to_string());
     }
     FoundrySmokeStatus::Failed
-}
-
-fn verify_github_target(target: &str) -> Result<FoundryGithubVerification> {
-    let repo = run_json_command(
-        Command::new("gh")
-            .args(["repo", "view", target, "--json"])
-            .arg("nameWithOwner,visibility,isPrivate,url"),
-    )?;
-    let prs = run_json_command(
-        Command::new("gh")
-            .args(["pr", "list", "-R", target, "--head", "architect/bootstrap"])
-            .args(["--json", "number,url,isDraft,state", "--limit", "1"]),
-    )?;
-    let pr = prs.as_array().and_then(|items| items.first());
-    Ok(FoundryGithubVerification {
-        repo_url: string_field(&repo, "url")?,
-        repo_visibility: string_field(&repo, "visibility")?,
-        is_private: repo
-            .get("isPrivate")
-            .and_then(Value::as_bool)
-            .unwrap_or_default(),
-        draft_pr_url: pr
-            .and_then(|value| value.get("url"))
-            .and_then(Value::as_str)
-            .map(ToString::to_string),
-        draft_pr_number: pr
-            .and_then(|value| value.get("number"))
-            .and_then(Value::as_u64),
-        draft_pr_is_draft: pr
-            .and_then(|value| value.get("isDraft"))
-            .and_then(Value::as_bool),
-        draft_pr_state: pr
-            .and_then(|value| value.get("state"))
-            .and_then(Value::as_str)
-            .map(ToString::to_string),
-    })
-}
-
-fn foundry_github_verification_passed(verification: &FoundryGithubVerification) -> bool {
-    verification.is_private
-        && verification.draft_pr_url.is_some()
-        && verification.draft_pr_number.is_some()
-        && verification.draft_pr_is_draft == Some(true)
-        && verification.draft_pr_state.as_deref() == Some("OPEN")
-}
-
-fn ensure_repo_absent(target: &str) -> Result<()> {
-    let output = Command::new("gh")
-        .args(["repo", "view", target])
-        .output()
-        .with_context(|| format!("failed to check whether {target} already exists"))?;
-    if output.status.success() {
-        anyhow::bail!("refusing to overwrite existing GitHub repository {target}");
-    }
-    let stderr = String::from_utf8_lossy(&output.stderr).to_lowercase();
-    if stderr.contains("could not resolve")
-        || stderr.contains("not found")
-        || stderr.contains("not exist")
-    {
-        return Ok(());
-    }
-    anyhow::bail!("could not confirm {target} is absent: {}", stderr.trim())
-}
-
-fn run_json_command(command: &mut Command) -> Result<Value> {
-    let output = command.output().context("failed to run gh command")?;
-    if !output.status.success() {
-        anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim());
-    }
-    serde_json::from_slice(&output.stdout).context("failed to parse gh JSON output")
-}
-
-fn string_field(value: &Value, field: &str) -> Result<String> {
-    value
-        .get(field)
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
-        .with_context(|| format!("gh response omitted {field}"))
 }
 
 fn create_foundry_workspace() -> Result<PathBuf> {
