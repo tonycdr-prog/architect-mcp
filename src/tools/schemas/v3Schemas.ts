@@ -33,6 +33,21 @@ export const workGateCompletenessInputSchema = z.object({
   maxAgeSeconds: z.number().int().positive().max(31_536_000).optional()
 }).strict();
 
+export const workGateSequenceReceiptInputSchema = z.object({
+  records: boundedArray(z.object({
+    gate: mediumText,
+    status: z.enum(["pass", "warn", "fail", "unknown"]).optional(),
+    recordedAt: optionalText(mediumText),
+    runId: optionalText(idText),
+    inputsPresent: z.boolean().optional(),
+    evidencePresent: z.boolean().optional(),
+    publicSummary: optionalText(mediumText)
+  }).strict(), 200).optional(),
+  requiredGates: boundedArray(workGateNameSchema, workGateSequence.length).optional(),
+  now: optionalText(mediumText),
+  maxAgeSeconds: z.number().int().positive().max(31_536_000).optional()
+}).strict();
+
 export const mcpSecurityReviewInputSchema = z.object({
   config: z.unknown(),
   approvedServers: boundedArray(idText, 200).optional(),

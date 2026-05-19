@@ -105,6 +105,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - review_agent_final_response: check final output for changed, verified, command receipts, assumptions, remaining work, and evidence honesty.
 - review_agent_session: combine implementation intent, contract drift, command receipts, memory relevance, final response, and verification honesty.
 - audit_work_gate_completeness: read-only audit for complete, fresh, ordered direct-client work-gate evidence.
+- create_work_gate_sequence_receipt: create a public-safe direct-client receipt for gate order, confirmed inputs, evidence, and freshness.
 - audit_hosted_tool_policy: classify tools as hosted-safe, local-only, or future-adapter.
 - score_stack_packs: score stack packs for source quality, detectors, examples, tests, and boundaries.
 - stack_pack_coverage_matrix: report stack-pack coverage by pack, ingested llms.txt, detector, test, and docs status.

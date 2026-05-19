@@ -91,3 +91,11 @@
 - Forbidden files: raw command logs, stdout/stderr payload storage, CI replacement claims, human-review replacement claims, changes that require receipts from existing clients by default
 - Checks: node --import tsx --test tests/verificationReceipts.test.ts tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if public summaries expose tokens or local paths, if receipt failures can be presented as passing evidence, or if missing optional receipts break existing clients.
+
+### 12. Work-Gate Sequence Receipts
+- Inputs: issue #247, prompt-injection threat model, direct-client work-gate audit, verification receipt boundary
+- Outputs: read-only `create_work_gate_sequence_receipt` MCP tool, stricter direct-client sequence receipt helper, schema validation that keeps unknown gates reportable, docs update, goal ledger update
+- Allowed directories: src/domain, src/tools, tests, docs
+- Forbidden files: TUI mutation paths, persistent receipt storage, raw MCP payload storage, run-id/token leakage, claims that direct clients are forced to run every gate
+- Checks: node --import tsx --test tests/workGateCompleteness.test.ts tests/schemaValidation.test.ts tests/toolResponses.test.ts tests/supplyChain.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check
+- Stop after: stop if receipts pass without confirmed inputs and evidence, if unknown gates are accepted as known, if summaries leak token-shaped values or local paths, or if the default core surface changes.

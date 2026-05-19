@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildQualityRequirementsProfile } from "../src/domain/repoQualityEval.js";
 import { reviewSuppliedSkills } from "../src/domain/skillsCatalog.js";
 import { classifyToolPolicy } from "../src/domain/toolPolicy.js";
-import { agentSessionReviewInputSchema, finalResponseReviewInputSchema, projectBriefSchema, qualityRequirementsInputSchema, ruleCandidateRequestSchema, stackPackCandidateInputSchema, workGateCompletenessInputSchema } from "../src/tools/schemas.js";
+import { agentSessionReviewInputSchema, finalResponseReviewInputSchema, projectBriefSchema, qualityRequirementsInputSchema, ruleCandidateRequestSchema, stackPackCandidateInputSchema, workGateCompletenessInputSchema, workGateSequenceReceiptInputSchema } from "../src/tools/schemas.js";
 
 describe("public input schema validation", () => {
   it("rejects blank project and repo-quality text fields", () => {
@@ -53,6 +53,21 @@ describe("public input schema validation", () => {
     }).success, true);
     assert.equal(workGateCompletenessInputSchema.safeParse({
       records: [{ gate: "not_a_gate", status: "pass" }]
+    }).success, false);
+  });
+
+  it("keeps unknown receipt gate names reportable by the domain helper", () => {
+    assert.equal(workGateSequenceReceiptInputSchema.safeParse({
+      records: [{
+        gate: "not_a_gate",
+        status: "pass",
+        recordedAt: "2026-05-17T22:00:00.000Z",
+        inputsPresent: true,
+        evidencePresent: true
+      }]
+    }).success, true);
+    assert.equal(workGateSequenceReceiptInputSchema.safeParse({
+      records: [{ gate: "   ", status: "pass" }]
     }).success, false);
   });
 

@@ -119,6 +119,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(threatModel, /MCP tools are report-only/);
     assert.match(threatModel, /direct-mutation-without-gates/);
     assert.match(threatModel, /audit_work_gate_completeness/);
+    assert.match(threatModel, /create_work_gate_sequence_receipt/);
     assert.match(threatModel, /fabricated-verification-claim/);
     assert.match(threatModel, /selective-tool-call/);
     assert.match(readme, /new-app-work-gate/);
@@ -251,7 +252,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#246 - Attach verification command receipts to final and session review\]/);
+    assert.match(goal, /Active slice: \[#247 - Add MCP work-gate sequence receipts for direct clients\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -298,6 +299,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /TUI untrusted-input labels/);
     assert.match(goal, /direct-client work-gate completeness auditing/);
     assert.match(goal, /structured verification command receipts/);
+    assert.match(goal, /direct-client work-gate sequence receipts/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -308,6 +310,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#242 in PR #248/);
     assert.match(goal, /#244 in PR #249/);
     assert.match(goal, /#245 in PR #250/);
+    assert.match(goal, /#246 in PR #251/);
+    assert.match(goal, /#247 in the current PR/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

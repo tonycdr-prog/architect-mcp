@@ -45,6 +45,12 @@ The final response should be specific and evidence-backed:
 
 Receipts help reviewers separate claimed verification text from attached execution evidence. They do not replace CI, terminal QA, or human review, and public summaries should omit raw logs, secrets, token-shaped values, and local paths.
 
+## Direct-Client Sequence Receipts
+
+Direct MCP clients can attach `create_work_gate_sequence_receipt` output when they need to show more than one favorable review result. A sequence receipt is public-safe and request-scoped: it records required gate order, pass/warn/fail status, whether each gate had its required inputs and review evidence, and timestamp or run-id presence without storing raw payloads.
+
+Use it with `audit_work_gate_completeness` when a PR or launch judge needs to distinguish a complete direct-client work-gate run from a partial set of MCP calls. It is still detection-only; clients, CI, TUI sessions, reviewers, or humans must enforce the result.
+
 ## Optional MCP Integration Gate
 
 When a project brief implies external tooling, use the advanced MCP catalog after the core flow has clarified the provider and boundary. `recommend_mcp_servers` should ask when the brief only says "database" or "payments". `create_mcp_install_plan` and `review_mcp_install_plan` keep installation dry-run and reviewable before any local config write.
