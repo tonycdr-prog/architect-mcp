@@ -52,6 +52,12 @@ pub(crate) fn pr_next_action(
                 evidence.checks.missing_required_names.join(", ")
             ))
         }
+        LaunchStackItemStatus::Failed if !evidence.checks.failed_required_names.is_empty() => {
+            Some(format!(
+                "fix required checks on PR #{number}: {}",
+                evidence.checks.failed_required_names.join(", ")
+            ))
+        }
         LaunchStackItemStatus::Failed if evidence.checks.failed > 0 => Some(format!(
             "fix failing checks on PR #{number} before launch stack can be go"
         )),
@@ -73,6 +79,12 @@ pub(crate) fn pr_next_action(
             "resolve {} unresolved review thread(s) on PR #{number} before final launch go",
             evidence.unresolved_review_threads
         )),
+        LaunchStackItemStatus::Warning if !evidence.checks.pending_required_names.is_empty() => {
+            Some(format!(
+                "wait for required checks on PR #{number}: {}",
+                evidence.checks.pending_required_names.join(", ")
+            ))
+        }
         LaunchStackItemStatus::Warning if evidence.checks.pending > 0 => Some(format!(
             "wait for PR #{number} checks to finish before final launch go"
         )),

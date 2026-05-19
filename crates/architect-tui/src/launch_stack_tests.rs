@@ -236,6 +236,39 @@ fn check_summary_keeps_latest_row_for_duplicate_check_names() {
 }
 
 #[test]
+fn check_summary_keeps_same_name_rows_from_distinct_apps() {
+    let summary = summarize_checks(Some(&json!([
+        {
+            "name": "verify",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS",
+            "completedAt": "2026-05-19T00:02:00Z",
+            "checkSuite": {"app": {"databaseId": 15368, "slug": "github-actions"}}
+        },
+        {
+            "name": "verify",
+            "status": "COMPLETED",
+            "conclusion": "FAILURE",
+            "completedAt": "2026-05-19T00:01:00Z",
+            "checkSuite": {"app": {"databaseId": 9919, "slug": "third-party-ci"}}
+        },
+        {
+            "name": "verify",
+            "status": "COMPLETED",
+            "conclusion": "FAILURE",
+            "completedAt": "2026-05-19T00:00:00Z",
+            "checkSuite": {"app": {"databaseId": 15368, "slug": "github-actions"}}
+        }
+    ])));
+
+    assert_eq!(summary.total, 2);
+    assert_eq!(summary.passed, 1);
+    assert_eq!(summary.failed, 1);
+    assert_eq!(summary.names, vec!["verify", "verify"]);
+    assert_eq!(summary.failed_names, vec!["verify"]);
+}
+
+#[test]
 fn check_summary_treats_neutral_and_skipped_check_runs_as_passing() {
     let summary = summarize_checks(Some(&json!([
         {"name": "docs", "status": "COMPLETED", "conclusion": "NEUTRAL"},

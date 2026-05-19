@@ -67,6 +67,18 @@ pub(crate) fn render_launch_stack_merge_plan(report: &LaunchStackReport) -> Vec<
                     public_text(&pr.checks.missing_required_names.join(", "), 220)
                 ));
             }
+            if !pr.checks.pending_required_names.is_empty() {
+                lines.push(format!(
+                    "   pending required checks: {}",
+                    public_text(&pr.checks.pending_required_names.join(", "), 220)
+                ));
+            }
+            if !pr.checks.failed_required_names.is_empty() {
+                lines.push(format!(
+                    "   failed required checks: {}",
+                    public_text(&pr.checks.failed_required_names.join(", "), 220)
+                ));
+            }
             for thread in &pr.unresolved_review_thread_details {
                 let line = thread
                     .line

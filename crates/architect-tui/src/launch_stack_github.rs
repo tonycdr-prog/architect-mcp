@@ -10,6 +10,7 @@ pub(crate) use crate::launch_stack_github_support::{public_text, run_gh_json};
 use crate::launch_stack_pr_status::{PrStatusEvidence, pr_next_action, pr_status};
 use crate::launch_stack_required_checks::apply_required_checks;
 use crate::launch_stack_review_threads::fetch_unresolved_review_threads;
+use crate::launch_stack_status_checks::fetch_status_check_rollup;
 
 pub(crate) fn fetch_pr(
     workspace: &Path,
@@ -35,6 +36,8 @@ pub(crate) fn fetch_pr(
         .ok_or_else(|| format!("PR #{number}: GitHub response omitted PR node id"))?;
     let unresolved_review_thread_details = fetch_unresolved_review_threads(workspace, pr_id)
         .map_err(|error| format!("PR #{number}: {error}"))?;
+    let status_check_rollup = fetch_status_check_rollup(workspace, pr_id)
+        .map_err(|error| format!("PR #{number}: {error}"))?;
     if let Some(object) = value.as_object_mut() {
         object.insert(
             "unresolvedReviewThreads".to_string(),
@@ -44,6 +47,7 @@ pub(crate) fn fetch_pr(
             "unresolvedReviewThreadDetails".to_string(),
             json!(unresolved_review_thread_details),
         );
+        object.insert("statusCheckRollup".to_string(), status_check_rollup);
     }
     Ok(pr_from_value_with_required_checks(
         number,

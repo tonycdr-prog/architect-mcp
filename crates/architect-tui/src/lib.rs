@@ -139,6 +139,7 @@ mod launch_stack_required_checks_tests;
 #[cfg(test)]
 mod launch_stack_review_decision_tests;
 mod launch_stack_review_threads;
+mod launch_stack_status_checks;
 #[cfg(test)]
 mod launch_stack_tests;
 #[cfg(test)]

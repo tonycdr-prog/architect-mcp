@@ -87,6 +87,8 @@ pub struct LaunchStackCheckSummary {
     pub pending_names: Vec<String>,
     pub failed_names: Vec<String>,
     pub missing_required_names: Vec<String>,
+    pub pending_required_names: Vec<String>,
+    pub failed_required_names: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]

@@ -2,18 +2,28 @@ use crate::launch_stack_github::public_text;
 use crate::launch_stack_required_checks::missing_required_checks;
 
 #[test]
-fn required_checks_match_case_insensitively_and_dedupe_missing_names() {
+fn required_checks_match_exactly_and_dedupe_missing_names() {
     let missing = missing_required_checks(
-        &["verify".to_string(), "live-qa (ubuntu-latest)".to_string()],
         &[
+            "verify".to_string(),
+            "CI / lint".to_string(),
+            "live-qa (ubuntu-latest)".to_string(),
+        ],
+        &[
+            "verify".to_string(),
             "VERIFY".to_string(),
+            "ci/lint".to_string(),
+            "ci/lint".to_string(),
             "live-qa (windows-latest)".to_string(),
             "live-qa (windows-latest)".to_string(),
             " ".to_string(),
         ],
     );
 
-    assert_eq!(missing, vec!["live-qa (windows-latest)"]);
+    assert_eq!(
+        missing,
+        vec!["VERIFY", "ci/lint", "live-qa (windows-latest)"]
+    );
 }
 
 #[test]

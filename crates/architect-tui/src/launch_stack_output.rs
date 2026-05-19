@@ -16,7 +16,7 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
     }
     for pr in &report.pull_requests {
         println!(
-            "- PR #{}: {:?} draft={} review={} unresolved_threads={} merge={} mergeable={} checks passed={} pending={} failed={} missing_required={}",
+            "- PR #{}: {:?} draft={} review={} unresolved_threads={} merge={} mergeable={} checks passed={} pending={} failed={} missing_required={} pending_required={} failed_required={}",
             pr.number,
             pr.status,
             pr.is_draft,
@@ -27,12 +27,26 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
             pr.checks.passed,
             pr.checks.pending,
             pr.checks.failed,
-            pr.checks.missing_required_names.len()
+            pr.checks.missing_required_names.len(),
+            pr.checks.pending_required_names.len(),
+            pr.checks.failed_required_names.len()
         );
         if !pr.checks.missing_required_names.is_empty() {
             println!(
                 "  missing required checks: {}",
                 pr.checks.missing_required_names.join(", ")
+            );
+        }
+        if !pr.checks.pending_required_names.is_empty() {
+            println!(
+                "  pending required checks: {}",
+                pr.checks.pending_required_names.join(", ")
+            );
+        }
+        if !pr.checks.failed_required_names.is_empty() {
+            println!(
+                "  failed required checks: {}",
+                pr.checks.failed_required_names.join(", ")
             );
         }
         for thread in &pr.unresolved_review_thread_details {
