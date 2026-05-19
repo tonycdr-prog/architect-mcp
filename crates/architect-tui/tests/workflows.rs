@@ -248,6 +248,84 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
             .contains("approval is required before promotion")
     );
 
+    let approval_blocked = engine
+        .apply_input("approve promote reviewed diff")
+        .await
+        .expect_err("approval blocked");
+    assert!(
+        approval_blocked
+            .to_string()
+            .contains("run final review and session review")
+    );
+
+    let final_blocked = engine
+        .apply_input("final review Changed files: docs/approved-run.md. Verification: npm test passed. Assumptions: isolated review. Not done: promotion remains pending.")
+        .await
+        .expect_err("verification required");
+    assert!(
+        final_blocked
+            .to_string()
+            .contains("record passed verification")
+    );
+
+    let bad_status = engine
+        .apply_input("record verification npm test=blocked")
+        .await
+        .expect_err("status validation");
+    assert!(
+        bad_status
+            .to_string()
+            .contains("verification status must be one of")
+    );
+
+    engine
+        .apply_input("record verification npm test=failed")
+        .await
+        .expect("failed verification recorded");
+    let still_blocked = engine
+        .apply_input("final review Changed files: docs/approved-run.md. Verification: npm test passed. Assumptions: isolated review. Not done: promotion remains pending.")
+        .await
+        .expect_err("failed verification blocks final");
+    assert!(still_blocked.to_string().contains("npm test=failed"));
+
+    engine
+        .apply_input("record verification npm test=passed")
+        .await
+        .expect("passed verification recorded");
+    let session_before_final = engine
+        .apply_input("session review")
+        .await
+        .expect_err("final review first");
+    assert!(
+        session_before_final
+            .to_string()
+            .contains("run final review after passed verification")
+    );
+
+    engine
+        .apply_input("final review Changed files: docs/approved-run.md. Verification: npm test passed. Assumptions: isolated review. Not done: promotion remains pending.")
+        .await
+        .expect("final review");
+    let update = engine
+        .apply_input("session review")
+        .await
+        .expect("session review");
+    let session = update.session.expect("session");
+    assert_eq!(session.phase, SessionPhase::Complete);
+    let review_request = &session.gates["review_agent_session"]["received"];
+    assert_eq!(
+        review_request["finalResponse"].as_str(),
+        Some(
+            "Changed files: docs/approved-run.md. Verification: npm test passed. Assumptions: isolated review. Not done: promotion remains pending."
+        )
+    );
+    let verification = review_request["verification"]
+        .as_array()
+        .expect("verification array");
+    assert_eq!(verification.len(), 1);
+    assert_eq!(verification[0]["check"].as_str(), Some("npm test"));
+    assert_eq!(verification[0]["status"].as_str(), Some("passed"));
+
     let update = engine
         .apply_input("approve promote reviewed diff")
         .await
@@ -635,6 +713,8 @@ rl.on('line', (line) => {
         nextQuestion: { question: 'Who uses it?', recommendedAnswer: 'Name the primary users.' }
       });
     }
+  } else if (msg.method === 'tools/call' && msg.params.name === 'review_agent_session') {
+    tool(msg.id, { ok: true, name: msg.params.name, received: msg.params.arguments.request });
   } else if (msg.method === 'tools/call') {
     tool(msg.id, { ok: true, name: msg.params.name });
   }

@@ -4,6 +4,7 @@ use crate::approval::promote_approved_changes;
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
 use crate::session::SessionPhase;
+use crate::verification::ensure_verification_passed;
 
 impl InteractiveWorkflowEngine {
     pub(crate) fn approve(&mut self, reason: &str) -> Result<WorkflowUpdate> {
@@ -18,7 +19,13 @@ impl InteractiveWorkflowEngine {
                     Some(session.clone()),
                 ))
             }
-            (SessionPhase::ReviewRequired | SessionPhase::Complete, true) => {
+            (SessionPhase::ReviewRequired, true) => {
+                anyhow::bail!(
+                    "run final review and session review after passed verification before promotion approval"
+                )
+            }
+            (SessionPhase::Complete, true) => {
+                ensure_verification_passed(self.active()?)?;
                 let session = self.update_active(|session| session.approve(reason))?;
                 Ok(update(
                     vec![format!("changes approved for promotion: {reason}")],

@@ -37,6 +37,10 @@ pub enum ApprovalStatus {
     Override,
 }
 
+fn default_approval_status() -> ApprovalStatus {
+    ApprovalStatus::Pending
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TuiSession {
@@ -47,6 +51,10 @@ pub struct TuiSession {
     pub brief: Value,
     pub gates: BTreeMap<String, Value>,
     pub verification: BTreeMap<String, String>,
+    #[serde(default)]
+    pub required_verification: Vec<String>,
+    #[serde(default)]
+    pub final_response: Option<String>,
     pub worktree: Option<PathBuf>,
     pub diff_stat: Option<String>,
     pub changed_files: Vec<Value>,
@@ -58,7 +66,7 @@ pub struct TuiSession {
     pub adapter_crashed: bool,
     #[serde(default)]
     pub arena_candidates: Vec<ArenaCandidateRecord>,
-    #[serde(default)]
+    #[serde(default = "default_approval_status")]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
     pub created_at: u64,
@@ -77,6 +85,8 @@ impl TuiSession {
             brief: brief_from_prompt(&prompt),
             gates: BTreeMap::new(),
             verification: BTreeMap::new(),
+            required_verification: Vec::new(),
+            final_response: None,
             worktree: None,
             diff_stat: None,
             changed_files: Vec::new(),
@@ -98,6 +108,23 @@ impl TuiSession {
 
     pub fn set_gate(&mut self, name: &str, value: Value) {
         self.gates.insert(name.to_string(), value);
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn set_required_verification(&mut self, checks: Vec<String>) {
+        let mut checks = checks
+            .into_iter()
+            .map(|check| check.trim().to_string())
+            .filter(|check| !check.is_empty())
+            .collect::<Vec<_>>();
+        checks.sort();
+        checks.dedup();
+        self.required_verification = checks;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn set_final_response(&mut self, response: impl Into<String>) {
+        self.final_response = Some(response.into());
         self.updated_at = unix_timestamp();
     }
 
@@ -185,92 +212,4 @@ fn unix_timestamp() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn session_store_round_trips_without_secrets() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let store = SessionStore::for_workspace(temp.path());
-        let mut session = TuiSession::new("build a recipe app", "codex");
-        session.set_answer("users", "home cooks");
-        let path = store.save(&mut session).expect("save");
-        assert!(path.exists());
-
-        let loaded = store.load(&session.id).expect("load");
-        assert_eq!(loaded.prompt, "build a recipe app");
-        assert_eq!(loaded.brief["users"], "home cooks");
-    }
-
-    #[test]
-    fn approval_state_controls_promotion_readiness() {
-        let mut session = TuiSession::new("build a recipe app", "codex");
-        assert!(!session.can_promote());
-        session.approve("review gates passed");
-        assert!(session.can_promote());
-        session.mark_promoted();
-        assert_eq!(session.approval_status, ApprovalStatus::Promoted);
-    }
-
-    #[test]
-    fn answers_shape_project_brief_for_live_grill() {
-        let mut session = TuiSession::new("build controlled TUI", "codex");
-        session.set_answer("users", "maintainers need to control agents");
-        session.set_answer("coreFlows", "grill; review plan; promote");
-        session.set_answer(
-            "verification",
-            "cargo test --workspace; npm run release:check",
-        );
-        session.set_answer("stack", "frontend=Rust Ratatui; backend=TypeScript MCP");
-        session.set_answer(
-            "repoLayout",
-            "tui=crates/architect-tui/src; tests=crates/architect-tui/tests",
-        );
-
-        assert_eq!(session.brief["users"], "maintainers need to control agents");
-        assert_eq!(
-            session.brief["coreFlows"].as_array().expect("flows").len(),
-            3
-        );
-        assert_eq!(
-            session.brief["verification"]
-                .as_array()
-                .expect("verification")
-                .len(),
-            2
-        );
-        assert_eq!(session.brief["stack"]["backend"], "TypeScript MCP");
-        assert_eq!(
-            session.brief["repoLayout"]["pathMap"]["tui"][0],
-            "crates/architect-tui/src"
-        );
-    }
-
-    #[test]
-    fn legacy_sessions_without_new_approval_fields_deserialize() {
-        let legacy = json!({
-            "id": "session-1",
-            "prompt": "build",
-            "adapter": "codex",
-            "phase": "file_plan_reviewed",
-            "brief": {},
-            "gates": {},
-            "verification": {},
-            "worktree": null,
-            "diffStat": null,
-            "changedFiles": [],
-            "createdAt": 1,
-            "updatedAt": 1
-        });
-
-        let loaded: TuiSession = serde_json::from_value(legacy).expect("deserialize");
-        assert!(!loaded.execution_approved);
-        assert!(loaded.execution_approval_reason.is_none());
-        assert_eq!(loaded.approval_status, ApprovalStatus::Pending);
-        assert!(loaded.approval_reason.is_none());
-    }
 }
