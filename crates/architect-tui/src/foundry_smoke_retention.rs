@@ -45,10 +45,13 @@ pub(crate) fn retention_from_options(
     decision: Option<FoundrySmokeRetentionDecision>,
     reason: Option<&str>,
 ) -> Result<(String, Option<FoundrySmokeRetentionDecisionRecord>)> {
+    if !execute && (decision.is_some() || reason.is_some()) {
+        bail!(
+            "retention decision evidence requires --execute because dry-run foundry smoke does not create a proof repo"
+        );
+    }
     match (decision, reason) {
-        (None, Some(reason)) if !normalize_reason(reason).is_empty() => {
-            bail!("--retention-reason requires --retention-decision")
-        }
+        (None, Some(_)) => bail!("--retention-reason requires --retention-decision"),
         (None, _) => Ok((default_retention_text(execute), None)),
         (Some(decision), Some(reason)) => {
             let reason = normalize_reason(reason);
@@ -109,6 +112,41 @@ mod tests {
             error
                 .to_string()
                 .contains("--retention-reason requires --retention-decision")
+        );
+    }
+
+    #[test]
+    fn retention_reason_requires_decision_even_when_blank() {
+        let error = retention_from_options(true, None, Some(" \n \t "))
+            .expect_err("blank orphan reason should fail");
+
+        assert!(
+            error
+                .to_string()
+                .contains("--retention-reason requires --retention-decision")
+        );
+    }
+
+    #[test]
+    fn retention_metadata_requires_execute() {
+        let decision_error = retention_from_options(
+            false,
+            Some(FoundrySmokeRetentionDecision::Retain),
+            Some("keep for review"),
+        )
+        .expect_err("dry-run retention decision should fail");
+        let reason_error = retention_from_options(false, None, Some("keep for review"))
+            .expect_err("dry-run retention reason should fail");
+
+        assert!(
+            decision_error
+                .to_string()
+                .contains("retention decision evidence requires --execute")
+        );
+        assert!(
+            reason_error
+                .to_string()
+                .contains("retention decision evidence requires --execute")
         );
     }
 
