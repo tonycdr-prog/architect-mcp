@@ -52,6 +52,7 @@ pub struct GovernanceAuditPublicMcpReview {
     pub status: String,
     pub gate_status: Option<String>,
     pub files_reviewed: Option<u64>,
+    pub scan_truncated: Option<bool>,
     pub errors: Option<u64>,
     pub warnings: Option<u64>,
     pub violation_count: Option<usize>,
@@ -133,6 +134,7 @@ fn public_mcp_review(review: &GovernanceMcpReview) -> GovernanceAuditPublicMcpRe
             .as_deref()
             .map(|status| public_text(status, 80)),
         files_reviewed: review.files_reviewed,
+        scan_truncated: review.scan_truncated,
         errors: review.errors,
         warnings: review.warnings,
         violation_count: review.violation_count,

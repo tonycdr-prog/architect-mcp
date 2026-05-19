@@ -243,6 +243,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /id: governance_audit/);
     assert.match(workflow, /continue-on-error: true/);
     assert.match(workflow, /node bin\/architect-mcp-tui\.cjs governance-audit --public-summary > governance-audit-public-summary\.json/);
+    assert.match(workflow, /if: always\(\)/);
+    assert.match(workflow, /Scan truncated:/);
+    assert.match(workflow, /failed before a public-safe summary could be parsed/);
     assert.match(workflow, /steps\.governance_audit\.outcome == 'failure'/);
     assert.match(workflow, /run: exit 1/);
     assert.doesNotMatch(workflow, /governance-audit --json > governance-audit\.json/);
@@ -252,6 +255,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(issueTemplate, /Memory safety confirmed/);
     assert.match(docs, /public-safe/i);
     assert.match(docs, /governance-audit --public-summary/);
+    assert.match(docs, /scan truncation state/);
+    assert.match(docs, /if: always\(\)/);
     assert.match(docs, /launch-judge --public-summary/);
     assert.match(docs, /launch-stack --json/);
     assert.match(docs, /--required-check <name>/);
@@ -270,7 +275,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#275 - Harden TUI foundry staging and execution path boundaries\]/);
+    assert.match(goal, /Active slice: \[#277 - Harden TUI governance audit safety and failure evidence\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -309,6 +314,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#271\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/271\)/);
     assert.match(goal, /\[#273\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/273\)/);
     assert.match(goal, /\[#275\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/275\)/);
+    assert.match(goal, /\[#277\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/277\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -342,6 +348,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /TUI MCP integrations review-blocker hardening for PR #158 review-thread debt/);
     assert.match(goal, /TUI foundry review-gate hardening for PR #159 review-thread debt/);
     assert.match(goal, /TUI foundry staging\/execution boundary hardening for PR #160 review-thread debt/);
+    assert.match(goal, /TUI governance-audit safety hardening for PR #162 review-thread debt/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -365,7 +372,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#269 in PR #270/);
     assert.match(goal, /#271 in PR #272/);
     assert.match(goal, /#273 in PR #274/);
-    assert.match(goal, /#275 in the current slice/);
+    assert.match(goal, /#275 in PR #276/);
+    assert.match(goal, /#277 in the current slice/);
     assert.match(goal, /unresolved review threads across older stacked PRs must be resolved/);
     assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
     assert.match(goal, /runtime `\/goal` remains active/);

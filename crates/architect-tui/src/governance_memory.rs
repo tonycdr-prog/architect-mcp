@@ -2,7 +2,8 @@ use std::fs;
 use std::path::Path;
 
 use crate::governance_audit_report::GovernanceMemoryProposal;
-use crate::governance_audit_support::{looks_secret_like, package_scripts, read_to_string};
+use crate::governance_audit_support::{package_scripts, read_to_string};
+use crate::governance_secret_scan::looks_secret_like;
 
 pub(crate) fn memory_proposals(workspace: &Path) -> Vec<GovernanceMemoryProposal> {
     let scope = repo_scope(workspace);

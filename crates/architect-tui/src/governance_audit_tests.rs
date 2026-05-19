@@ -158,7 +158,7 @@ fn proposal(text: &str) -> GovernanceMemoryProposal {
     }
 }
 
-fn write_fixture_repo(root: &Path) {
+pub(crate) fn write_fixture_repo(root: &Path) {
     fs::create_dir_all(root.join("docs")).expect("docs");
     fs::create_dir_all(root.join(".github/workflows")).expect("workflows");
     fs::write(

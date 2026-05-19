@@ -100,7 +100,7 @@ Do not include secrets, raw stdout or stderr, private repo names, absolute local
 node bin/architect-mcp-tui.cjs governance-audit --public-summary > governance-audit-public-summary.json
 ```
 
-Then it writes a GitHub step summary from that public summary with status, read-only state, MCP gate status, counts, categories with findings, deterministic gate names, and smoke evidence names. If the audit fails, the workflow still writes the public-safe summary first, then fails the job afterward. It does not upload the raw JSON by default.
+Then it writes a GitHub step summary from that public summary with status, read-only state, MCP gate status, scan truncation state, counts, categories with findings, deterministic gate names, and smoke evidence names. The summary step runs with `if: always()`, so if the audit fails it still writes either the public-safe audit summary or a public-safe fallback before the job is failed afterward. It does not upload the raw JSON by default.
 
 ## Public-Safe Issue Evidence
 

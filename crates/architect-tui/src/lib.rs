@@ -54,6 +54,8 @@ mod foundry_stage_content;
 mod foundry_stage_tests;
 mod gate_calls;
 pub mod governance_audit;
+#[cfg(test)]
+mod governance_audit_hardening_tests;
 mod governance_audit_mcp;
 mod governance_audit_public_summary;
 #[cfg(test)]
@@ -63,6 +65,7 @@ mod governance_audit_support;
 #[cfg(test)]
 mod governance_audit_tests;
 mod governance_memory;
+mod governance_secret_scan;
 mod headless;
 mod headless_adapter;
 mod headless_events;

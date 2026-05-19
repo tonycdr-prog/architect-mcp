@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::Value;
 
@@ -27,60 +27,6 @@ pub(crate) fn package_scripts(workspace: &Path) -> Option<BTreeMap<String, Strin
 
 pub(crate) fn read_to_string(workspace: &Path, relative: &str) -> String {
     fs::read_to_string(workspace.join(relative)).unwrap_or_default()
-}
-
-pub(crate) fn governance_config_files(workspace: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    collect_config_files(workspace, workspace, 0, &mut files);
-    files
-}
-
-fn collect_config_files(root: &Path, current: &Path, depth: usize, files: &mut Vec<PathBuf>) {
-    if depth > 4 {
-        return;
-    }
-    let Ok(entries) = fs::read_dir(current) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy().to_string();
-        if path.is_dir() {
-            if ignored_dir(&name) {
-                continue;
-            }
-            collect_config_files(root, &path, depth + 1, files);
-        } else if is_sensitive_config_name(&name) {
-            files.push(path);
-        }
-    }
-    files.sort_by(|left, right| {
-        let left = left.strip_prefix(root).unwrap_or(left);
-        let right = right.strip_prefix(root).unwrap_or(right);
-        left.cmp(right)
-    });
-}
-
-fn ignored_dir(name: &str) -> bool {
-    matches!(
-        name,
-        ".git" | "node_modules" | "target" | "dist" | ".next" | ".vitepress"
-    )
-}
-
-fn is_sensitive_config_name(name: &str) -> bool {
-    name == ".mcp.json" || (name.starts_with(".env") && name != ".env.example")
-}
-
-pub(crate) fn looks_secret_like(content: &str) -> bool {
-    let lower = content.to_ascii_lowercase();
-    content.contains("npm_")
-        || content.contains("ghp_")
-        || content.contains("github_pat_")
-        || content.contains("AKIA")
-        || content.contains("BEGIN PRIVATE KEY")
-        || lower.contains("sk-")
-        || lower.contains("xoxb-")
 }
 
 pub(crate) fn deterministic_gates(workspace: &Path) -> Vec<GovernanceGateEvidence> {
