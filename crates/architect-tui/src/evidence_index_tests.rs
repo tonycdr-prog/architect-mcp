@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::evidence_index::{validate_output_mode, write_markdown_output};
+use crate::evidence_index::{
+    enforce_evidence_index_result, validate_output_mode, write_markdown_output,
+};
 use crate::evidence_index_markdown::render_markdown;
 use crate::evidence_index_report::build_evidence_index_report_from_public_summaries_at;
 use crate::governance_audit_public_summary::{
@@ -178,6 +180,21 @@ fn evidence_index_rejects_ambiguous_output_modes() {
             .to_string()
             .contains("choose only one evidence-index output mode")
     );
+}
+
+#[test]
+fn evidence_index_require_go_fails_conditional_results_only_when_requested() {
+    assert!(enforce_evidence_index_result(&LaunchJudgeResult::ConditionalGo, false).is_ok());
+
+    let error = enforce_evidence_index_result(&LaunchJudgeResult::ConditionalGo, true)
+        .expect_err("strict release gate should reject conditional go");
+    assert!(error.to_string().contains("--require-go requires go"));
+}
+
+#[test]
+fn evidence_index_no_go_always_fails() {
+    assert!(enforce_evidence_index_result(&LaunchJudgeResult::NoGo, false).is_err());
+    assert!(enforce_evidence_index_result(&LaunchJudgeResult::NoGo, true).is_err());
 }
 
 fn launch_summary(result: LaunchJudgeResult) -> LaunchReadinessPublicSummary {

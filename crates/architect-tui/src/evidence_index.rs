@@ -20,6 +20,7 @@ pub struct EvidenceIndexOptions {
     pub json: bool,
     pub markdown: bool,
     pub markdown_output: Option<PathBuf>,
+    pub require_go: bool,
     pub repo: Option<String>,
     pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
@@ -57,10 +58,22 @@ pub async fn run_evidence_index(
     } else {
         print_text_report(&report);
     }
-    if report.result == LaunchJudgeResult::NoGo {
-        anyhow::bail!("evidence index result is no-go");
-    }
+    enforce_evidence_index_result(&report.result, options.require_go)?;
     Ok(())
+}
+
+pub(crate) fn enforce_evidence_index_result(
+    result: &LaunchJudgeResult,
+    require_go: bool,
+) -> Result<()> {
+    match result {
+        LaunchJudgeResult::Go => Ok(()),
+        LaunchJudgeResult::ConditionalGo if require_go => {
+            anyhow::bail!("evidence index result is conditional-go; --require-go requires go")
+        }
+        LaunchJudgeResult::ConditionalGo => Ok(()),
+        LaunchJudgeResult::NoGo => anyhow::bail!("evidence index result is no-go"),
+    }
 }
 
 pub(crate) fn write_markdown_output(
