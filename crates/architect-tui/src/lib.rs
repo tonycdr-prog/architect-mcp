@@ -14,6 +14,7 @@ mod brief;
 mod brief_tests;
 pub mod config;
 mod config_template;
+pub mod foundry;
 mod gate_calls;
 mod headless;
 mod headless_adapter;
@@ -24,7 +25,10 @@ mod interactive_approval;
 mod interactive_arena;
 mod interactive_arena_evidence;
 mod interactive_commands;
+#[cfg(test)]
+mod interactive_commands_tests;
 mod interactive_diff;
+mod interactive_foundry;
 mod interactive_gate_flow;
 mod interactive_integrations;
 mod interactive_integrations_summary;

@@ -172,6 +172,19 @@ integrations write [target-path]
 
 `integrations recommend` calls the live `recommend_mcp_servers` tool with the current brief and current clarified answers instead of shortcutting from the original prompt text. Generic database needs ask for a provider before Supabase can be planned. `integrations plan` is blocked unless the server was recommended by the latest recommendation result. `integrations review` must pass before apply, approval, or write. `integrations apply` is dry-run only and does not write files. `integrations write` calls `apply_mcp_install_plan` with `writeFiles=true` only after `integrations approve <reason>`, and the write approval is consumed after a successful write. Session persistence keeps recommendation/plan/review metadata, not raw MCP config payloads or credentials.
 
+## Repo Foundry
+
+The command palette exposes an early repo-foundry planning flow for new app sessions:
+
+```text
+foundry plan <repo-name> [owner=name]
+foundry status
+foundry approve <reason>
+foundry create
+```
+
+`foundry plan` is available only after `review files` has passed. It creates a private-by-default GitHub repo plan with required scaffold artifacts for `AGENTS.md`, `README.md`, `.env.example`, architecture and build-plan docs, CI, issue template, and PR template. `foundry approve <reason>` is a separate approval from adapter execution or promotion approval. `foundry create` currently renders a dry-run preview of the `gh repo create --private`, push, and draft PR commands; it performs no GitHub mutation. Changing clarified answers clears stale foundry state so repo plans cannot silently survive a changed brief.
+
 ## Config
 
 Repo config lives at:

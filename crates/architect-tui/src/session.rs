@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::arena::ArenaCandidateRecord;
 use crate::brief::{apply_brief_answer, brief_from_prompt};
+use crate::foundry::RepoFoundryPlan;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -85,6 +86,12 @@ pub struct TuiSession {
     pub mcp_install_approved: bool,
     #[serde(default)]
     pub mcp_install_approval_reason: Option<String>,
+    #[serde(default)]
+    pub foundry_plan: Option<RepoFoundryPlan>,
+    #[serde(default)]
+    pub foundry_approved: bool,
+    #[serde(default)]
+    pub foundry_approval_reason: Option<String>,
     #[serde(default = "default_approval_status")]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
@@ -119,6 +126,9 @@ impl TuiSession {
             mcp_install_review: None,
             mcp_install_approved: false,
             mcp_install_approval_reason: None,
+            foundry_plan: None,
+            foundry_approved: false,
+            foundry_approval_reason: None,
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
             created_at: now,
@@ -129,6 +139,7 @@ impl TuiSession {
     pub fn set_answer(&mut self, key: &str, value: &str) {
         apply_brief_answer(&mut self.brief, key, value);
         self.clear_mcp_integration_state();
+        self.clear_foundry_state();
         self.updated_at = unix_timestamp();
     }
 
@@ -203,6 +214,13 @@ impl TuiSession {
 
     pub fn clear_arena_candidates(&mut self) {
         self.arena_candidates.clear();
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn clear_foundry_state(&mut self) {
+        self.foundry_plan = None;
+        self.foundry_approved = false;
+        self.foundry_approval_reason = None;
         self.updated_at = unix_timestamp();
     }
 

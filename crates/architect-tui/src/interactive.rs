@@ -64,6 +64,12 @@ impl InteractiveWorkflowEngine {
             WorkflowCommand::IntegrationsWrite { target_path } => {
                 self.integrations_write(target_path.as_deref()).await
             }
+            WorkflowCommand::FoundryPlan { repo_name, owner } => {
+                self.foundry_plan(&repo_name, owner.as_deref())
+            }
+            WorkflowCommand::FoundryStatus => self.foundry_status(),
+            WorkflowCommand::FoundryApprove(reason) => self.foundry_approve(&reason),
+            WorkflowCommand::FoundryCreate => self.foundry_create(),
             WorkflowCommand::VerificationStatus => self.verification_status(),
             WorkflowCommand::RecordVerification { check, status } => {
                 self.record_verification(&check, &status)

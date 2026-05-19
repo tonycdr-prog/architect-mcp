@@ -27,7 +27,7 @@ Full docs: [tonycdr-prog.github.io/architect-mcp](https://tonycdr-prog.github.io
 | --- | --- |
 | Core work gate | `grill_me`, pre-edit contracts, plan review, drift review, final/session honesty checks |
 | Advanced maturity | Stack packs, standards intelligence, governance evals, operating-model evals |
-| Rust TUI | Ratatui client for live work-gate checks, adapter readiness, guarded headless JSONL, approval/promotion commands, arena ranking, and provisional ACP |
+| Rust TUI | Ratatui client for live work-gate checks, adapter readiness, guarded headless JSONL, approval/promotion commands, arena ranking, repo-foundry dry runs, and provisional ACP |
 | Hosted mode | Stateless `/mcp`, explicit file summaries, no local workspace scanning |
 | Release gate | `npm run release:check` |
 
@@ -96,7 +96,7 @@ Historical V3-V10 labels remain in tool names, scripts, tests, and document file
 
 ## Rust TUI
 
-The package also exposes `architect-mcp-tui`, a Ratatui client for local work-gate sessions, adapter readiness, safe headless automation, approval/promotion commands, arena ranking, and provisional ACP:
+The package also exposes `architect-mcp-tui`, a Ratatui client for local work-gate sessions, adapter readiness, safe headless automation, approval/promotion commands, arena ranking, private-by-default repo-foundry dry runs, and provisional ACP:
 
 ```bash
 architect-mcp-tui
