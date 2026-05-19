@@ -66,11 +66,32 @@ fn readiness_public_summary_preserves_decision_counts_and_terminal_platforms() {
 
 #[test]
 fn readiness_public_summary_omits_raw_rollups_and_redacts_public_text() {
+    let mut stack = stack_report_with_noise();
+    if let Some(discovery) = &mut stack.stack_discovery {
+        discovery.stopped_at_base = "(\"/tmp/architect-mcp/private\")".to_string();
+    }
+    stack.findings.extend([
+        "manual evidence referenced \"/tmp/work\" and (/home/example/repo)".to_string(),
+        "windows cache used \"C:/Users/example/AppData/Local/npm\"".to_string(),
+    ]);
+    stack.next_actions.extend([
+        "rerun from path=(/Users/example/private/repo)".to_string(),
+        "remove token npm_SECRET before posting".to_string(),
+    ]);
+    stack.pull_requests[1]
+        .checks
+        .missing_required_names
+        .push("verify \"/tmp/work\"".to_string());
+
     let report = build_launch_readiness_report_from_reports_with_terminal_waiver(
-        Some("/Users/example/private/repo npm_SECRET".to_string()),
-        stack_report_with_noise(),
+        Some("\"/Users/example/private/repo\" npm_SECRET".to_string()),
+        stack,
         Some(complete_terminal_evidence()),
-        None,
+        Some(LaunchReadinessTerminalEvidenceWaiver {
+            issue: 136,
+            reason: "accepted from path=(/home/example/repo)".to_string(),
+            applied: false,
+        }),
         Vec::new(),
     );
 
@@ -79,6 +100,18 @@ fn readiness_public_summary_omits_raw_rollups_and_redacts_public_text() {
 
     assert!(text.contains("[redacted-local-path]"));
     assert!(text.contains("[redacted-secret]"));
+    assert_eq!(
+        summary.launch_stack.stopped_at_base.as_deref(),
+        Some("[redacted-local-path]")
+    );
+    assert_eq!(
+        summary
+            .terminal_evidence_waiver
+            .as_ref()
+            .expect("terminal evidence waiver")
+            .reason,
+        "accepted from [redacted-local-path]"
+    );
     assert!(!text.contains("statusCheckRollup"));
     assert!(!text.contains("failedNames"));
     assert!(!text.contains("pendingNames"));
@@ -86,6 +119,10 @@ fn readiness_public_summary_omits_raw_rollups_and_redacts_public_text() {
     assert!(!text.contains("\"source\""));
     assert!(!text.contains("\"notes\""));
     assert!(!text.contains("/Users/example"));
+    assert!(!text.contains("/tmp/work"));
+    assert!(!text.contains("/tmp/architect-mcp"));
+    assert!(!text.contains("/home/example"));
+    assert!(!text.contains("C:/Users/example"));
     assert!(!text.contains("npm_SECRET"));
 }
 
