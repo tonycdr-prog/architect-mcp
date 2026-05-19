@@ -14,6 +14,7 @@ use crate::headless::HeadlessRunOptions;
 use crate::headless_events::{JsonlEvent, emit, emit_complete, emit_skip};
 use crate::mcp::StdioMcpClient;
 use crate::orchestrator::Orchestrator;
+use crate::untrusted_input::{labels_for_text, mcp_response_label, untrusted_prompt_notice};
 
 pub(crate) async fn run_ready_adapter<W: AsyncWriteExt + Unpin>(
     orchestrator: &Orchestrator,
@@ -225,8 +226,12 @@ fn gated_adapter_prompt(prompt: &str, gate_state: &GateReviewState) -> String {
     let contract_json =
         serde_json::to_string_pretty(contract).unwrap_or_else(|_| contract.to_string());
     let verification = verification_list(&gate_state.verification);
+    let mut untrusted_inputs = labels_for_text(prompt);
+    untrusted_inputs.push(mcp_response_label());
+    let untrusted_notice = untrusted_prompt_notice(&untrusted_inputs);
     format!(
         "architect-mcp approved this adapter execution after the local work gate.\n\n\
+{untrusted_notice}\n\n\
 Original request:\n{prompt}\n\n\
 Approved pre-edit contract JSON:\n```json\n{contract_json}\n```\n\n\
 Required verification checks:\n{verification}\n\n\
@@ -270,6 +275,8 @@ mod tests {
         let prompt = gated_adapter_prompt("Build notes CRUD", &gate_state);
 
         assert!(prompt.contains("Original request:\nBuild notes CRUD"));
+        assert!(prompt.contains("Untrusted input policy"));
+        assert!(prompt.contains("mcp response"));
         assert!(prompt.contains("\"name\": \"Local Notes\""));
         assert!(prompt.contains("- npm test"));
         assert!(prompt.contains("- npm run build"));

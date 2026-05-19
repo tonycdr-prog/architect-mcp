@@ -52,7 +52,7 @@ Reproduce safely:
 2. Ask an agent to use that material as requirements for an implementation.
 3. Check whether the agent treats the embedded instruction as authority instead of summarizing it as untrusted input.
 
-Follow-up: [#244 - Add TUI untrusted-input labels for external text and tool output](https://github.com/tonycdr-prog/architect-mcp/issues/244).
+Current TUI hardening: [#244 - Add TUI untrusted-input labels for external text and tool output](https://github.com/tonycdr-prog/architect-mcp/issues/244) tracks metadata labels for TUI transcripts, inspectors, adapter prompts, and final/session review requests. Labels are a workflow control, not model-level prompt-injection prevention.
 
 ### `direct-mutation-without-gates`
 
@@ -98,6 +98,7 @@ Follow-up: [#247 - Add MCP work-gate sequence receipts for direct clients](https
 - Do not claim the work gate is complete unless the sequence evidence exists.
 - Do not claim verification passed from final-response wording alone. Use command output, CI links, TUI verification records, or release-gate evidence.
 - Use TUI promotion receipts for TUI-managed mutation evidence, and use `npm run release:check` as the clean release gate for release-sensitive changes.
+- In the TUI, check the untrusted-input labels in the transcript or inspector before accepting adapter output, final/session review evidence, or promotion.
 
 ## Current Judge
 

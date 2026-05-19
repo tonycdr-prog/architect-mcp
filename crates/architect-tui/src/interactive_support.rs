@@ -6,6 +6,7 @@ use crate::headless_support::verification_checks;
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::mcp::StdioMcpClient;
 use crate::session::TuiSession;
+use crate::untrusted_input::adapter_output_label;
 
 impl InteractiveWorkflowEngine {
     pub(crate) async fn call_tool(&self, name: &str, purpose: &str, args: Value) -> Result<Value> {
@@ -104,8 +105,11 @@ fn apply_agent_event(session: &mut TuiSession, event: &Value) {
                 session.record_adapter_run_issue(format!("adapter exited with code {exit_code}"));
             }
         }
-        Some("output") if agent_event.get("truncated").and_then(Value::as_bool) == Some(true) => {
-            session.record_adapter_run_issue("adapter output truncated")
+        Some("output") => {
+            session.add_untrusted_inputs([adapter_output_label()]);
+            if agent_event.get("truncated").and_then(Value::as_bool) == Some(true) {
+                session.record_adapter_run_issue("adapter output truncated");
+            }
         }
         _ => {}
     }
@@ -143,6 +147,28 @@ mod tests {
                 "adapter exited with code 2",
                 "adapter output truncated"
             ]
+        );
+        assert!(
+            session
+                .untrusted_inputs
+                .iter()
+                .any(|input| input.label == "adapter output")
+        );
+    }
+
+    #[test]
+    fn run_evidence_labels_mcp_results_as_untrusted_tool_data() {
+        let mut session = TuiSession::new("build", "shell");
+        apply_run_evidence(
+            &mut session,
+            r#"{"type":"mcp_result","name":"review_agent_session","result":{"ok":true}}"#,
+        );
+
+        assert!(
+            session
+                .untrusted_inputs
+                .iter()
+                .any(|input| input.label == "mcp response")
         );
     }
 }

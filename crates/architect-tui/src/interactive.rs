@@ -3,6 +3,7 @@ pub use crate::interactive_update::WorkflowUpdate;
 use crate::interactive_update::{help_update, inspector_for, update};
 use crate::orchestrator::Orchestrator;
 use crate::session::{SessionPhase, SessionStore, TuiSession};
+use crate::untrusted_input::{untrusted_inputs_json, untrusted_transcript_lines};
 use crate::verification::{
     ensure_known_verification_check, ensure_verification_passed, normalize_verification_status,
     required_checks, verification_records, verification_summary_lines,
@@ -88,14 +89,12 @@ impl InteractiveWorkflowEngine {
         let mut session = TuiSession::new(idea.clone(), adapter);
         self.store.save(&mut session)?;
         self.active = Some(session.clone());
-        Ok(update(
-            vec![
-                format!("new app: {idea}"),
-                format!("session: {}", session.id),
-            ],
-            inspector_for(&session),
-            Some(session),
-        ))
+        let mut transcript = vec![
+            format!("new app: {idea}"),
+            format!("session: {}", session.id),
+        ];
+        transcript.extend(untrusted_transcript_lines(&session.untrusted_inputs));
+        Ok(update(transcript, inspector_for(&session), Some(session)))
     }
 }
 impl InteractiveWorkflowEngine {
@@ -147,7 +146,13 @@ impl InteractiveWorkflowEngine {
             .call_tool(
                 "review_agent_final_response",
                 "check final answer evidence and gaps",
-                json!({ "request": { "response": response, "requiredChecks": checks } }),
+                json!({
+                    "request": {
+                        "response": response,
+                        "requiredChecks": checks,
+                        "untrustedInputs": untrusted_inputs_json(&self.active()?.untrusted_inputs)
+                    }
+                }),
             )
             .await?;
         let session = self.update_active(|session| {
@@ -231,6 +236,10 @@ impl InteractiveWorkflowEngine {
         let session = self.active()?;
         let mut request = Map::new();
         request.insert("request".to_string(), Value::String(session.prompt.clone()));
+        request.insert(
+            "untrustedInputs".to_string(),
+            untrusted_inputs_json(&session.untrusted_inputs),
+        );
         request.insert(
             "changedFiles".to_string(),
             Value::Array(session.changed_files.clone()),

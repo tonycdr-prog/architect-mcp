@@ -1,6 +1,7 @@
 import { reviewAgentFinalResponse } from "./finalResponseReview.js";
 import { reviewMemoryRelevance } from "./harnessMemory.js";
 import { reviewImplementationAgainstContract } from "./harness.js";
+import { normalizeUntrustedInputs, type RawUntrustedInput } from "./untrustedInputs.js";
 import type { HarnessIntentResult, MemoryProposal, PreEditContract, FileSummary } from "./types.js";
 
 export type AgentSessionReviewInput = {
@@ -11,10 +12,12 @@ export type AgentSessionReviewInput = {
   finalResponse?: string;
   memories?: MemoryProposal[];
   request?: string;
+  untrustedInputs?: RawUntrustedInput[];
 };
 
 export function reviewAgentSession(input: AgentSessionReviewInput) {
   const sections: Array<{ name: string; status: "pass" | "warn" | "fail"; summary: string; details?: unknown }> = [];
+  const untrustedInputs = normalizeUntrustedInputs(input.untrustedInputs);
 
   if (input.intent) {
     sections.push({
@@ -64,13 +67,26 @@ export function reviewAgentSession(input: AgentSessionReviewInput) {
   if (input.finalResponse) {
     const finalReview = reviewAgentFinalResponse({
       response: input.finalResponse,
-      requiredChecks: input.contract?.verificationChecks
+      requiredChecks: input.contract?.verificationChecks,
+      untrustedInputs
     });
     sections.push({
       name: "final-response",
       status: finalReview.status as "pass" | "warn" | "fail",
       summary: finalReview.valid ? "Final response includes required completion evidence." : "Final response is missing required completion evidence.",
       details: finalReview
+    });
+  }
+
+  if (untrustedInputs.length) {
+    sections.push({
+      name: "untrusted-inputs",
+      status: "pass",
+      summary: "External text and tool output were labeled as data, not workflow authority.",
+      details: {
+        count: untrustedInputs.length,
+        labels: untrustedInputs.map((input) => input.label)
+      }
     });
   }
 

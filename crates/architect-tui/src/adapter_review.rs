@@ -9,6 +9,7 @@ use crate::gate_calls::call_gate;
 use crate::headless::GateReviewState;
 use crate::headless::HeadlessRunOptions;
 use crate::mcp::StdioMcpClient;
+use crate::untrusted_input::{review_untrusted_inputs, untrusted_inputs_json};
 
 #[derive(Debug, Clone)]
 pub(crate) struct DiffEvidence {
@@ -61,6 +62,7 @@ pub(crate) async fn review_adapter_work<W: AsyncWriteExt + Unpin>(
         .cloned()
         .unwrap_or_else(|| gate_state.pre_edit.clone());
     let verification = verification_statuses(&gate_state.verification);
+    let untrusted_inputs = review_untrusted_inputs(&options.prompt);
     call_gate(
         client,
         output,
@@ -92,7 +94,13 @@ pub(crate) async fn review_adapter_work<W: AsyncWriteExt + Unpin>(
         options.jsonl,
         "review_agent_final_response",
         "check adapter summary honesty before user approval",
-        json!({ "request": { "response": final_response, "requiredChecks": gate_state.verification } }),
+        json!({
+            "request": {
+                "response": final_response,
+                "requiredChecks": gate_state.verification,
+                "untrustedInputs": untrusted_inputs_json(&untrusted_inputs)
+            }
+        }),
     )
     .await?;
     call_gate(
@@ -107,7 +115,8 @@ pub(crate) async fn review_adapter_work<W: AsyncWriteExt + Unpin>(
                 "contract": gate_state.pre_edit.get("contract").cloned().unwrap_or(Value::Null),
                 "changedFiles": evidence.changed_files.clone(),
                 "verification": verification,
-                "finalResponse": final_response
+                "finalResponse": final_response,
+                "untrustedInputs": untrusted_inputs_json(&untrusted_inputs)
             }
         }),
     )

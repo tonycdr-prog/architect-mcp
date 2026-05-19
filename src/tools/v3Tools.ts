@@ -118,7 +118,8 @@ export function registerV3Tools(server: McpServer, options: { enableLocalWorkspa
       verification: request.verification,
       finalResponse: request.finalResponse,
       memories: request.memories,
-      request: request.request
+      request: request.request,
+      untrustedInputs: request.untrustedInputs
     }))
   );
 

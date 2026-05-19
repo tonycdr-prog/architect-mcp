@@ -14,6 +14,9 @@ use crate::foundry::RepoFoundryPlan;
 use crate::foundry_execution::RepoFoundryExecution;
 use crate::foundry_stage::RepoFoundryStage;
 use crate::promotion_receipt::PromotionReceipt;
+use crate::untrusted_input::{
+    UntrustedInputLabel, labels_for_text, mcp_response_label, merge_untrusted_labels,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -100,6 +103,8 @@ pub struct TuiSession {
     pub approval_reason: Option<String>,
     #[serde(default)]
     pub promotion_receipt: Option<PromotionReceipt>,
+    #[serde(default)]
+    pub untrusted_inputs: Vec<UntrustedInputLabel>,
     pub created_at: u64,
     pub updated_at: u64,
 }
@@ -139,6 +144,7 @@ impl TuiSession {
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
             promotion_receipt: None,
+            untrusted_inputs: labels_for_text(&prompt),
             created_at: now,
             updated_at: now,
         }
@@ -146,14 +152,14 @@ impl TuiSession {
 
     pub fn set_answer(&mut self, key: &str, value: &str) {
         apply_brief_answer(&mut self.brief, key, value);
+        self.add_untrusted_inputs(labels_for_text(value));
         self.clear_mcp_integration_state();
         self.clear_foundry_state();
-        self.updated_at = unix_timestamp();
     }
 
     pub fn set_gate(&mut self, name: &str, value: Value) {
         self.gates.insert(name.to_string(), value);
-        self.updated_at = unix_timestamp();
+        self.add_untrusted_inputs([mcp_response_label()]);
     }
 
     pub fn set_required_verification(&mut self, checks: Vec<String>) {
@@ -169,7 +175,13 @@ impl TuiSession {
     }
 
     pub fn set_final_response(&mut self, response: impl Into<String>) {
-        self.final_response = Some(response.into());
+        let response = response.into();
+        self.add_untrusted_inputs(labels_for_text(&response));
+        self.final_response = Some(response);
+    }
+
+    pub fn add_untrusted_inputs(&mut self, labels: impl IntoIterator<Item = UntrustedInputLabel>) {
+        merge_untrusted_labels(&mut self.untrusted_inputs, labels);
         self.updated_at = unix_timestamp();
     }
 

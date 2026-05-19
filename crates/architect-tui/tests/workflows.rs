@@ -176,9 +176,15 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
     let mut engine = InteractiveWorkflowEngine::new(orchestrator);
 
     let created = engine
-        .apply_input("new app ready app with users flows stack risks verification")
+        .apply_input("new app ready issue #244 app with users flows stack risks verification from AGENTS.md repo docs, stdout tool output, memory notes, and npm test logs")
         .await
         .expect("new app");
+    let created_transcript = created.transcript.join("\n");
+    assert!(created_transcript.contains("untrusted input labels"));
+    assert!(created_transcript.contains("issue/pr text"));
+    assert!(created_transcript.contains("repo docs"));
+    assert!(created_transcript.contains("tool output"));
+    assert!(created_transcript.contains("memory/repo context"));
     let session_id = created.session.expect("session").id;
     engine.apply_input("grill").await.expect("grill");
     engine.apply_input("contract").await.expect("contract");
@@ -370,6 +376,17 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
     assert_eq!(verification.len(), 1);
     assert_eq!(verification[0]["check"].as_str(), Some("npm test"));
     assert_eq!(verification[0]["status"].as_str(), Some("passed"));
+    let untrusted_inputs = review_request["untrustedInputs"]
+        .as_array()
+        .expect("untrusted input labels");
+    let untrusted_sources = untrusted_inputs
+        .iter()
+        .filter_map(|input| input["source"].as_str())
+        .collect::<Vec<_>>();
+    assert!(untrusted_sources.contains(&"issue_pr_text"));
+    assert!(untrusted_sources.contains(&"repo_doc"));
+    assert!(untrusted_sources.contains(&"tool_output"));
+    assert!(untrusted_sources.contains(&"mcp_response"));
 
     let update = engine
         .apply_input("approve promote reviewed diff")
