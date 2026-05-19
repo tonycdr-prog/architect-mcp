@@ -15,6 +15,10 @@ mod brief_tests;
 pub mod cli;
 pub mod config;
 mod config_template;
+pub mod evidence_index;
+mod evidence_index_report;
+#[cfg(test)]
+mod evidence_index_tests;
 pub mod foundry;
 mod foundry_artifacts;
 pub mod foundry_execution;

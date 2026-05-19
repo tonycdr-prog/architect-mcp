@@ -165,6 +165,29 @@ pub enum Commands {
         #[arg(long = "waive-terminal-evidence", value_name = "ISSUE=REASON")]
         terminal_evidence_waivers: Vec<String>,
     },
+    /// Emit one public-safe release evidence index from launch and governance summaries.
+    EvidenceIndex {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long = "stack-from-pr")]
+        stack_from_pr: Option<u64>,
+        #[arg(long = "pr")]
+        prs: Vec<u64>,
+        #[arg(long = "blocker")]
+        blockers: Vec<u64>,
+        #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
+        waived_blockers: Vec<String>,
+        #[arg(long)]
+        terminal_evidence_issue: Option<u64>,
+        #[arg(long = "waive-terminal-evidence", value_name = "ISSUE=REASON")]
+        terminal_evidence_waivers: Vec<String>,
+        #[arg(long)]
+        skip_mcp: bool,
+        #[arg(long, default_value_t = 1000)]
+        max_files: usize,
+    },
     /// Collect public-safe terminal evidence JSON from a GitHub issue.
     CollectTerminalEvidence {
         #[arg(long)]
