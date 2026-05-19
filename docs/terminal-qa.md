@@ -39,6 +39,10 @@ Missing Codex login is a warning, not an install failure. A smoke failure usuall
 
 Keep the smoke JSON locally for troubleshooting. Do not paste the raw smoke JSON into public issues; it can include local binary/cache paths or other details that are useful for debugging but not safe public evidence.
 
+## Hosted Published-Package Smoke
+
+The published-package smoke workflow is hosted non-interactive baseline evidence only. It installs `@tonycdr-prog/architect-mcp@latest` into a clean temporary runner workspace on Ubuntu and Windows, points the TUI at that installed package's `dist/index.js`, then runs `architect-mcp-tui --help`, `architect-mcp-tui config adapters --json`, and a gate-only `architect-mcp-tui run --jsonl` that must stop at approval before adapter execution. This catches package install, command-surface, MCP bridge, and JSONL regressions in the published npm package, but it does not open the interactive TUI and does not replace #136 manual terminal QA.
+
 ## Scripted Walkthrough
 
 Run the guarded command-palette flow in a throwaway git workspace:
