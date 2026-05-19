@@ -75,3 +75,11 @@
 - Forbidden files: raw exploit payloads, secrets, private repository data, cloud moderation dependencies, claims that labels prevent prompt injection or sandbox models
 - Checks: cargo test -p architect-tui untrusted, cargo test --workspace --test workflows, node --import tsx --test tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if labels include raw untrusted text, if review prompts omit labels for adapter/MCP output, or if docs describe labeling as model-level prevention.
+
+### 10. Non-TUI Work-Gate Completeness Audit
+- Inputs: issue #245, prompt-injection threat model, core work-gate sequence, direct-client PR/launch evidence needs
+- Outputs: read-only `audit_work_gate_completeness` MCP tool, domain audit for no/partial/stale/out-of-order/complete evidence, schema validation, docs update, goal ledger update
+- Allowed directories: src/domain, src/tools, tests, docs
+- Forbidden files: TUI mutation paths, filesystem sandbox claims, raw issue/PR/log payload storage, command-success inference without supplied evidence
+- Checks: node --import tsx --test tests/workGateCompleteness.test.ts tests/toolResponses.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run release:check, git diff --check
+- Stop after: stop if the audit mutates files, accepts unknown gate names at the tool boundary, reflects raw evidence payloads, or claims it can force direct clients to call every gate.

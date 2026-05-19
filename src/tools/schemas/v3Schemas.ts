@@ -4,9 +4,24 @@ import { harnessIntentResultSchema, preEditContractSchema } from "./harnessSchem
 import { memoryProposalSchema } from "./memorySchemas.js";
 import { boundedArray, idText, longText, mediumText, optionalText, pathText } from "./schemaLimits.js";
 import { untrustedInputSources } from "../../domain/untrustedInputs.js";
+import { workGateSequence } from "../../domain/workGateCompleteness.js";
 
 const untrustedInputSchema = z.object({
   source: z.enum(untrustedInputSources)
+}).strict();
+
+const workGateNameSchema = z.enum(workGateSequence);
+
+export const workGateCompletenessInputSchema = z.object({
+  records: boundedArray(z.object({
+    gate: workGateNameSchema,
+    status: z.enum(["pass", "warn", "fail", "unknown"]).optional(),
+    recordedAt: optionalText(mediumText),
+    runId: optionalText(idText)
+  }).strict(), 200).optional(),
+  requiredGates: boundedArray(workGateNameSchema, workGateSequence.length).optional(),
+  now: optionalText(mediumText),
+  maxAgeSeconds: z.number().int().positive().max(31_536_000).optional()
 }).strict();
 
 export const mcpSecurityReviewInputSchema = z.object({

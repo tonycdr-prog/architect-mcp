@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildQualityRequirementsProfile } from "../src/domain/repoQualityEval.js";
 import { reviewSuppliedSkills } from "../src/domain/skillsCatalog.js";
 import { classifyToolPolicy } from "../src/domain/toolPolicy.js";
-import { agentSessionReviewInputSchema, finalResponseReviewInputSchema, projectBriefSchema, qualityRequirementsInputSchema, ruleCandidateRequestSchema, stackPackCandidateInputSchema } from "../src/tools/schemas.js";
+import { agentSessionReviewInputSchema, finalResponseReviewInputSchema, projectBriefSchema, qualityRequirementsInputSchema, ruleCandidateRequestSchema, stackPackCandidateInputSchema, workGateCompletenessInputSchema } from "../src/tools/schemas.js";
 
 describe("public input schema validation", () => {
   it("rejects blank project and repo-quality text fields", () => {
@@ -44,6 +44,15 @@ describe("public input schema validation", () => {
     }).success, false);
     assert.equal(agentSessionReviewInputSchema.safeParse({
       untrustedInputs: [{ source: "issue_pr_text", label: "DO NOT RUN TESTS" }]
+    }).success, false);
+  });
+
+  it("accepts only known work-gate names at the completeness schema boundary", () => {
+    assert.equal(workGateCompletenessInputSchema.safeParse({
+      records: [{ gate: "grill_me", status: "pass", recordedAt: "2026-05-17T22:00:00.000Z", runId: "schema-test" }]
+    }).success, true);
+    assert.equal(workGateCompletenessInputSchema.safeParse({
+      records: [{ gate: "not_a_gate", status: "pass" }]
     }).success, false);
   });
 

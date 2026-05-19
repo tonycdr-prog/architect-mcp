@@ -43,7 +43,7 @@ export const ADVANCED_ARCHITECTURE_TOOL_NAMES = [
   "review_mcp_install_plan", "apply_mcp_install_plan", "list_skill_catalog",
   "recommend_skills_for_project", "review_supplied_skills", "review_mcp_config_security",
   "run_v3_eval_harness", "score_agent_artifacts", "list_client_integration_recipes",
-  "review_agent_final_response", "review_agent_session", "audit_hosted_tool_policy", "score_stack_packs",
+  "review_agent_final_response", "review_agent_session", "audit_work_gate_completeness", "audit_hosted_tool_policy", "score_stack_packs",
   "stack_pack_coverage_matrix",
   "resolve_standards_profile", "explain_review_findings", "simulate_policy_gate",
   "analyze_standards_conflicts", "score_repo_profile_fit", "review_contract_lifecycle",

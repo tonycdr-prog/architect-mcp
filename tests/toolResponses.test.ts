@@ -202,6 +202,7 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "list_client_integration_recipes"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "review_agent_final_response"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "review_agent_session"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "audit_work_gate_completeness"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "audit_hosted_tool_policy"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "score_stack_packs"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "stack_pack_coverage_matrix"), true);
@@ -556,6 +557,24 @@ describe("MCP tool responses", () => {
         }
       });
       assert.equal(finalReview.status, "pass");
+
+      const gateAudit = await callJson(client, "audit_work_gate_completeness", {
+        request: {
+          now: "2026-05-17T22:00:00.000Z",
+          records: [
+            "grill_me",
+            "create_pre_edit_contract",
+            "review_build_plan",
+            "review_proposed_file_plan",
+            "review_repo_structure",
+            "review_implementation_against_contract",
+            "review_agent_final_response",
+            "review_agent_session"
+          ].map((gate) => ({ gate, status: "pass", recordedAt: "2026-05-17T22:00:00.000Z", runId: "tool-test" }))
+        }
+      });
+      assert.equal(gateAudit.status, "pass");
+      assert.equal(gateAudit.readOnly, true);
 
       const policy = await callJson(client, "audit_hosted_tool_policy", {});
       assert.equal(policy.tools.some((tool: { name: string; policy: string }) => tool.name === "scan_mcp_config_files" && tool.policy === "local-only"), true);
