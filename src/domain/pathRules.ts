@@ -32,7 +32,7 @@ export function isGeneratedFile(path: string): boolean {
 }
 
 export function isSourceCodeFile(path: string): boolean {
-  return /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs|py|go|rs|java|kt|kts|cs)$/.test(normalizePath(path));
+  return /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs|py|go|rs|java|kt|kts|cs)$/i.test(normalizePath(path));
 }
 
 export function matchesPathPattern(path: string, pattern: string): boolean {

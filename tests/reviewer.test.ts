@@ -67,6 +67,18 @@ describe("reviewFileSummaries", () => {
         lines: 80,
         hasUseClient: true,
         imports: ["@/server/auth/session"]
+      },
+      {
+        path: "app/client-shell.TSX",
+        lines: 40,
+        hasUseClient: true,
+        imports: ["@/server/auth/session"]
+      },
+      {
+        path: "",
+        lines: 10,
+        hasUseClient: true,
+        imports: ["@/server/auth/session"]
       }
     ], undefined, 300, [], undefined, { profile: "existing-repo" });
 
@@ -78,6 +90,14 @@ describe("reviewFileSummaries", () => {
       violation.code === "ARCH003_CLIENT_SERVER_LEAK" &&
       violation.path === "src/app/page.tsx"
     ), true);
+    assert.equal(violations.some((violation) =>
+      violation.code === "ARCH003_CLIENT_SERVER_LEAK" &&
+      violation.path === "app/client-shell.TSX"
+    ), true);
+    assert.equal(violations.some((violation) =>
+      violation.code === "ARCH003_CLIENT_SERVER_LEAK" &&
+      violation.path === ""
+    ), false);
   });
 
   it("uses file-category line thresholds", () => {
