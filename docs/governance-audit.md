@@ -46,6 +46,7 @@ architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 architect-mcp-tui evidence-index --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui evidence-index --markdown --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted launch with platform QA waiver" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 
@@ -57,7 +58,7 @@ architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --st
 
 Use `--public-summary` when posting governance-audit, launch-judge, or launch-readiness evidence publicly. The public summaries keep the governance or launch decision, check or stack summaries, next actions, release-gate attempt/result where relevant, terminal-evidence source filenames or platform status, and waiver state, but omit the workspace path, full governance audit, full smoke report, full PR/check payloads, raw memory proposal text, terminal-evidence freeform source text, command summaries, notes, stdout/stderr tails, cache paths, private repo names, and token-shaped values.
 
-Use `evidence-index --json` for release notes, PR comments, and goal-ledger handoff when a maintainer needs one public-safe artifact that includes both the launch-readiness public summary and the governance-audit public summary. The index reports one combined judge result and section-level summaries while preserving waiver visibility and keeping raw local diagnostics out of public text.
+Use `evidence-index --json` for machine-readable release handoff when a maintainer needs one public-safe artifact that includes both the launch-readiness public summary and the governance-audit public summary. Use `evidence-index --markdown` for release notes, PR comments, and goal-ledger handoff. The index reports one combined judge result and section-level summaries while preserving waiver visibility and keeping raw local diagnostics out of public text.
 
 `--terminal-evidence` is for short, public-safe Linux and Windows QA summaries, not raw output. Pass it more than once when each platform report is saved separately. The JSON schema is:
 
