@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::foundry_smoke::{FoundryGithubVerification, FoundrySmokeCommandReport};
 use crate::foundry_smoke_public_summary::build_foundry_smoke_public_summary;
 use crate::foundry_smoke_report::{FoundrySmokeReport, FoundrySmokeStatus};
+use crate::foundry_smoke_retention::FoundrySmokeRetentionDecisionRecord;
 
 #[test]
 fn public_summary_reports_live_private_repo_evidence_without_private_names() {
@@ -118,6 +119,57 @@ fn public_summary_draft_pr_verification_requires_url() {
 }
 
 #[test]
+fn public_summary_reports_retention_decision_without_deletion_claims() {
+    let mut report = sample_report(FoundrySmokeStatus::Passed, "live");
+    report.retention =
+        "delete-later requested after review: remove after maintainer approval".to_string();
+    report.retention_decision = Some(FoundrySmokeRetentionDecisionRecord {
+        decision: "delete_later_requested".to_string(),
+        reason: "remove after maintainer approval".to_string(),
+        deletion_performed: false,
+    });
+
+    let summary = build_foundry_smoke_public_summary(&report);
+
+    let decision = summary
+        .retention_decision
+        .as_ref()
+        .expect("retention decision");
+    assert_eq!(decision.decision, "delete_later_requested");
+    assert_eq!(decision.reason, "remove after maintainer approval");
+    assert!(!decision.deletion_performed);
+    assert!(
+        summary
+            .next_actions
+            .iter()
+            .any(|action| action.contains("foundry-smoke did not delete any repository"))
+    );
+}
+
+#[test]
+fn public_summary_redacts_retention_reason_private_details() {
+    let mut report = sample_report(FoundrySmokeStatus::Passed, "live");
+    report.retention = "retained for maintainer evidence: keep owner/private-proof-repo because /Users/example/workspace has npm_secret".to_string();
+    report.retention_decision = Some(FoundrySmokeRetentionDecisionRecord {
+        decision: "retained_for_evidence".to_string(),
+        reason: "keep owner/private-proof-repo at https://github.com/owner/private-proof-repo because /Users/example/workspace has npm_secret".to_string(),
+        deletion_performed: false,
+    });
+
+    let summary = build_foundry_smoke_public_summary(&report);
+    let json = serde_json::to_string(&summary).expect("serialize summary");
+
+    assert!(json.contains("[redacted-target]"));
+    assert!(json.contains("[redacted-local-path]"));
+    assert!(json.contains("[redacted-secret]"));
+    assert!(!json.contains("owner/private-proof-repo"));
+    assert!(!json.contains("private-proof-repo"));
+    assert!(!json.contains("https://github.com/owner/private-proof-repo"));
+    assert!(!json.contains("/Users/"));
+    assert!(!json.contains("npm_secret"));
+}
+
+#[test]
 fn public_summary_redacts_short_repo_names_and_private_key_markers() {
     let mut report = sample_report(FoundrySmokeStatus::Failed, "live");
     report.target = "owner/xy".to_string();
@@ -175,5 +227,6 @@ fn sample_report(status: FoundrySmokeStatus, mode: &str) -> FoundrySmokeReport {
         ],
         error: None,
         retention: "private GitHub repo retained for maintainer evidence".to_string(),
+        retention_decision: None,
     }
 }

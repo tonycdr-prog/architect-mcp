@@ -37,9 +37,9 @@
 - Stop after: stop if #136 terminal evidence is missing and no explicit maintainer waiver exists.
 
 ### 5. Repo-Foundry Public Evidence
-- Inputs: repo-foundry smoke report, private repo verification, draft PR verification, command outcomes
-- Outputs: public-safe foundry smoke summary, docs update, goal ledger update
+- Inputs: repo-foundry smoke report, private repo verification, draft PR verification, command outcomes, retention decision
+- Outputs: public-safe foundry smoke summary, retention decision evidence, docs update, goal ledger update
 - Allowed directories: crates/architect-tui/src, crates/architect-tui/tests, docs, tests
-- Forbidden files: auto-merge flows, GitHub mutation without `--execute --confirm-private-repo-mutation`, public logs containing private proof-repo URLs
+- Forbidden files: auto-merge flows, GitHub mutation without `--execute --confirm-private-repo-mutation`, automatic repo deletion, public logs containing private proof-repo URLs
 - Checks: cargo fmt --check, cargo test -p architect-tui foundry_smoke_public_summary, cargo test --workspace --test foundry_smoke, npm run release:check
-- Stop after: stop if the public summary exposes workspace paths, private repo targets, raw commands, command transcripts, or stdout/stderr tails.
+- Stop after: stop if the public summary exposes workspace paths, private repo targets, raw commands, command transcripts, stdout/stderr tails, or claims a proof repo was deleted automatically.

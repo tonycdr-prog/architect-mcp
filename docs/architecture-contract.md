@@ -34,6 +34,7 @@
 - Architecture review should run after scaffold and major generated changes.
 - Launch-stack merge plans are read-only checklists; they must never merge PRs, close issues, tag releases, publish packages, or replace real terminal QA evidence.
 - Repo-foundry public summaries must omit local workspace paths, staged repo paths, private proof-repo names/URLs, raw command strings, command transcripts, stdout/stderr tails, raw MCP payloads, and token-shaped values.
+- Repo-foundry retention decisions must be explicit public-safe evidence only; they must not imply repository deletion occurred unless a separate approved cleanup action actually performed it.
 
 ## Baseline Lifecycle
 - New findings must be fixed or deliberately accepted with a reason.

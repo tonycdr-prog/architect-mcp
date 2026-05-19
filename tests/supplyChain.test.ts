@@ -171,8 +171,12 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui launch-stack --merge-plan/);
     assert.match(rustTui, /architect-mcp-tui launch-readiness --json/);
     assert.match(rustTui, /architect-mcp-tui foundry-smoke --owner <github-owner> --public-summary/);
+    assert.match(rustTui, /--retention-decision retain/);
+    assert.match(rustTui, /--retention-reason/);
     assert.match(rustTui, /private repo verification, draft PR verification, command pass\/fail counts/);
+    assert.match(rustTui, /retention decision metadata/);
     assert.match(rustTui, /omits workspace paths, staged repo paths, private repo target names\/URLs, raw command strings, stdout\/stderr tails/);
+    assert.match(rustTui, /does not delete proof repositories/);
     assert.match(rustTui, /architect-mcp-tui evidence-index --json/);
     assert.match(rustTui, /architect-mcp-tui evidence-index --markdown/);
     assert.match(rustTui, /evidence-index --markdown-output <path>/);
@@ -232,7 +236,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#226 - Add public-safe foundry smoke summaries\]/);
+    assert.match(goal, /Active slice: \[#228 - Record foundry proof-repo retention decisions\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -241,8 +245,10 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[PR #223\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/223\)/);
     assert.match(goal, /\[PR #225\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/225\)/);
     assert.match(goal, /\[PR #227\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/227\)/);
+    assert.match(goal, /\[PR #229\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/229\)/);
     assert.match(goal, /\[#224\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/224\)/);
     assert.match(goal, /\[#226\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/226\)/);
+    assert.match(goal, /\[#228\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/228\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -252,7 +258,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /operator-facing receipt inspection/);
     assert.match(goal, /read-only launch-stack merge checklist/);
     assert.match(goal, /public-safe repo-foundry smoke summaries/);
-    assert.match(goal, /discovered explicit PR stack is mechanically clean through #223, with #224 in PR #225 above it and #226 in PR #227 stacked next/);
+    assert.match(goal, /explicit foundry proof-repo retention decisions/);
+    assert.match(goal, /#228 in PR #229 stacked next/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

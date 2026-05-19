@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::foundry::repo_target;
 use crate::foundry_smoke::FoundrySmokeOptions;
+use crate::foundry_smoke_retention::FoundrySmokeRetentionDecisionRecord;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -27,6 +28,7 @@ pub struct FoundrySmokeReport {
     pub commands: Vec<FoundrySmokeCommandReport>,
     pub error: Option<String>,
     pub retention: String,
+    pub retention_decision: Option<FoundrySmokeRetentionDecisionRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,6 +73,7 @@ pub(crate) fn failed_report(
         commands: Vec::new(),
         error: Some(error.to_string()),
         retention: "no GitHub repo created".to_string(),
+        retention_decision: None,
     }
 }
 
