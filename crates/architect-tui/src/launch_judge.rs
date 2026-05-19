@@ -6,6 +6,7 @@ use anyhow::Result;
 use crate::config::TuiConfig;
 use crate::governance_audit::{GovernanceAuditOptions, build_governance_audit_report};
 use crate::launch_judge_evidence::read_terminal_evidence;
+use crate::launch_judge_public_summary::build_public_summary;
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeReport,
     LaunchJudgeResult, build_report, check, print_text_report, skipped_command, tail_lines,
@@ -15,6 +16,7 @@ use crate::smoke::{SmokeOptions, build_smoke_report};
 #[derive(Debug, Clone)]
 pub struct LaunchJudgeOptions {
     pub json: bool,
+    pub public_summary: bool,
     pub skip_mcp: bool,
     pub skip_smoke: bool,
     pub run_release_check: bool,
@@ -29,7 +31,12 @@ pub async fn run_launch_judge(
     options: LaunchJudgeOptions,
 ) -> Result<()> {
     let report = build_launch_judge_report(workspace, config, &options).await;
-    if options.json {
+    if options.public_summary {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&build_public_summary(&report))?
+        );
+    } else if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
         print_text_report(&report);

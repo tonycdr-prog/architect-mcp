@@ -55,6 +55,9 @@ mod interactive_update;
 pub mod launch_judge;
 mod launch_judge_evidence;
 mod launch_judge_evidence_safety;
+mod launch_judge_public_summary;
+#[cfg(test)]
+mod launch_judge_public_summary_tests;
 mod launch_judge_report;
 #[cfg(test)]
 mod launch_judge_tests;

@@ -124,6 +124,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(terminalQa, /architect-mcp-tui terminal-evidence --json/);
     assert.match(terminalQa, /launch-judge --json --terminal-evidence terminal-evidence\.json/);
     assert.match(terminalQa, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
+    assert.match(terminalQa, /launch-judge --public-summary --terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(terminalQa, /Do not paste the raw smoke JSON into public issues/);
     assert.match(terminalQaIssue, /Launch judge terminal evidence JSON/);
     assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --json/);
@@ -145,12 +146,15 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /macos-14/);
     assert.match(workflow, /windows-latest/);
     assert.match(workflow, /npm run tui:live-qa/);
-    assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
+    assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --public-summary --skip-mcp --skip-smoke/);
+    assert.doesNotMatch(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
+    assert.match(rustTui, /architect-mcp-tui launch-judge --public-summary/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
     assert.match(rustTui, /public-safe JSON summary/);
+    assert.match(rustTui, /terminal-evidence freeform source text, command summaries, notes/);
     assert.match(rustTui, /conditional_go/);
   });
 
@@ -171,6 +175,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(issueTemplate, /Do not include secrets/);
     assert.match(issueTemplate, /Memory safety confirmed/);
     assert.match(docs, /public-safe/i);
+    assert.match(docs, /launch-judge --public-summary/);
     assert.match(docs, /npm run release:check/);
   });
 

@@ -12,7 +12,7 @@ The `.github/workflows/tui-install-smoke.yml` and `.github/workflows/tui-live-qa
 - macOS 14.
 - Windows latest.
 
-The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds the TypeScript MCP server, builds a local debug TUI binary, exercises the shim help path, runs `architect-mcp-tui walkthrough --json`, runs fixture-backed promotion-smoke unit coverage, and runs workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. Real Codex promotion smoke is manual because it requires local auth and a live model. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
+The install-smoke workflow installs Node dependencies, installs the pinned Rust toolchain, builds the release binary, runs the npm shim help command, and runs shim tests for local binary resolution, cached binary reuse, missing binary failure, and checksum mismatch failure. The live-QA smoke workflow runs `npm run tui:live-qa`, which builds the TypeScript MCP server, builds a local debug TUI binary, exercises the shim help path, runs `architect-mcp-tui walkthrough --json`, emits a public launch-judge summary instead of the full local launch report, runs fixture-backed promotion-smoke unit coverage, and runs workflow tests covering headless JSONL, approval failure handling, and focused diff commands on every OS. Real Codex promotion smoke is manual because it requires local auth and a live model. PTY adapter execution and multi-candidate arena evidence run in the Unix matrix until the Windows portable PTY path has stable hosted-runner evidence.
 
 ## Post-Release Evidence
 
@@ -39,7 +39,10 @@ When Linux and Windows reports are generated separately, pass both files to the 
 
 ```bash
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 ```
+
+Use `--public-summary` for PR comments, release notes, and issue follow-up. It keeps the launch decision, source filenames, and platform evidence while omitting workspace paths, raw command tails, smoke internals, terminal-evidence freeform source text, command summaries, notes, cache paths, private repo names, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
 
 If a maintainer must normalize already-posted notes manually, keep the same launch judge terminal evidence schema:
 
