@@ -1,5 +1,6 @@
 import type { ReviewMode, ReviewOptions, ReviewReport, ReviewViolation } from "./types.js";
 import { matchesPathPattern, normalizePath } from "./pathRules.js";
+import { createReviewCoverage } from "./reviewCoverage.js";
 
 const DEFAULT_IGNORE_PATTERNS = [
   "docs/audits/*.json",
@@ -17,7 +18,7 @@ export function createReviewReport(violations: ReviewViolation[], options: Revie
   const mode = options.mode ?? "summary";
   const ignorePatterns = [...DEFAULT_IGNORE_PATTERNS, ...(options.ignorePatterns ?? [])];
   const summarizeLineWarningsBelow = options.summarizeLineWarningsBelow ?? (mode === "strict" ? 0 : 800);
-  const maxDetailedFindings = options.maxDetailedFindings ?? defaultFindingLimit(mode);
+  const maxDetailedFindings = mode === "strict" ? defaultFindingLimit(mode) : options.maxDetailedFindings ?? defaultFindingLimit(mode);
 
   const ignored = violations.filter((violation) => violation.path && ignorePatterns.some((pattern) => matchesPathPattern(violation.path ?? "", pattern)));
   const baselineFindings = violations.filter((violation) => isInBaseline(violation, options.baseline?.findings ?? []));
@@ -27,17 +28,28 @@ export function createReviewReport(violations: ReviewViolation[], options: Revie
   const modeFiltered = filterByMode(candidates, mode);
   const priorityFindings = sortFindings(modeFiltered).slice(0, maxDetailedFindings);
   const groups = groupViolations([...groupedLineWarnings, ...modeFiltered]);
-  const shownSet = new Set(priorityFindings);
   const violationsForMode = mode === "strict" ? eligible : priorityFindings;
   const errors = eligible.filter((violation) => violation.severity === "error").length;
   const warnings = eligible.filter((violation) => violation.severity === "warning").length;
   const scoreEligible = violations.filter((violation) => !baselineFindings.includes(violation));
   const scoreErrors = scoreEligible.filter((violation) => violation.severity === "error").length;
   const scoreWarnings = scoreEligible.filter((violation) => violation.severity === "warning").length;
-  const suppressed = Math.max(0, eligible.length - shownSet.size);
+  const suppressed = Math.max(0, eligible.length - violationsForMode.length);
   const noiseSuppressed = ignored.length + groupedLineWarnings.length;
   const baselineSuppressed = baselineFindings.length;
   const score = scoreReview(scoreErrors, scoreWarnings);
+  const coverage = createReviewCoverage({
+    violations,
+    eligible,
+    violationsForMode,
+    ignored,
+    baselineFindings,
+    groupedLineWarnings,
+    suppressed,
+    modeFilteredFindings: modeFiltered.length,
+    maxDetailedFindings,
+    scan: options.scan
+  });
   const lifecycleGate = {
     acceptedWithoutReason: countAcceptedWithoutReason(options.baseline),
     newHighConfidenceErrors: eligible.filter((violation) => violation.severity === "error" && violation.confidence === "high").length
@@ -49,13 +61,16 @@ export function createReviewReport(violations: ReviewViolation[], options: Revie
     mode,
     gate: createReviewGate(errors, warnings, score, mode, options.gate, lifecycleGate),
     summary: {
+      totalFindings: violations.length,
       errors,
       warnings,
       shown: violationsForMode.length,
       suppressed,
       noiseSuppressed,
-      baselineSuppressed
+      baselineSuppressed,
+      coverageCaveats: coverage.caveats
     },
+    coverage,
     groups,
     priorityFindings,
     violations: violationsForMode
