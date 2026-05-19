@@ -17,6 +17,7 @@ pub enum WorkflowCommand {
     DiffFile(String),
     ArenaRun(Vec<String>),
     ArenaRank,
+    ArenaSelect(String),
     VerificationStatus,
     RecordVerification { check: String, status: String },
     FinalReview(String),
@@ -74,6 +75,9 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         }
         _ if trimmed.starts_with("arena run ") => {
             WorkflowCommand::ArenaRun(parse_adapters(&trimmed["arena run ".len()..]))
+        }
+        _ if trimmed.starts_with("arena select ") => {
+            WorkflowCommand::ArenaSelect(trimmed["arena select ".len()..].trim().to_string())
         }
         _ if trimmed.starts_with("record verification ") => parse_verification(trimmed),
         _ if trimmed.starts_with("final review ") => {
@@ -143,6 +147,10 @@ mod tests {
         assert_eq!(
             parse_workflow_command("arena run codex, shell"),
             WorkflowCommand::ArenaRun(vec!["codex".to_string(), "shell".to_string()])
+        );
+        assert_eq!(
+            parse_workflow_command("arena select codex"),
+            WorkflowCommand::ArenaSelect("codex".to_string())
         );
         assert_eq!(
             parse_workflow_command("diff file docs/live-qa.md"),

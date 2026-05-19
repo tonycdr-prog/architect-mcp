@@ -54,8 +54,9 @@ Use a fresh private repository or local throwaway git repo. Do not run destructi
 4. Run a safe shell adapter with `--execute` in an isolated worktree; confirm JSONL remains parseable and includes `diff_evidence`.
 5. Confirm implementation review, repo-structure review, final-response review, and session review events appear before `review_required`.
 6. In the interactive TUI, create a session, run `diff summary`, run `diff file <path>`, run `promotion status`, run `approve <reason>`, run `promote`, and confirm only the changed files from `.architect-mcp/worktrees/<session>/<adapter>` are copied.
-7. Run `arena run <adapter[,adapter]>`, then `arena rank`, and confirm candidates are ranked without auto-merging.
-8. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
+7. After file-plan review, approve arena execution, run `arena run <adapter[,adapter]>`, then `arena rank`, and confirm candidates are ranked without auto-merging.
+8. Run `arena select <adapter>` for one candidate and confirm promotion still requires verification, final/session review, and a separate promotion approval before files are copied.
+9. Cancel one interactive session and confirm persisted session JSON records cancellation without secrets.
 
 ## Evidence To Record
 

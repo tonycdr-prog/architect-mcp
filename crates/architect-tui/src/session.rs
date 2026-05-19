@@ -185,6 +185,11 @@ impl TuiSession {
         self.updated_at = unix_timestamp();
     }
 
+    pub fn clear_arena_candidates(&mut self) {
+        self.arena_candidates.clear();
+        self.updated_at = unix_timestamp();
+    }
+
     pub fn reject(&mut self, reason: impl Into<String>) {
         self.approval_status = ApprovalStatus::Rejected;
         self.approval_reason = Some(reason.into());

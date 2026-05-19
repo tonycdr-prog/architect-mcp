@@ -22,6 +22,7 @@ mod headless_support;
 pub mod interactive;
 mod interactive_approval;
 mod interactive_arena;
+mod interactive_arena_evidence;
 mod interactive_commands;
 mod interactive_diff;
 mod interactive_gate_flow;
