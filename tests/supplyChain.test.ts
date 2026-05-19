@@ -227,17 +227,19 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#218 - Harden TUI promotion override reason evidence\]/);
+    assert.match(goal, /Active slice: \[#220 - Record durable TUI promotion receipts\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
     assert.match(goal, /\[PR #219\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/219\)/);
+    assert.match(goal, /\[PR #221\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/221\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
     assert.match(goal, /strict ACP JSON-RPC envelope validation/);
     assert.match(goal, /explicit TUI promotion override reason evidence/);
-    assert.match(goal, /discovered explicit PR stack is mechanically clean through #217, with #218 in PR #219 above it/);
+    assert.match(goal, /durable TUI promotion receipts/);
+    assert.match(goal, /discovered explicit PR stack is mechanically clean through #219, with #220 in PR #221 above it/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

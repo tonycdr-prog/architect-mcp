@@ -70,8 +70,16 @@ impl InteractiveWorkflowEngine {
         self.store.save(&mut session)?;
         self.active = Some(session);
         let session = self.active()?;
+        let receipt_files = session
+            .promotion_receipt
+            .as_ref()
+            .map(|receipt| receipt.promoted_files.len())
+            .unwrap_or(0);
         Ok(update(
-            vec![format!("promoted {} changed file(s)", promoted.len())],
+            vec![
+                format!("promoted {} changed file(s)", promoted.len()),
+                format!("promotion receipt recorded: {receipt_files} file(s)"),
+            ],
             inspector_for(session),
             Some(session.clone()),
         ))

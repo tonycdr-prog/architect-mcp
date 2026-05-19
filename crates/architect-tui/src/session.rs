@@ -13,6 +13,7 @@ use crate::brief::{apply_brief_answer, brief_from_prompt};
 use crate::foundry::RepoFoundryPlan;
 use crate::foundry_execution::RepoFoundryExecution;
 use crate::foundry_stage::RepoFoundryStage;
+use crate::promotion_receipt::PromotionReceipt;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -97,6 +98,8 @@ pub struct TuiSession {
     #[serde(default)]
     pub approval_status: ApprovalStatus,
     pub approval_reason: Option<String>,
+    #[serde(default)]
+    pub promotion_receipt: Option<PromotionReceipt>,
     pub created_at: u64,
     pub updated_at: u64,
 }
@@ -135,6 +138,7 @@ impl TuiSession {
             foundry_approval_reason: None,
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
+            promotion_receipt: None,
             created_at: now,
             updated_at: now,
         }
@@ -169,24 +173,6 @@ impl TuiSession {
         self.updated_at = unix_timestamp();
     }
 
-    pub fn approve(&mut self, reason: impl Into<String>) {
-        self.approval_status = ApprovalStatus::Approved;
-        self.approval_reason = Some(reason.into());
-        self.updated_at = unix_timestamp();
-    }
-
-    pub fn approve_execution(&mut self, reason: impl Into<String>) {
-        self.execution_approved = true;
-        self.execution_approval_reason = Some(reason.into());
-        self.updated_at = unix_timestamp();
-    }
-
-    pub fn clear_execution_approval(&mut self) {
-        self.execution_approved = false;
-        self.execution_approval_reason = None;
-        self.updated_at = unix_timestamp();
-    }
-
     pub fn record_adapter_run_issue(&mut self, issue: impl Into<String>) {
         let issue = issue.into();
         if !self
@@ -210,6 +196,7 @@ impl TuiSession {
         self.adapter_run_issues.clear();
         self.approval_status = ApprovalStatus::Pending;
         self.approval_reason = None;
+        self.promotion_receipt = None;
         for gate in ADAPTER_RUN_GATES {
             self.gates.remove(*gate);
         }
@@ -228,30 +215,6 @@ impl TuiSession {
         self.foundry_approved = false;
         self.foundry_approval_reason = None;
         self.updated_at = unix_timestamp();
-    }
-
-    pub fn reject(&mut self, reason: impl Into<String>) {
-        self.approval_status = ApprovalStatus::Rejected;
-        self.approval_reason = Some(reason.into());
-        self.updated_at = unix_timestamp();
-    }
-
-    pub fn override_approval(&mut self, reason: impl Into<String>) {
-        self.approval_status = ApprovalStatus::Override;
-        self.approval_reason = Some(reason.into());
-        self.updated_at = unix_timestamp();
-    }
-
-    pub fn mark_promoted(&mut self) {
-        self.approval_status = ApprovalStatus::Promoted;
-        self.updated_at = unix_timestamp();
-    }
-
-    pub fn can_promote(&self) -> bool {
-        matches!(
-            self.approval_status,
-            ApprovalStatus::Approved | ApprovalStatus::Override
-        )
     }
 }
 
