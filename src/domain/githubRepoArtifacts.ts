@@ -150,6 +150,12 @@ export function renderPullRequestTemplate(contract: ArchitectureContract, brief?
 ## Verification
 ${verificationChecklist}
 
+## Repository Template And Maintainer Style
+- [ ] Started from the current repository PR template, if one exists (for example .github/PULL_REQUEST_TEMPLATE.md, .github/pull_request_template.md, a template file under .github/PULL_REQUEST_TEMPLATE/, or an organization-level template)
+- [ ] Checked recent maintainer-authored PRs when the template is stale, sparse, or ambiguous
+- [ ] Ignored bot-only PR bodies unless this PR is dependency-only
+- [ ] Preserved all repository-required template sections, checkboxes, linked issues, risk notes, and verification fields
+
 ## MCP Review
 - [ ] Ran architect-mcp against this repo or explained why it was not relevant
 - [ ] Addressed MCP findings or listed accepted residual risk
@@ -158,6 +164,10 @@ ${verificationChecklist}
 - Assumptions:
 - Not done:
 - Follow-up:
+
+---
+
+<sub>Prepared with [architect-mcp](https://github.com/tonycdr-prog/architect-mcp). architect-mcp output is advisory; repository instructions, maintainer decisions, and required checks remain authoritative.</sub>
 `;
 }
 
