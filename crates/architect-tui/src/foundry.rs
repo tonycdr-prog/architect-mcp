@@ -2,6 +2,7 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::foundry_artifacts::artifact_plan;
 use crate::session::TuiSession;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -50,7 +51,7 @@ pub fn build_repo_foundry_plan(
     let owner = owner.map(validate_owner).transpose()?;
     let verification = foundry_verification(session);
     let target = repo_target(owner.as_deref(), &repo_name);
-    let artifact_paths = artifact_plan(session);
+    let artifact_paths = artifact_plan(session, &verification);
     let first_pr_title = format!("[architect-mcp] Bootstrap {repo_name}");
     Ok(RepoFoundryPlan {
         repo_name: repo_name.clone(),
@@ -144,68 +145,6 @@ pub fn foundry_status_lines(session: &TuiSession) -> Vec<String> {
     lines
 }
 
-fn artifact_plan(session: &TuiSession) -> Vec<FoundryArtifact> {
-    let mut artifacts = vec![
-        artifact(
-            "AGENTS.md",
-            "agent harness",
-            "repo-local agent instructions",
-        ),
-        artifact(
-            "README.md",
-            "public docs",
-            "install, run, and project overview",
-        ),
-        artifact(
-            ".env.example",
-            "config hygiene",
-            "commit-safe environment template",
-        ),
-        artifact(
-            "docs/architecture-contract.md",
-            "create_pre_edit_contract",
-            "governed architecture contract",
-        ),
-        artifact(
-            "docs/build-plan.md",
-            "review_build_plan",
-            "ordered implementation slices",
-        ),
-        artifact(
-            ".github/workflows/ci.yml",
-            "release gate",
-            "typecheck, tests, build, and release checks",
-        ),
-        artifact(
-            ".github/ISSUE_TEMPLATE/bug_report.md",
-            "repo hygiene",
-            "structured bug reports",
-        ),
-        artifact(
-            ".github/pull_request_template.md",
-            "work gate evidence",
-            "verification, assumptions, and remaining gaps",
-        ),
-    ];
-    if has_database(&session.brief) {
-        artifacts.push(artifact(
-            "docs/data-boundary.md",
-            "brief",
-            "database ownership, migrations, and server boundary",
-        ));
-    }
-    artifacts
-}
-
-fn artifact(path: &str, source: &str, purpose: &str) -> FoundryArtifact {
-    FoundryArtifact {
-        path: path.to_string(),
-        source: source.to_string(),
-        purpose: purpose.to_string(),
-        required: true,
-    }
-}
-
 fn foundry_verification(session: &TuiSession) -> Vec<String> {
     if !session.required_verification.is_empty() {
         return session.required_verification.clone();
@@ -262,17 +201,6 @@ pub fn repo_target(owner: Option<&str>, repo_name: &str) -> String {
     owner
         .map(|owner| format!("{owner}/{repo_name}"))
         .unwrap_or_else(|| repo_name.to_string())
-}
-
-fn has_database(brief: &Value) -> bool {
-    brief
-        .get("stack")
-        .and_then(|stack| stack.get("database"))
-        .and_then(Value::as_str)
-        .is_some_and(|database| {
-            let database = database.trim();
-            !database.is_empty() && !database.eq_ignore_ascii_case("none")
-        })
 }
 
 #[cfg(test)]

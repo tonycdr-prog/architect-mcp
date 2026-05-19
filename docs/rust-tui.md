@@ -118,6 +118,15 @@ architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace
 
 This command is explicit local QA, not a default CI release gate. It creates a disposable git repo, wires the TUI to the source architect-mcp server, confirms the selected adapter is ready, drives the command-palette engine through grill, contract, plan review, file-plan review, execution approval, isolated adapter execution, diff inspection, verification, final/session review, promotion approval, and promotion. The default Codex path asks for a documentation-only change to `docs/codex-adapter-smoke.md`; the smoke passes only when that file is the only promoted file. Keep the workspace when collecting evidence so the isolated worktree, promoted file, and session JSON can be inspected.
 
+Repo-foundry smoke:
+
+```bash
+architect-mcp-tui foundry-smoke --owner <github-owner> --json
+architect-mcp-tui foundry-smoke --owner <github-owner> --repo <repo-name> --execute --confirm-private-repo-mutation --json --keep-workspace
+```
+
+Without `--execute`, this drives the command-palette work gate through grill, contract, plan review, file-plan review, private repo planning, local staging, and create preview only. With `--execute`, it first requires `--confirm-private-repo-mutation`, refuses to reuse an existing GitHub repo, creates a private repo, pushes `main` and `architect/bootstrap`, opens the first draft PR, verifies the repo is private, and reports the retained evidence URLs.
+
 ## Work Gate
 
 Every coding and app-building loop starts with the architect-mcp work gate:
@@ -185,11 +194,13 @@ foundry create
 foundry create --execute
 ```
 
-`foundry plan` is available only after `review files` has passed. It creates a private-by-default GitHub repo plan with required scaffold artifacts for `AGENTS.md`, `README.md`, `.env.example`, architecture and build-plan docs, CI, issue template, and PR template. `foundry approve <reason>` is a separate approval from adapter execution or promotion approval.
+`foundry plan` is available only after `review files` has passed. It creates a private-by-default GitHub repo plan with required scaffold artifacts for `AGENTS.md`, `README.md`, `.env.example`, architecture and build-plan docs, CI, issue template, and PR template. When the verified plan includes `npm test`, the staged repo also includes a minimal `package.json` and scaffold test so generated CI has a real executable check. `foundry approve <reason>` is a separate approval from adapter execution or promotion approval.
 
 `foundry stage` requires approval and materializes the generated app scaffold into `.architect-mcp/foundry/<session>/<repo>` as a separate git repository with `main` and `architect/bootstrap` branches. Staging consumes the approval, so live GitHub creation requires another explicit `foundry approve <reason>`.
 
 `foundry create` without flags renders a preview and performs no GitHub mutation. `foundry create --execute` requires a staged repo plus fresh approval, then runs the private `gh repo create`, pushes `main` and `architect/bootstrap`, and opens a draft PR using the staged evidence body. Changing clarified answers clears stale foundry state so repo plans cannot silently survive a changed brief.
+
+`architect-mcp-tui foundry-smoke --owner <github-owner> --json` is the repeatable dry-run QA path for the repo-foundry flow. Live GitHub creation is intentionally noisier: `--execute --confirm-private-repo-mutation` must both be present, and the command fails closed if the target repository already exists.
 
 ## Config
 

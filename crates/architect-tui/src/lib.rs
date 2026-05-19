@@ -15,8 +15,15 @@ mod brief_tests;
 pub mod config;
 mod config_template;
 pub mod foundry;
+mod foundry_artifacts;
 pub mod foundry_execution;
+pub mod foundry_smoke;
+mod foundry_smoke_report;
+mod foundry_smoke_script;
+#[cfg(test)]
+mod foundry_smoke_tests;
 pub mod foundry_stage;
+mod foundry_stage_content;
 mod gate_calls;
 mod headless;
 mod headless_adapter;
