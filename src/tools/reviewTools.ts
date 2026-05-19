@@ -9,7 +9,7 @@ import { createReviewReport } from "../domain/reviewReport.js";
 import { reviewFileSummaries } from "../domain/reviewer.js";
 import { reviewProposedFilePlan } from "../domain/planReviewer.js";
 import { classifyReviewLifecycle } from "../domain/reviewLifecycle.js";
-import type { ArchitectureContract, ReviewBaseline } from "../domain/types.js";
+import type { ArchitectureContract, ReviewBaseline, ReviewScannedDirectoryCoverage } from "../domain/types.js";
 import { scanWorkspaceWithMetadata } from "../infrastructure/scanWorkspace.js";
 import { safeJsonResponse, summarizeViolations } from "./responses.js";
 import {
@@ -106,7 +106,11 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
         baseline: baseline as ReviewBaseline | undefined,
         maxDetailedFindings,
         summarizeLineWarningsBelow,
-        gate
+        gate,
+        scan: {
+          filesReviewed: files.length,
+          topScannedDirectories: summarizeTopScannedDirectories(files)
+        }
       });
       return {
         summary: report.summary,
@@ -157,7 +161,13 @@ export function registerReviewTools(server: McpServer, options: ReviewToolsOptio
           baseline: baseline as ReviewBaseline | undefined,
           maxDetailedFindings,
           summarizeLineWarningsBelow,
-          gate
+          gate,
+          scan: {
+            filesReviewed: files.length,
+            maxFiles: scan.maxFiles,
+            truncated: scan.truncated,
+            topScannedDirectories: summarizeTopScannedDirectories(files)
+          }
         });
         return {
           filesReviewed: files.length,
@@ -228,4 +238,24 @@ async function readArchitectIgnore(rootPath: string): Promise<string[]> {
 
 function reviewProfileForMode(mode: "strict" | "summary" | "ci" | "migration" | "audit"): "agent-work-gate" | "existing-repo" {
   return mode === "audit" || mode === "migration" ? "existing-repo" : "agent-work-gate";
+}
+
+function summarizeTopScannedDirectories(files: Array<{ path: string }>): ReviewScannedDirectoryCoverage[] {
+  const counts = new Map<string, number>();
+
+  for (const file of files) {
+    const directory = topScannedDirectory(file.path);
+    counts.set(directory, (counts.get(directory) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([directory, count]) => ({ directory, files: count }))
+    .sort((left, right) => right.files - left.files || left.directory.localeCompare(right.directory))
+    .slice(0, 12);
+}
+
+function topScannedDirectory(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const first = normalized.split("/")[0];
+  return first && first !== normalized ? first : "(root)";
 }

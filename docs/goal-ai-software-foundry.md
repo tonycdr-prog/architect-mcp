@@ -15,7 +15,7 @@ The human owns decisions. Agents propose and execute. architect-mcp governs.
 ## Tracking
 
 - Epic: [#142 - Evolve architect-mcp into an AI software delivery control plane](https://github.com/tonycdr-prog/architect-mcp/issues/142)
-- Active slice: [#284 - Harden verification receipt evidence tiers and freshness](https://github.com/tonycdr-prog/architect-mcp/issues/284), stacked in PR #307; launch boundary [#136 - Run post-release TUI terminal QA on Windows and Linux](https://github.com/tonycdr-prog/architect-mcp/issues/136) now has Linux VM evidence plus an explicit maintainer waiver for the remaining Windows terminal-evidence gap.
+- Active slice: [#311 - Expose large-repo audit coverage and total finding histograms](https://github.com/tonycdr-prog/architect-mcp/issues/311), implemented in PR #331 as a [#320](https://github.com/tonycdr-prog/architect-mcp/issues/320) Foundry prerequisite for honest read-only repo audit evidence.
 - Runtime goal: Codex CLI `/goal`, backed by this document and the GitHub epic.
 
 Every implementation slice should have its own issue and PR. Every PR should link to the epic, list verification, record the judge result, and state remaining gaps.
@@ -45,7 +45,9 @@ Each slice should follow the agent work gate:
 6. Review implementation drift and repo structure.
 7. Record verification evidence.
 8. Review the final response and full session.
-9. Issue a judge result before merge or launch claims.
+9. Request a comprehensive, PR-specific `@copilot` review that names the actual behavior changed, likely edge cases, compatibility risks, tests, docs claims, and live-smoke evidence for that PR; resolve any actionable review comments.
+10. Run an independent judge-agent review before merge or launch claims.
+11. Issue a judge result before merge or launch claims.
 
 For TUI work, the TUI should make these gates visible and enforceable. For docs or planning work, the PR body should still state the relevant checks and judge result.
 
@@ -79,6 +81,7 @@ A slice is `no-go` when:
 
 | Date | Evidence | Result |
 | --- | --- | --- |
+| 2026-05-19 | [#311](https://github.com/tonycdr-prog/architect-mcp/issues/311) audit coverage histogram slice in [PR #331](https://github.com/tonycdr-prog/architect-mcp/pull/331): review reports now expose `report.coverage` with total finding histograms by code/severity before detailed-output suppression, scan truncation caveats, detailed-finding cap caveats, files reviewed, max file cap, and top scanned directories. Live MCP smoke against fresh public clones showed `vercel/next.js` reporting a 5,000-file scan cap plus capped detailed findings, while `pallets/flask` reported full non-truncated coverage with zero findings. Verification: focused review/tool tests, typecheck, full npm test, build, docs build, release-check, and live read-only MCP smoke. | `conditional go`: large-repo audit evidence is more honest and public-doc source is updated; this does not yet implement Foundry actionability scoring, routing, or forge previews. |
 | 2026-05-16 | [#141](https://github.com/tonycdr-prog/architect-mcp/pull/141) merged terminal QA smoke workflow after green CI, install-smoke, and live-QA workflows. | `go` as baseline terminal QA evidence. |
 | 2026-05-16 | Codex CLI `/goal` accepted the concise evolved objective. | Runtime goal created; detailed spec lives in this document. |
 | 2026-05-16 | [#143](https://github.com/tonycdr-prog/architect-mcp/issues/143) structured-intake slice: TUI prompts and `answer key=value` commands now shape live `grill_me` briefs, generated build-plan checks are merged into contract verification, and a live headless ready prompt reached `grill_me`, `create_pre_edit_contract`, `review_build_plan`, and `review_proposed_file_plan` with passing review gates before stopping at adapter approval. Verification: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `architect-mcp-tui smoke --json`, and `npm run release:check`. | `conditional go`: intake and gate alignment work; full interactive adapter execution, diff review, verification capture, session review, and promotion remain for later #143/#144 slices. |

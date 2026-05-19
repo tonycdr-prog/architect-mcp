@@ -291,9 +291,12 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#284 - Harden verification receipt evidence tiers and freshness\]/);
-    assert.match(goal, /stacked in PR #307/);
-    assert.match(goal, /launch boundary .*now has Linux VM evidence plus an explicit maintainer waiver/);
+    assert.match(goal, /Active slice: \[#311 - Expose large-repo audit coverage and total finding histograms\]/);
+    assert.match(goal, /implemented in PR #331/);
+    assert.match(goal, /#320.*Foundry prerequisite/);
+    assert.match(goal, /\[#311\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/311\) audit coverage histogram slice/);
+    assert.match(goal, /\[PR #331\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/331\)/);
+    assert.match(goal, /report\.coverage/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);

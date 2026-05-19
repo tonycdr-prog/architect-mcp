@@ -28,4 +28,4 @@ The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_con
 3. Store accepted findings with reasons.
 4. Run later reviews in `ci` mode so new findings fail without blocking historical debt.
 
-Use `migration` mode when adopting architect-mcp in a mature repo that already has known debt and you want lower-value line-count warnings suppressed in the report. Use `audit` mode when you want source findings without requiring `AGENTS.md` or `docs/architecture-contract.md` to exist yet.
+Use `migration` mode when adopting architect-mcp in a mature repo that already has known debt and you want lower-value line-count warnings suppressed in the report. Use `audit` mode when you want source findings without requiring `AGENTS.md` or `docs/architecture-contract.md` to exist yet. For large repos, check `report.coverage`: it includes total finding histograms before detailed-output suppression, scan truncation caveats, and the top scanned directories so capped audits are not mistaken for full-repo coverage.

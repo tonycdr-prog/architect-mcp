@@ -1026,6 +1026,103 @@ describe("createReviewReport", () => {
     assert.equal(report.gate.thresholds.maxErrors, 0);
     assert.equal(report.gate.thresholds.maxWarnings, 2);
   });
+
+  it("keeps strict mode uncapped when a detailed finding limit is supplied", () => {
+    const report = createReviewReport([
+      {
+        code: "ARCH009_SERVER_ENV_IN_UI",
+        confidence: "high",
+        severity: "error",
+        path: "client/App.tsx",
+        message: "UI file reads server-only environment variables.",
+        recommendation: "Move secret access."
+      },
+      {
+        code: "ARCH026_REPO_HYGIENE",
+        confidence: "medium",
+        severity: "warning",
+        path: "package.json",
+        message: "Repo hygiene drift.",
+        recommendation: "Review repository metadata."
+      }
+    ], {
+      mode: "strict",
+      maxDetailedFindings: 1
+    });
+
+    assert.equal(report.summary.shown, 2);
+    assert.equal(report.summary.suppressed, 0);
+    assert.equal(report.coverage.detailedFindings, 2);
+    assert.equal(report.coverage.detailedFindingsTruncated, false);
+    assert.deepEqual(report.coverage.caveats, []);
+    assert.equal(report.violations.length, 2);
+  });
+
+  it("reports coverage caveats and total finding histograms before suppression", () => {
+    const report = createReviewReport([
+      {
+        code: "ARCH009_SERVER_ENV_IN_UI",
+        confidence: "high",
+        severity: "error",
+        path: "client/App.tsx",
+        message: "UI file reads server-only environment variables.",
+        recommendation: "Move secret access."
+      },
+      {
+        code: "ARCH009_SERVER_ENV_IN_UI",
+        confidence: "high",
+        severity: "error",
+        path: "client/Admin.tsx",
+        message: "UI file reads server-only environment variables.",
+        recommendation: "Move secret access."
+      },
+      {
+        code: "ARCH026_REPO_HYGIENE",
+        confidence: "medium",
+        severity: "warning",
+        path: "package.json",
+        message: "Repo hygiene drift.",
+        recommendation: "Review repository metadata."
+      },
+      {
+        code: "ARCH026_REPO_HYGIENE",
+        confidence: "medium",
+        severity: "warning",
+        path: "docs/audits/report.json",
+        message: "Repo hygiene drift.",
+        recommendation: "Review repository metadata."
+      }
+    ], {
+      mode: "audit",
+      maxDetailedFindings: 1,
+      scan: {
+        filesReviewed: 5000,
+        maxFiles: 5000,
+        truncated: true,
+        topScannedDirectories: [
+          { directory: "client", files: 3200 },
+          { directory: "packages", files: 1800 }
+        ]
+      }
+    });
+
+    assert.equal(report.summary.totalFindings, 4);
+    assert.equal(report.summary.errors, 2);
+    assert.equal(report.summary.warnings, 1);
+    assert.equal(report.summary.shown, 1);
+    assert.equal(report.coverage.totalFindings, 4);
+    assert.equal(report.coverage.eligibleFindings, 3);
+    assert.equal(report.coverage.ignoredFindings, 1);
+    assert.equal(report.coverage.detailedFindingsTruncated, true);
+    assert.equal(report.coverage.scanTruncated, true);
+    assert.equal(report.coverage.topScannedDirectories[0]?.directory, "client");
+    assert.equal(report.summary.coverageCaveats, report.coverage.caveats);
+    assert.equal(report.coverage.caveats.some((caveat) => caveat.includes("5000/5000")), true);
+    assert.deepEqual(report.coverage.findingHistogram, [
+      { code: "ARCH009_SERVER_ENV_IN_UI", severity: "error", count: 2 },
+      { code: "ARCH026_REPO_HYGIENE", severity: "warning", count: 2 }
+    ]);
+  });
 });
 
 describe("scanWorkspace", () => {

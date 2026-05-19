@@ -74,7 +74,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - review_build_plan: enforce ordered build slices and exact verification commands.
 - review_proposed_file_plan: check a proposed file plan before writing files.
 - review_repo_structure: detect oversized files, UI/database leaks, client/server leaks, import-graph boundary issues, verification-policy issues, and implementation drift.
-- review_local_workspace: scan and review a local workspace when running locally.
+- review_local_workspace: scan and review a local workspace when running locally; check report.coverage for large-repo truncation caveats, top scanned directories, and total finding histograms before detailed-output suppression.
 - create_review_baseline: create a baseline from current review findings.
 - validate_architecture_contract: validate contract shape and pack compatibility.
 - validate_repo_artifacts: validate generated repo artifacts.
