@@ -10,6 +10,7 @@ use crate::adapter::{AdapterConfig, AgentEvent};
 
 const OUTPUT_LIMIT_BYTES: usize = 64 * 1024;
 const TRUNCATED_MARKER: &str = "[truncated after 65536 bytes]";
+const OUTPUT_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone)]
 pub struct PtyRunOptions {
@@ -87,7 +88,7 @@ pub fn run_adapter_pty(config: &AdapterConfig, options: PtyRunOptions) -> Result
         if let Ok(Some(status)) = child.try_wait() {
             drop(pair.master);
             let (output, truncated) = output_rx
-                .recv_timeout(Duration::from_millis(200))
+                .recv_timeout(OUTPUT_DRAIN_TIMEOUT)
                 .unwrap_or_default();
             events.push(AgentEvent::Output {
                 stream: "pty".to_string(),
