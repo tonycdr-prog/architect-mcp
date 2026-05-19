@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde_json::Value;
 
 use crate::foundry::{
     build_repo_foundry_plan, foundry_plan_lines, foundry_status_lines,
@@ -126,13 +127,45 @@ impl InteractiveWorkflowEngine {
     }
 
     fn require_file_plan_for_foundry(&self) -> Result<()> {
-        if !self
-            .active()?
-            .gates
-            .contains_key("review_proposed_file_plan")
-        {
+        let session = self.active()?;
+        let review = session.gates.get("review_proposed_file_plan");
+        let Some(review) = review else {
             anyhow::bail!("review files before foundry plan");
+        };
+        if review_has_blockers(review) {
+            anyhow::bail!("file-plan review must pass before foundry plan");
         }
         Ok(())
     }
+}
+
+fn review_has_blockers(review: &Value) -> bool {
+    status_blocks(review.get("status"))
+        || status_blocks(review.pointer("/report/gate/status"))
+        || review_errors(review.pointer("/summary/errors"))
+        || review_errors(review.pointer("/report/summary/errors"))
+        || review
+            .get("violations")
+            .and_then(Value::as_array)
+            .is_some_and(|violations| violations.iter().any(violation_blocks))
+}
+
+fn status_blocks(status: Option<&Value>) -> bool {
+    matches!(
+        status.and_then(Value::as_str),
+        Some("fail" | "failed" | "blocked" | "blocker")
+    )
+}
+
+fn review_errors(errors: Option<&Value>) -> bool {
+    errors
+        .and_then(Value::as_u64)
+        .is_some_and(|errors| errors > 0)
+}
+
+fn violation_blocks(violation: &Value) -> bool {
+    matches!(
+        violation.get("severity").and_then(Value::as_str),
+        Some("error")
+    ) || status_blocks(violation.get("status"))
 }

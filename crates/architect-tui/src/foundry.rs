@@ -174,6 +174,9 @@ fn validate_repo_name(value: &str) -> Result<String> {
     if value == "." || value == ".." || value.contains('/') || value.contains('\\') {
         bail!("repo name must be a single GitHub repository name");
     }
+    if value.starts_with('-') {
+        bail!("repo name cannot start with a hyphen");
+    }
     if !value
         .chars()
         .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
@@ -187,6 +190,15 @@ fn validate_owner(value: &str) -> Result<String> {
     let value = value.trim();
     if value.is_empty() {
         bail!("owner cannot be blank");
+    }
+    if value.len() > 39 {
+        bail!("owner must be 39 characters or fewer");
+    }
+    if value.starts_with('-') || value.ends_with('-') {
+        bail!("owner cannot start or end with a hyphen");
+    }
+    if value.contains("--") {
+        bail!("owner cannot contain consecutive hyphens");
     }
     if !value
         .chars()
@@ -213,5 +225,26 @@ mod tests {
         let session = TuiSession::new("ready app", "codex");
         let error = build_repo_foundry_plan(&session, "../public", None).expect_err("invalid");
         assert!(error.to_string().contains("single GitHub repository name"));
+    }
+
+    #[test]
+    fn rejects_repo_names_that_look_like_cli_flags() {
+        let session = TuiSession::new("ready app", "codex");
+        let error = build_repo_foundry_plan(&session, "--public", None).expect_err("invalid");
+        assert!(error.to_string().contains("cannot start with a hyphen"));
+    }
+
+    #[test]
+    fn rejects_invalid_github_owner_names() {
+        let session = TuiSession::new("ready app", "codex");
+
+        for owner in ["-tony", "tony-", "tony--cordner"] {
+            let error =
+                build_repo_foundry_plan(&session, "launchpad", Some(owner)).expect_err("invalid");
+            assert!(
+                error.to_string().contains("owner"),
+                "unexpected error for {owner}: {error}"
+            );
+        }
     }
 }
