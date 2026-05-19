@@ -3,13 +3,14 @@ use std::path::Path;
 use serde_json::{Value, json};
 
 use crate::launch_stack::{
-    LaunchStackCheckSummary, LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest,
-    LaunchStackReviewThread,
+    LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest, LaunchStackReviewThread,
 };
+pub(crate) use crate::launch_stack_check_summary::summarize_checks;
 pub(crate) use crate::launch_stack_github_support::{public_text, run_gh_json};
 use crate::launch_stack_pr_status::{PrStatusEvidence, pr_next_action, pr_status};
 use crate::launch_stack_required_checks::apply_required_checks;
 use crate::launch_stack_review_threads::fetch_unresolved_review_threads;
+use crate::launch_stack_status_checks::fetch_status_check_rollup;
 
 pub(crate) fn fetch_pr(
     workspace: &Path,
@@ -35,6 +36,8 @@ pub(crate) fn fetch_pr(
         .ok_or_else(|| format!("PR #{number}: GitHub response omitted PR node id"))?;
     let unresolved_review_thread_details = fetch_unresolved_review_threads(workspace, pr_id)
         .map_err(|error| format!("PR #{number}: {error}"))?;
+    let status_check_rollup = fetch_status_check_rollup(workspace, pr_id)
+        .map_err(|error| format!("PR #{number}: {error}"))?;
     if let Some(object) = value.as_object_mut() {
         object.insert(
             "unresolvedReviewThreads".to_string(),
@@ -44,6 +47,7 @@ pub(crate) fn fetch_pr(
             "unresolvedReviewThreadDetails".to_string(),
             json!(unresolved_review_thread_details),
         );
+        object.insert("statusCheckRollup".to_string(), status_check_rollup);
     }
     Ok(pr_from_value_with_required_checks(
         number,
@@ -209,54 +213,6 @@ pub(crate) fn issue_from_value(fallback_number: u64, value: &Value) -> LaunchSta
         waiver_reason: None,
         next_action,
     }
-}
-
-pub(crate) fn summarize_checks(value: Option<&Value>) -> LaunchStackCheckSummary {
-    let mut summary = LaunchStackCheckSummary {
-        total: 0,
-        passed: 0,
-        pending: 0,
-        failed: 0,
-        names: Vec::new(),
-        pending_names: Vec::new(),
-        failed_names: Vec::new(),
-        missing_required_names: Vec::new(),
-    };
-    let Some(items) = value.and_then(Value::as_array) else {
-        return summary;
-    };
-    summary.total = items.len();
-    for item in items {
-        let name = public_text(
-            item.get("name").and_then(Value::as_str).unwrap_or("check"),
-            120,
-        );
-        summary.names.push(name.clone());
-        let status = item
-            .get("status")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        let conclusion = item
-            .get("conclusion")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        if status != "COMPLETED" {
-            summary.pending += 1;
-            summary.pending_names.push(name);
-        } else if matches!(conclusion, "SUCCESS" | "SKIPPED" | "NEUTRAL") {
-            summary.passed += 1;
-        } else if matches!(
-            conclusion,
-            "FAILURE" | "CANCELLED" | "TIMED_OUT" | "ACTION_REQUIRED"
-        ) {
-            summary.failed += 1;
-            summary.failed_names.push(name);
-        } else {
-            summary.pending += 1;
-            summary.pending_names.push(name);
-        }
-    }
-    summary
 }
 
 pub(crate) fn append_repo_args(args: &mut Vec<String>, repo: Option<&str>) {

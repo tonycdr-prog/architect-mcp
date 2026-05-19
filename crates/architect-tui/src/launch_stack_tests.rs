@@ -211,3 +211,83 @@ fn check_summary_classifies_pending_failed_and_successful_checks() {
     assert_eq!(summary.failed_names, vec!["install-smoke"]);
     assert!(summary.missing_required_names.is_empty());
 }
+
+#[test]
+fn check_summary_reads_legacy_status_contexts() {
+    let summary = summarize_checks(Some(&json!([
+        {"__typename": "StatusContext", "context": "ci/lint", "state": "SUCCESS", "createdAt": "2026-05-19T00:00:00Z"},
+        {"__typename": "StatusContext", "context": "deploy", "state": "ERROR", "createdAt": "2026-05-19T00:01:00Z"},
+        {"__typename": "StatusContext", "context": "coverage", "state": "PENDING", "createdAt": "2026-05-19T00:02:00Z"}
+    ])));
+
+    assert_eq!(summary.total, 3);
+    assert_eq!(summary.passed, 1);
+    assert_eq!(summary.pending, 1);
+    assert_eq!(summary.failed, 1);
+    assert_eq!(summary.names, vec!["ci/lint", "deploy", "coverage"]);
+    assert_eq!(summary.pending_names, vec!["coverage"]);
+    assert_eq!(summary.failed_names, vec!["deploy"]);
+}
+
+#[test]
+fn check_summary_keeps_latest_row_for_duplicate_check_names() {
+    let summary = summarize_checks(Some(&json!([
+        {"name": "verify", "status": "COMPLETED", "conclusion": "FAILURE", "completedAt": "2026-05-19T00:00:00Z"},
+        {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS", "completedAt": "2026-05-19T00:02:00Z"},
+        {"name": "lint", "status": "COMPLETED", "conclusion": "SUCCESS", "completedAt": "2026-05-19T00:01:00Z"},
+        {"name": "lint", "status": "COMPLETED", "conclusion": "FAILURE", "completedAt": "2026-05-19T00:03:00Z"}
+    ])));
+
+    assert_eq!(summary.total, 2);
+    assert_eq!(summary.passed, 1);
+    assert_eq!(summary.pending, 0);
+    assert_eq!(summary.failed, 1);
+    assert_eq!(summary.names, vec!["verify", "lint"]);
+    assert_eq!(summary.failed_names, vec!["lint"]);
+}
+
+#[test]
+fn check_summary_keeps_same_name_rows_from_distinct_apps() {
+    let summary = summarize_checks(Some(&json!([
+        {
+            "name": "verify",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS",
+            "completedAt": "2026-05-19T00:02:00Z",
+            "checkSuite": {"app": {"databaseId": 15368, "slug": "github-actions"}}
+        },
+        {
+            "name": "verify",
+            "status": "COMPLETED",
+            "conclusion": "FAILURE",
+            "completedAt": "2026-05-19T00:01:00Z",
+            "checkSuite": {"app": {"databaseId": 9919, "slug": "third-party-ci"}}
+        },
+        {
+            "name": "verify",
+            "status": "COMPLETED",
+            "conclusion": "FAILURE",
+            "completedAt": "2026-05-19T00:00:00Z",
+            "checkSuite": {"app": {"databaseId": 15368, "slug": "github-actions"}}
+        }
+    ])));
+
+    assert_eq!(summary.total, 2);
+    assert_eq!(summary.passed, 1);
+    assert_eq!(summary.failed, 1);
+    assert_eq!(summary.names, vec!["verify", "verify"]);
+    assert_eq!(summary.failed_names, vec!["verify"]);
+}
+
+#[test]
+fn check_summary_treats_neutral_and_skipped_check_runs_as_passing() {
+    let summary = summarize_checks(Some(&json!([
+        {"name": "docs", "status": "COMPLETED", "conclusion": "NEUTRAL"},
+        {"name": "optional smoke", "status": "COMPLETED", "conclusion": "SKIPPED"}
+    ])));
+
+    assert_eq!(summary.total, 2);
+    assert_eq!(summary.passed, 2);
+    assert_eq!(summary.pending, 0);
+    assert_eq!(summary.failed, 0);
+}

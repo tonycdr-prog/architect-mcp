@@ -117,6 +117,8 @@ fn pr(number: u64, status: LaunchStackItemStatus) -> LaunchStackPullRequest {
             pending_names: Vec::new(),
             failed_names: Vec::new(),
             missing_required_names: Vec::new(),
+            pending_required_names: Vec::new(),
+            failed_required_names: Vec::new(),
         },
         status,
         next_action: None,
