@@ -45,7 +45,7 @@ body:
     id: launch-judge-evidence
     attributes:
       label: Launch judge terminal evidence Markdown
-      description: Required for Linux and Windows launch-readiness reports. Prefer pasting the public-safe output from architect-mcp-tui terminal-evidence --markdown --issue-url https://github.com/tonycdr-prog/architect-mcp/issues/136. Use manual JSON fallback from architect-mcp-tui terminal-evidence --json only if a maintainer asks for a local file. If filling this example manually, set environment to local_terminal or vm_or_cloud_terminal for launch-relevant manual QA; hosted_ci, container, missing, or unknown provenance does not satisfy #136 manual terminal QA and remains conditional. Do not paste raw smoke JSON.
+      description: Required for Linux and Windows launch-readiness reports. Prefer pasting the public-safe output from architect-mcp-tui terminal-evidence --markdown --issue-url https://github.com/tonycdr-prog/architect-mcp/issues/136. Use manual JSON fallback from architect-mcp-tui terminal-evidence --json only if a maintainer asks for a local file. If filling this example manually, keep only the platform report you actually ran and replace every REPLACE field; unchanged placeholders remain conditional and do not satisfy launch readiness. Set environment to local_terminal or vm_or_cloud_terminal for launch-relevant manual QA; hosted_ci, container, missing, or unknown provenance does not satisfy #136 manual terminal QA and remains conditional. Do not paste raw smoke JSON.
       value: |
         ```json
         {
@@ -55,8 +55,17 @@ body:
               "platform": "linux",
               "status": "passed",
               "environment": "local_terminal",
-              "source": "REPLACE with public issue or PR link for this real terminal run",
-              "commandSummary": "REPLACE with commands that passed or failed on this real machine",
+              "source": "REPLACE with public issue or PR link for this exact Linux terminal run",
+              "commandSummary": "REPLACE with commands that passed or failed on this real Linux machine",
+              "collectedAt": "YYYY-MM-DD",
+              "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
+            },
+            {
+              "platform": "windows",
+              "status": "passed",
+              "environment": "vm_or_cloud_terminal",
+              "source": "REPLACE with public issue or PR link for this exact Windows terminal run",
+              "commandSummary": "REPLACE with commands that passed or failed on this real Windows machine",
               "collectedAt": "YYYY-MM-DD",
               "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
             }
