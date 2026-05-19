@@ -46,6 +46,7 @@ For a new repo, the proposed artifacts should include:
 - `.cursor/rules/architecture.mdc` when Cursor rules are useful
 - `.env.example` when environment variables are introduced
 - CI workflow files when the target repo is expected to run checks in GitHub Actions
+- `.github/pull_request_template.md` when the target repo uses GitHub PRs; it should preserve verification, MCP review, handoff, repository PR template reconciliation, recent maintainer-authored PR style checks, and the advisory architect-mcp footer.
 
 ## TUI Path
 

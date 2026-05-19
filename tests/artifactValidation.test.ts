@@ -34,6 +34,10 @@ describe("artifact validation", () => {
     assert.doesNotMatch(ci, /npm run check:v10/);
     assert.match(copilot, /`pytest`/);
     assert.match(prTemplate, /`ruff check \.`/);
+    assert.match(prTemplate, /Repository Template And Maintainer Style/);
+    assert.match(prTemplate, /maintainer-authored PRs/);
+    assert.match(prTemplate, /https:\/\/github\.com\/tonycdr-prog\/architect-mcp/);
+    assert.match(prTemplate, /advisory/);
     assert.equal(validateRepoArtifacts(artifacts).valid, true);
   });
 
