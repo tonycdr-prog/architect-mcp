@@ -150,6 +150,8 @@ describe("supply-chain and release hygiene", () => {
     assert.doesNotMatch(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --public-summary/);
+    assert.match(rustTui, /architect-mcp-tui launch-stack --json/);
+    assert.match(rustTui, /draft PRs, pending checks, temporarily unstable merge states caused by pending checks, and open blocker issues are `conditional_go`/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(rustTui, /--terminal-evidence/);
@@ -176,6 +178,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(issueTemplate, /Memory safety confirmed/);
     assert.match(docs, /public-safe/i);
     assert.match(docs, /launch-judge --public-summary/);
+    assert.match(docs, /launch-stack --json/);
     assert.match(docs, /npm run release:check/);
   });
 

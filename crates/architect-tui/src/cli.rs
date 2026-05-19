@@ -127,4 +127,15 @@ pub enum Commands {
         #[arg(long)]
         terminal_evidence: Vec<PathBuf>,
     },
+    /// Summarize a PR stack and external blockers into a public-safe launch decision.
+    LaunchStack {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long = "pr")]
+        prs: Vec<u64>,
+        #[arg(long = "blocker")]
+        blockers: Vec<u64>,
+    },
 }

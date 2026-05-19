@@ -6,6 +6,7 @@ use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
 use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
 use architect_tui::launch_judge::{LaunchJudgeOptions, run_launch_judge};
+use architect_tui::launch_stack::{LaunchStackOptions, run_launch_stack};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
 use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
 use architect_tui::smoke::{SmokeOptions, run_smoke};
@@ -192,6 +193,20 @@ async fn main() -> Result<()> {
             )
             .await?;
         }
+        Some(Commands::LaunchStack {
+            json,
+            repo,
+            prs,
+            blockers,
+        }) => run_launch_stack(
+            &workspace,
+            LaunchStackOptions {
+                json,
+                repo,
+                prs,
+                blockers,
+            },
+        )?,
         None => run_interactive(workspace, config).await?,
     }
 

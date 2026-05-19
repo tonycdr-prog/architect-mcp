@@ -224,6 +224,14 @@ This command combines the read-only governance audit, terminal smoke, release-ga
 
 Use `--public-summary` for public PR comments, release notes, and issue evidence. It emits a compact launch decision summary with check status, next actions, release-gate attempt/result, terminal-evidence source filenames, and terminal-evidence platform status. It intentionally omits the workspace path, governance-audit internals, smoke report internals, raw command tails, terminal-evidence freeform source text, command summaries, notes, stdout/stderr logs, cache paths, private repo names, and token-shaped values. Keep `--json` for local diagnosis when you need the full report.
 
+Launch stack:
+
+```bash
+architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136
+```
+
+`launch-stack` complements `launch-judge`; it does not replace the clean checkout release gate or terminal evidence. It uses GitHub CLI read-only lookups to summarize explicit PR numbers and external blocker issue numbers into `go`, `conditional_go`, or `no_go`. Failed PR checks or dirty/unknown merge states are `no_go`; draft PRs, pending checks, temporarily unstable merge states caused by pending checks, and open blocker issues are `conditional_go`. The output is public-safe and omits raw workflow logs, local paths, token-shaped values, and repository-local diagnostics.
+
 Linux and Windows testers can generate the public-safe evidence file directly:
 
 ```bash

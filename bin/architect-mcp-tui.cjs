@@ -18,6 +18,7 @@ const REQUIRED_LOCAL_HELP_COMMANDS = [
   "foundry-smoke",
   "governance-audit",
   "launch-judge",
+  "launch-stack",
 ];
 
 const root = path.resolve(__dirname, "..");
