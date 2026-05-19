@@ -80,6 +80,52 @@ pub(crate) fn likely_files(build_plan: &Value) -> Vec<String> {
     files
 }
 
+pub(crate) fn likely_files_from_gate(grill_value: &Value, build_plan: &Value) -> Vec<String> {
+    let mut files = likely_files(build_plan);
+    if let Some(repo_layout) = grill_value
+        .get("updatedBrief")
+        .and_then(|brief| brief.get("repoLayout"))
+    {
+        collect_repo_layout_files(repo_layout, &mut files);
+    }
+    files.sort();
+    files.dedup();
+    files
+}
+
+fn collect_repo_layout_files(value: &Value, files: &mut Vec<String>) {
+    match value {
+        Value::String(text) => files.extend(path_tokens(text)),
+        Value::Array(items) => {
+            for item in items {
+                collect_repo_layout_files(item, files);
+            }
+        }
+        Value::Object(map) => {
+            for item in map.values() {
+                collect_repo_layout_files(item, files);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn path_tokens(text: &str) -> Vec<String> {
+    text.split(|ch: char| {
+        !(ch.is_ascii_alphanumeric() || matches!(ch, '/' | '.' | '_' | '-' | '*' | '{' | '}'))
+    })
+    .map(|token| token.trim_matches(['.', ',']))
+    .filter(|token| {
+        token.contains('/')
+            && std::path::Path::new(token)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.contains('.'))
+    })
+    .map(ToString::to_string)
+    .collect()
+}
+
 pub(crate) fn proposed_file_plan(grill_value: &Value) -> Value {
     let mut files: BTreeMap<String, Value> = BTreeMap::new();
     collect_scaffold_files(grill_value, &mut files);
@@ -181,5 +227,24 @@ mod tests {
                 "review_repo_structure"
             ]
         );
+    }
+
+    #[test]
+    fn likely_files_from_gate_includes_repo_layout_file_mentions() {
+        let grill = json!({
+            "updatedBrief": {
+                "repoLayout": {
+                    "pathMap": {
+                        "docs": ["docs/codex-adapter-smoke.md is the intended changed file"]
+                    }
+                }
+            }
+        });
+        let plan = json!({ "slices": [{ "files": ["docs/architecture-contract.md"] }] });
+
+        let files = likely_files_from_gate(&grill, &plan);
+
+        assert!(files.contains(&"docs/architecture-contract.md".to_string()));
+        assert!(files.contains(&"docs/codex-adapter-smoke.md".to_string()));
     }
 }

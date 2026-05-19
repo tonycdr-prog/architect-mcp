@@ -1,4 +1,5 @@
 use std::io::Read;
+use std::process::Command;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -8,8 +9,7 @@ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 
 use crate::adapter::{AdapterConfig, AgentEvent};
 
-const OUTPUT_LIMIT_BYTES: usize = 64 * 1024;
-const TRUNCATED_MARKER: &str = "[truncated after 65536 bytes]";
+const OUTPUT_LIMIT_BYTES: usize = 512 * 1024;
 const OUTPUT_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone)]
@@ -78,7 +78,7 @@ pub fn run_adapter_pty(config: &AdapterConfig, options: PtyRunOptions) -> Result
             }
         }
         if truncated {
-            output.push_str(TRUNCATED_MARKER);
+            output.push_str(&truncated_marker());
         }
         let _ = output_tx.send((output, truncated));
     });
@@ -109,6 +109,57 @@ pub fn run_adapter_pty(config: &AdapterConfig, options: PtyRunOptions) -> Result
         }
         thread::sleep(Duration::from_millis(20));
     }
+}
+
+pub fn run_adapter_process(
+    config: &AdapterConfig,
+    options: PtyRunOptions,
+) -> Result<Vec<AgentEvent>> {
+    let mut events = vec![AgentEvent::Started {
+        adapter: options.adapter_name,
+    }];
+    let mut command = Command::new(&config.command);
+    command.args(&config.args).arg(options.prompt);
+    for (key, value) in &config.env {
+        command.env(key, value);
+    }
+    if let Some(cwd) = &config.working_directory {
+        command.current_dir(cwd);
+    }
+
+    match crate::adapter_probe_command::output_with_timeout(&mut command, options.timeout)
+        .context("failed to run adapter process")?
+    {
+        Some(output) => {
+            let mut text = String::new();
+            text.push_str(&String::from_utf8_lossy(&output.stdout));
+            text.push_str(&String::from_utf8_lossy(&output.stderr));
+            let (text, truncated) = truncate_output(text);
+            events.push(AgentEvent::Output {
+                stream: "process".to_string(),
+                text,
+                truncated,
+            });
+            events.push(AgentEvent::Completed {
+                exit_code: output.status.code(),
+            });
+        }
+        None => events.push(AgentEvent::TimedOut),
+    }
+    Ok(events)
+}
+
+fn truncate_output(text: String) -> (String, bool) {
+    if text.len() <= OUTPUT_LIMIT_BYTES {
+        return (text, false);
+    }
+    let mut output = prefix_by_bytes(&text, OUTPUT_LIMIT_BYTES);
+    output.push_str(&truncated_marker());
+    (output, true)
+}
+
+fn truncated_marker() -> String {
+    format!("[truncated after {OUTPUT_LIMIT_BYTES} bytes]")
 }
 
 fn prefix_by_bytes(text: &str, max_bytes: usize) -> String {
@@ -187,7 +238,10 @@ mod tests {
                 command: "sh".to_string(),
                 args: vec![
                     "-c".to_string(),
-                    "python3 - <<'PY'\nprint('x' * 70000)\nPY".to_string(),
+                    format!(
+                        "python3 - <<'PY'\nprint('x' * {})\nPY",
+                        OUTPUT_LIMIT_BYTES + 1
+                    ),
                 ],
                 ..AdapterConfig::default()
             },
@@ -205,7 +259,36 @@ mod tests {
                 text,
                 truncated: true,
                 ..
-            } if text.contains(TRUNCATED_MARKER)
+            } if text.contains(&truncated_marker())
         )));
+    }
+
+    #[test]
+    fn process_runner_reports_success_without_pty() {
+        let events = run_adapter_process(
+            &AdapterConfig {
+                command: "node".to_string(),
+                args: vec!["-e".to_string(), "process.stdout.write('ok')".to_string()],
+                pty: false,
+                ..AdapterConfig::default()
+            },
+            PtyRunOptions {
+                adapter_name: "walkthrough".to_string(),
+                prompt: String::new(),
+                timeout: Duration::from_secs(2),
+            },
+        )
+        .expect("process run");
+
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, AgentEvent::Completed { .. }))
+        );
+        assert!(
+            events.iter().any(
+                |event| matches!(event, AgentEvent::Output { text, .. } if text.contains("ok"))
+            )
+        );
     }
 }

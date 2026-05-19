@@ -41,6 +41,13 @@ fn default_approval_status() -> ApprovalStatus {
     ApprovalStatus::Pending
 }
 
+const ADAPTER_RUN_GATES: &[&str] = &[
+    "review_implementation_against_contract",
+    "review_repo_structure",
+    "review_agent_final_response",
+    "review_agent_session",
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TuiSession {
@@ -64,6 +71,8 @@ pub struct TuiSession {
     pub execution_approval_reason: Option<String>,
     #[serde(default)]
     pub adapter_crashed: bool,
+    #[serde(default)]
+    pub adapter_run_issues: Vec<String>,
     #[serde(default)]
     pub arena_candidates: Vec<ArenaCandidateRecord>,
     #[serde(default = "default_approval_status")]
@@ -93,6 +102,7 @@ impl TuiSession {
             execution_approved: false,
             execution_approval_reason: None,
             adapter_crashed: false,
+            adapter_run_issues: Vec::new(),
             arena_candidates: Vec::new(),
             approval_status: ApprovalStatus::Pending,
             approval_reason: None,
@@ -143,6 +153,35 @@ impl TuiSession {
     pub fn clear_execution_approval(&mut self) {
         self.execution_approved = false;
         self.execution_approval_reason = None;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn record_adapter_run_issue(&mut self, issue: impl Into<String>) {
+        let issue = issue.into();
+        if !self
+            .adapter_run_issues
+            .iter()
+            .any(|existing| existing == &issue)
+        {
+            self.adapter_run_issues.push(issue);
+        }
+        self.adapter_crashed = true;
+        self.updated_at = unix_timestamp();
+    }
+
+    pub fn clear_adapter_run_evidence(&mut self) {
+        self.worktree = None;
+        self.diff_stat = None;
+        self.changed_files.clear();
+        self.verification.clear();
+        self.final_response = None;
+        self.adapter_crashed = false;
+        self.adapter_run_issues.clear();
+        self.approval_status = ApprovalStatus::Pending;
+        self.approval_reason = None;
+        for gate in ADAPTER_RUN_GATES {
+            self.gates.remove(*gate);
+        }
         self.updated_at = unix_timestamp();
     }
 

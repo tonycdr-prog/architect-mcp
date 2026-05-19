@@ -115,3 +115,94 @@ fn promotion_requires_review_gates_unless_overridden() {
     session.override_approval("maintainer override for smoke fixture");
     assert!(promote_approved_changes(&mut session, workspace).is_ok());
 }
+
+#[test]
+fn promotion_blocks_failed_adapter_runs_without_override() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let workspace = temp.path();
+    let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
+    fs::create_dir_all(worktree.join("docs")).expect("worktree");
+    fs::write(worktree.join("docs/result.md"), "done\n").expect("file");
+
+    let mut session = TuiSession::new("build", "codex");
+    session.approve("reviewed");
+    session.worktree = Some(worktree);
+    session.changed_files = vec![json!({ "path": "docs/result.md", "lines": 1 })];
+    session.set_required_verification(vec!["npm test".to_string()]);
+    session
+        .verification
+        .insert("npm test".to_string(), "passed".to_string());
+    for gate in REQUIRED_REVIEW_GATES {
+        session.set_gate(gate, json!({ "ok": true }));
+    }
+    session.record_adapter_run_issue("adapter exited with code 2");
+
+    let readiness = promotion_readiness(&session, workspace);
+    assert!(!readiness.ready);
+    assert!(
+        readiness
+            .blockers
+            .contains(&"adapter run issue: adapter exited with code 2".to_string())
+    );
+    assert!(
+        readiness
+            .next_actions
+            .contains(&"rerun adapter successfully or record an explicit override".to_string())
+    );
+    assert!(promote_approved_changes(&mut session, workspace).is_err());
+
+    session.override_approval("maintainer accepts failed adapter evidence");
+    assert!(promote_approved_changes(&mut session, workspace).is_ok());
+}
+
+#[test]
+fn promotion_readiness_uses_structured_review_status_not_text_matches() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let workspace = temp.path();
+    let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
+    fs::create_dir_all(worktree.join("src/features")).expect("worktree");
+    fs::write(
+        worktree.join("src/features/result.ts"),
+        "export const ok = true;\n",
+    )
+    .expect("file");
+
+    let mut session = TuiSession::new("build", "codex");
+    session.approve("reviewed");
+    session.worktree = Some(worktree);
+    session.changed_files = vec![json!({ "path": "src/features/result.ts", "lines": 1 })];
+    session.set_required_verification(vec!["npm test".to_string()]);
+    session
+        .verification
+        .insert("npm test".to_string(), "passed".to_string());
+    session.set_gate(
+        "review_implementation_against_contract",
+        json!({
+            "valid": true,
+            "violations": [{
+                "severity": "warning",
+                "message": "Report skipped/failed checks honestly before completion."
+            }]
+        }),
+    );
+    session.set_gate(
+        "review_repo_structure",
+        json!({
+            "report": { "gate": { "status": "pass" } },
+            "summary": { "errors": 0, "warnings": 0 },
+            "violations": []
+        }),
+    );
+    session.set_gate(
+        "review_agent_final_response",
+        json!({ "status": "warn", "valid": true, "summary": { "errors": 0, "warnings": 1 } }),
+    );
+    session.set_gate(
+        "review_agent_session",
+        json!({ "status": "warn", "valid": true, "summary": { "fail": 0, "warn": 1 } }),
+    );
+
+    let readiness = promotion_readiness(&session, workspace);
+
+    assert!(readiness.ready, "{readiness:?}");
+}

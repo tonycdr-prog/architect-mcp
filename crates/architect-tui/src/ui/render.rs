@@ -175,4 +175,25 @@ mod tests {
         assert!(rendered.contains("Command"));
         assert!(rendered.contains("grill_me"));
     }
+
+    #[test]
+    fn renders_all_surfaces_at_default_terminal_width() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        let mut app = AppState::new(".".into(), TuiConfig::default());
+        terminal
+            .draw(|frame| render_app(frame, &mut app))
+            .expect("draw");
+
+        let layout = app.layout.expect("layout");
+        assert!(layout.inspector.y > layout.transcript.y);
+        assert!(layout.inspector.width >= 70);
+
+        let buffer = terminal.backend().buffer();
+        let rendered = format!("{buffer:?}");
+        assert!(rendered.contains("Agents"));
+        assert!(rendered.contains("Inspector"));
+        assert!(rendered.contains("workflow gates"));
+        assert!(rendered.contains("Command"));
+    }
 }

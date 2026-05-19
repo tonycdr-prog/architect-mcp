@@ -46,3 +46,18 @@ fn shell_probe_uses_noop_instead_of_version() {
     assert!(health.ready);
     assert_eq!(health.auth_status, AuthStatus::NotApplicable);
 }
+
+#[test]
+fn walkthrough_fixture_adapter_uses_version_probe_without_auth() {
+    let health = probe_adapter_health(
+        "walkthrough",
+        &AdapterConfig {
+            command: "node".to_string(),
+            ..AdapterConfig::default()
+        },
+    );
+    assert!(health.installed);
+    assert!(health.ready);
+    assert_eq!(health.auth_status, AuthStatus::NotApplicable);
+    assert_eq!(health.detail, "fixture adapter");
+}

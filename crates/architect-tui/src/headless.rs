@@ -8,7 +8,7 @@ use crate::gate_calls::call_gate;
 use crate::headless_adapter::run_ready_adapter;
 use crate::headless_events::{JsonlEvent, emit, emit_complete, emit_skip, emit_workflow};
 use crate::headless_support::{
-    likely_files, pre_edit_args, proposed_file_plan, string_array, verification_checks,
+    likely_files_from_gate, pre_edit_args, proposed_file_plan, string_array, verification_checks,
 };
 use crate::mcp::StdioMcpClient;
 use crate::orchestrator::Orchestrator;
@@ -161,7 +161,7 @@ async fn gate_reviews<W: AsyncWriteExt + Unpin>(
     let contract = grill_value.get("contract").cloned();
     let verification = verification_checks(grill_value, &build_plan);
     let mut args = pre_edit_args(idea, grill_value, &verification);
-    let likely = likely_files(&build_plan);
+    let likely = likely_files_from_gate(grill_value, &build_plan);
     if !likely.is_empty() {
         args["likelyFiles"] = json!(likely);
     }

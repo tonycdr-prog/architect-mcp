@@ -2,7 +2,9 @@ use anyhow::Result;
 use serde_json::{Value, json};
 
 use crate::headless::HeadlessRunOptions;
-use crate::headless_support::{pre_edit_args, proposed_file_plan, verification_checks};
+use crate::headless_support::{
+    likely_files_from_gate, pre_edit_args, proposed_file_plan, verification_checks,
+};
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_support::apply_run_evidence;
 use crate::interactive_update::{WorkflowUpdate, gate_line, inspector_for, update};
@@ -60,11 +62,17 @@ impl InteractiveWorkflowEngine {
     pub(crate) async fn create_contract(&mut self) -> Result<WorkflowUpdate> {
         self.require_intake_ready()?;
         let (idea, grill, verification) = self.gate_inputs()?;
+        let build_plan = grill.get("buildPlan").cloned().unwrap_or_else(|| json!({}));
+        let mut args = pre_edit_args(&idea, &grill, &verification);
+        let likely = likely_files_from_gate(&grill, &build_plan);
+        if !likely.is_empty() {
+            args["likelyFiles"] = json!(likely);
+        }
         let result = self
             .call_tool(
                 "create_pre_edit_contract",
                 "freeze goals, constraints, risks, and evidence",
-                pre_edit_args(&idea, &grill, &verification),
+                args,
             )
             .await?;
         let session = self.update_active(|session| {
@@ -169,6 +177,7 @@ impl InteractiveWorkflowEngine {
             .await?;
         let events = String::from_utf8_lossy(&output).to_string();
         let session = self.update_active(|session| {
+            session.clear_adapter_run_evidence();
             session.set_required_verification(verification);
             apply_run_evidence(session, &events);
             session.phase = if executed {

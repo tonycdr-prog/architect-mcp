@@ -22,6 +22,26 @@ It produces a secret-safe report with:
 
 Missing Codex login is a warning, not an install failure. A smoke failure usually means help output, binary launch, or live MCP gate execution failed.
 
+## Scripted Walkthrough
+
+Run the guarded command-palette flow in a throwaway git workspace:
+
+```bash
+architect-mcp-tui walkthrough --json > architect-mcp-tui-walkthrough.json
+```
+
+The report should end with `status` set to `passed`, `finalApproval` set to `promoted`, and at least one promoted file. This command uses the same interactive workflow engine as the TUI, including grill, contract, plan review, file-plan review, adapter approval, isolated adapter execution, diff inspection, verification, final/session review, promotion status, and promotion. It is still not a substitute for visually opening the TUI and checking terminal rendering.
+
+## Real Adapter Promotion Smoke
+
+When Codex is installed and authenticated, run the local promotion smoke in a throwaway repo:
+
+```bash
+architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace > architect-mcp-tui-promotion-smoke.json
+```
+
+This command creates a disposable git workspace, runs the selected adapter only after the TUI execution approval gate, verifies the isolated worktree, runs final/session review, then requires a separate promotion approval before copying files back. The report should end with `status` set to `passed`, `finalApproval` set to `promoted`, and exactly one promoted file: `docs/codex-adapter-smoke.md`. Keep the workspace path from the report when investigating failures.
+
 ## macOS And Linux
 
 ```bash
@@ -38,6 +58,8 @@ Manual fallback commands:
 ```bash
 architect-mcp-tui --help
 architect-mcp-tui config adapters --json
+architect-mcp-tui walkthrough --json
+architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace
 architect-mcp-tui run \
   --prompt "Build a tiny local notes app for one developer. Flows: create, edit, delete, and search notes. Stack: TypeScript CLI. Risks: file corruption and unclear persistence. Verification: unit tests for CRUD and search plus npm test." \
   --adapter codex \
@@ -59,6 +81,8 @@ Manual fallback commands:
 ```powershell
 architect-mcp-tui --help
 architect-mcp-tui config adapters --json
+architect-mcp-tui walkthrough --json
+architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace
 architect-mcp-tui run `
   --prompt "Build a tiny local notes app for one developer. Flows: create, edit, delete, and search notes. Stack: TypeScript CLI. Risks: file corruption and unclear persistence. Verification: unit tests for CRUD and search plus npm test." `
   --adapter codex `
@@ -79,6 +103,8 @@ Manual fallback commands:
 ```bash
 architect-mcp-tui --help
 architect-mcp-tui config adapters --json
+architect-mcp-tui walkthrough --json
+architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace
 architect-mcp-tui run \
   --prompt "Build a tiny local notes app for one developer. Flows: create, edit, delete, and search notes. Stack: TypeScript CLI. Risks: file corruption and unclear persistence. Verification: unit tests for CRUD and search plus npm test." \
   --adapter codex \
@@ -114,6 +140,8 @@ For successful terminal QA, open a Terminal QA report and paste:
 - Package version tested.
 - Commands run.
 - `architect-mcp-tui-smoke.json`.
+- `architect-mcp-tui-walkthrough.json` when run.
+- `architect-mcp-tui-promotion-smoke.json` when Codex promotion smoke is run.
 - Any terminal rendering, resize, mouse, cache, checksum, or JSONL issue.
 
 For install, checksum, cache, download, or binary launch failures, use the Install failure form.

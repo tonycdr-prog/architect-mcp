@@ -43,9 +43,9 @@ review files
 approve run isolated adapter
 run adapter
 diff summary
-diff file docs/live-qa.md
+diff file <changed-path>
 verification status
-record verification npm test=passed
+record verification <required-check>=passed
 final review <response>
 session review
 promotion status
@@ -62,6 +62,8 @@ Use `answer key=value` to fill grill blockers before rerunning `grill`. List-lik
 `approve` is phase-aware. After `review files`, it approves adapter execution only. After adapter evidence, implementation review, and session review are recorded, it approves promotion. Execution approval is cleared after the adapter run, so promotion still needs a separate approval. Use `promotion status` before approving or promoting to see every blocker and next action: missing approval, missing isolated-worktree evidence, missing changed-file evidence, failed verification, missing review gates, or blocking review output.
 
 Verification evidence is strict. The TUI captures the required checks from the live `grill_me` and build-plan gates. Use `verification status` to list the required checks, then use `record verification <check>=passed` with an exact required check name before final review, session review, or promotion approval can proceed. Failed, skipped, not-run, missing, unknown-check, and unknown-status records block the normal path; `override [reason]` remains the explicit maintainer escape hatch.
+
+Adapter run evidence is also strict. Timeout, crash, cancellation, non-zero exit, and truncated output are saved into the session as adapter issues, shown in the inspector, and block normal promotion approval/readiness until the adapter is rerun successfully or a maintainer records an explicit override. A rerun requires file-plan review and execution approval again, replaces the managed isolated worktree for that session/adapter, clears stale run evidence, and then applies the new evidence.
 
 Headless JSONL run:
 
@@ -100,6 +102,22 @@ architect-mcp-tui smoke --json
 
 The smoke command checks help output, adapter readiness, binary SHA-256 and cache metadata, a secret-safe environment summary, and a live gate-only JSONL run. See [Terminal QA](./terminal-qa.md) for platform-specific commands.
 
+Scripted interactive walkthrough:
+
+```bash
+architect-mcp-tui walkthrough --json
+```
+
+The walkthrough runs the same command-palette engine as the interactive TUI in a throwaway git workspace. It creates a session, answers intake, runs grill/contract/plan/file gates, approves and runs a fixture adapter in an isolated worktree, inspects diff evidence, records verification, runs final/session review, checks `promotion status`, approves promotion, and promotes the reviewed file. It is reproducible release evidence for the operator flow, but it does not replace manual visual terminal QA.
+
+Local real-adapter promotion smoke:
+
+```bash
+architect-mcp-tui promotion-smoke --adapter codex --json --keep-workspace
+```
+
+This command is explicit local QA, not a default CI release gate. It creates a disposable git repo, wires the TUI to the source architect-mcp server, confirms the selected adapter is ready, drives the command-palette engine through grill, contract, plan review, file-plan review, execution approval, isolated adapter execution, diff inspection, verification, final/session review, promotion approval, and promotion. The default Codex path asks for a documentation-only change to `docs/codex-adapter-smoke.md`; the smoke passes only when that file is the only promoted file. Keep the workspace when collecting evidence so the isolated worktree, promoted file, and session JSON can be inspected.
+
 ## Work Gate
 
 Every coding and app-building loop starts with the architect-mcp work gate:
@@ -125,15 +143,17 @@ The main layout has four surfaces:
 - Right: inspector for gates, adapters, and approval state.
 - Bottom: command palette and prompt input.
 
+On narrow terminals, the inspector moves into a full-width band above the command palette so Agents, Transcript, Inspector, and Command remain visible at the common 80x24 terminal size.
+
 Mouse capture supports layout-aware click, drag, scroll, tab switching, and agent pinning. Approval and promotion are command-palette actions: use `diff summary` and `diff file <path>` to inspect recorded isolated-worktree changes, use `promotion status` to inspect blockers, use `approve [reason]` after review gates pass, then `promote` to copy approved isolated-worktree files back into the workspace. Promotion requires changed-file evidence plus implementation, repo-structure, final-response, and session review gates unless `override [reason]` is used. The TUI never promotes adapter output automatically.
 
 The render scheduler coalesces redraw requests and relies on Ratatui backend diffing instead of clearing the screen after startup. It does not perform true widget-level partial painting.
 
 ## Adapters
 
-Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing. Codex also reports auth state from `codex login status`; it is ready only when the command succeeds and reports `Logged in`. Other authenticated CLIs remain `auth unknown` until reliable probes are added.
+Built-in adapter templates are Codex, Claude, Gemini, OpenCode, Aider, and a generic shell adapter. Adapters are runtime-probed and show as unavailable when the local CLI is missing. Codex also reports auth state from `codex login status`; it is ready only when the command succeeds and reports `Logged in`. The default Codex template runs `codex exec --sandbox workspace-write --color never --ephemeral` so approved TUI execution uses a bounded non-interactive Codex run inside the isolated worktree instead of launching the interactive Codex UI. It does not request Codex JSONL by default because verbose event streams can exceed the TUI output cap and become promotion blockers even when the diff and verification evidence are valid. Other authenticated CLIs remain `auth unknown` until reliable probes are added.
 
-Agents run in a PTY by default when execution is explicitly enabled. Headless `--execute` creates an isolated git worktree, streams PTY output, records changed-file evidence, and runs `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` before any promotion. PTY output is capped with an explicit truncation marker.
+Agents run in a PTY by default when execution is explicitly enabled. Headless `--execute` creates an isolated git worktree, sends the adapter the original request plus the approved pre-edit contract, required verification checks, and execution rules, streams PTY output, records changed-file evidence, and runs `review_implementation_against_contract`, `review_repo_structure`, `review_agent_final_response`, and `review_agent_session` before any promotion. PTY output is capped with an explicit truncation marker, and truncated output becomes a promotion blocker in the normal path.
 
 The `arena run <adapter[,adapter]>` command runs named adapters against the current contract into isolated worktrees and records each candidate's diff evidence. The `arena rank` command ranks recorded candidates with a deterministic score based on implementation review status, verification status, diff size, contract drift, and crash state. Candidate promotion remains manual; the arena never auto-merges a winner.
 
@@ -169,4 +189,4 @@ npm run rust:check
 
 That runs `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace`.
 
-Cross-platform install smoke and live-QA smoke run in GitHub Actions on Linux, macOS, and Windows. Manual terminal checks are described in [Terminal QA](./terminal-qa.md), and release-candidate evidence is tracked in [TUI Live QA](./tui-live-qa.md).
+Cross-platform install smoke, live-QA smoke, and scripted interactive walkthrough checks run in GitHub Actions on Linux, macOS, and Windows. Manual terminal checks are described in [Terminal QA](./terminal-qa.md), and release-candidate evidence is tracked in [TUI Live QA](./tui-live-qa.md).

@@ -5,8 +5,10 @@ use architect_tui::acp::run_acp_stdio;
 use architect_tui::adapter::print_adapter_table;
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
+use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
 use architect_tui::smoke::{SmokeOptions, run_smoke};
 use architect_tui::ui::run_interactive;
+use architect_tui::walkthrough::{WalkthroughOptions, run_walkthrough};
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
@@ -55,6 +57,24 @@ enum Commands {
         prompt: String,
         #[arg(long)]
         skip_gate: bool,
+    },
+    /// Run a scripted interactive command-palette walkthrough in a throwaway workspace.
+    Walkthrough {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        keep_workspace: bool,
+    },
+    /// Run a local-only real-adapter promotion smoke in a disposable git workspace.
+    PromotionSmoke {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, default_value = "codex")]
+        adapter: String,
+        #[arg(long)]
+        keep_workspace: bool,
+        #[arg(long, default_value_t = 600)]
+        timeout_seconds: u64,
     },
 }
 
@@ -113,6 +133,38 @@ async fn main() -> Result<()> {
                     json,
                     prompt,
                     skip_gate,
+                },
+            )
+            .await?;
+        }
+        Some(Commands::Walkthrough {
+            json,
+            keep_workspace,
+        }) => {
+            run_walkthrough(
+                workspace,
+                config,
+                WalkthroughOptions {
+                    json,
+                    keep_workspace,
+                },
+            )
+            .await?;
+        }
+        Some(Commands::PromotionSmoke {
+            json,
+            adapter,
+            keep_workspace,
+            timeout_seconds,
+        }) => {
+            run_promotion_smoke(
+                workspace,
+                config,
+                PromotionSmokeOptions {
+                    json,
+                    adapter,
+                    keep_workspace,
+                    timeout_seconds,
                 },
             )
             .await?;

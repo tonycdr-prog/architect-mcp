@@ -30,6 +30,11 @@ mod interactive_update;
 pub mod mcp;
 mod mcp_client;
 pub mod orchestrator;
+pub mod promotion_smoke;
+mod promotion_smoke_report;
+mod promotion_smoke_script;
+mod promotion_smoke_verification;
+mod promotion_smoke_workspace;
 pub mod session;
 #[cfg(test)]
 mod session_tests;
@@ -38,5 +43,7 @@ mod smoke_report;
 mod smoke_types;
 pub mod ui;
 mod verification;
+pub mod walkthrough;
+mod walkthrough_script;
 
 pub const APP_NAME: &str = "architect-mcp-tui";

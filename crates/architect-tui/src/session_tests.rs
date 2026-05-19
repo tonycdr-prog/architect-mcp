@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::session::{ApprovalStatus, SessionStore, TuiSession};
+use crate::session::{ApprovalStatus, SessionPhase, SessionStore, TuiSession};
 
 #[test]
 fn session_store_round_trips_without_secrets() {
@@ -83,6 +83,53 @@ fn legacy_session_json_defaults_new_fields() {
     assert!(session.execution_approval_reason.is_none());
     assert!(session.required_verification.is_empty());
     assert!(session.final_response.is_none());
+    assert!(session.adapter_run_issues.is_empty());
     assert_eq!(session.approval_status, ApprovalStatus::Pending);
     assert!(session.approval_reason.is_none());
+}
+
+#[test]
+fn clear_adapter_run_evidence_resets_stale_promotion_state() {
+    let mut session = TuiSession::new("build controlled TUI", "codex");
+    session.phase = SessionPhase::Complete;
+    session.worktree = Some("/tmp/old-worktree".into());
+    session.diff_stat = Some("docs/old.md | 1 +".to_string());
+    session.changed_files = vec![json!({ "path": "docs/old.md", "lines": 1 })];
+    session
+        .verification
+        .insert("npm test".to_string(), "passed".to_string());
+    session.set_final_response("old final response");
+    session.record_adapter_run_issue("adapter exited with code 2");
+    session.approve("old approval");
+    session.set_gate("grill_me", json!({ "ready": true }));
+    session.set_gate("review_build_plan", json!({ "ok": true }));
+    session.set_gate(
+        "review_implementation_against_contract",
+        json!({ "ok": true }),
+    );
+    session.set_gate("review_repo_structure", json!({ "ok": true }));
+    session.set_gate("review_agent_final_response", json!({ "ok": true }));
+    session.set_gate("review_agent_session", json!({ "ok": true }));
+
+    session.clear_adapter_run_evidence();
+
+    assert!(session.worktree.is_none());
+    assert!(session.diff_stat.is_none());
+    assert!(session.changed_files.is_empty());
+    assert!(session.verification.is_empty());
+    assert!(session.final_response.is_none());
+    assert!(!session.adapter_crashed);
+    assert!(session.adapter_run_issues.is_empty());
+    assert_eq!(session.approval_status, ApprovalStatus::Pending);
+    assert!(session.approval_reason.is_none());
+    assert!(session.gates.contains_key("grill_me"));
+    assert!(session.gates.contains_key("review_build_plan"));
+    assert!(
+        !session
+            .gates
+            .contains_key("review_implementation_against_contract")
+    );
+    assert!(!session.gates.contains_key("review_repo_structure"));
+    assert!(!session.gates.contains_key("review_agent_final_response"));
+    assert!(!session.gates.contains_key("review_agent_session"));
 }
