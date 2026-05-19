@@ -90,6 +90,9 @@ mod issue_terminal_evidence_source;
 #[cfg(test)]
 mod issue_terminal_evidence_tests;
 pub mod launch_judge;
+mod launch_judge_command;
+#[cfg(test)]
+mod launch_judge_command_tests;
 mod launch_judge_evidence;
 #[cfg(test)]
 mod launch_judge_evidence_environment_tests;

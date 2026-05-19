@@ -3,6 +3,9 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::governance_audit_report::{GovernanceAuditReport, GovernanceAuditStatus};
+pub(crate) use crate::launch_judge_command::{
+    LaunchJudgeCommandEvidence, skipped_command, tail_lines,
+};
 use crate::smoke_types::{SmokeReport, SmokeStatus};
 pub use crate::terminal_evidence_environment::LaunchJudgeTerminalEvidenceEnvironment;
 
@@ -30,18 +33,6 @@ pub struct LaunchJudgeCheck {
     pub status: LaunchJudgeCheckStatus,
     pub detail: String,
     pub next_action: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LaunchJudgeCommandEvidence {
-    pub command: String,
-    pub attempted: bool,
-    pub ok: bool,
-    pub exit_code: Option<i32>,
-    pub stdout_tail: Vec<String>,
-    pub stderr_tail: Vec<String>,
-    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -207,7 +198,7 @@ pub(crate) fn release_check_status(evidence: &LaunchJudgeCommandEvidence) -> Lau
             Some("rerun with --run-release-check before release-sensitive go"),
         );
     }
-    if evidence.ok {
+    if evidence.ok == Some(true) {
         check(
             "release gate",
             LaunchJudgeCheckStatus::Passed,
@@ -246,26 +237,6 @@ pub(crate) fn judge_result(blockers: &[String], warnings: &[String]) -> LaunchJu
     } else {
         LaunchJudgeResult::Go
     }
-}
-
-pub(crate) fn skipped_command(command: &str) -> LaunchJudgeCommandEvidence {
-    LaunchJudgeCommandEvidence {
-        command: command.to_string(),
-        attempted: false,
-        ok: false,
-        exit_code: None,
-        stdout_tail: Vec::new(),
-        stderr_tail: Vec::new(),
-        error: None,
-    }
-}
-
-pub(crate) fn tail_lines(text: &str, max: usize) -> Vec<String> {
-    let mut lines: Vec<String> = text.lines().map(ToString::to_string).collect();
-    if lines.len() > max {
-        lines = lines.split_off(lines.len() - max);
-    }
-    lines
 }
 
 pub(crate) fn print_text_report(report: &LaunchJudgeReport) {
