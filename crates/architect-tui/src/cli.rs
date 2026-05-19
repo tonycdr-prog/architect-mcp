@@ -138,6 +138,8 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
         #[arg(long)]
+        merge_plan: bool,
+        #[arg(long)]
         repo: Option<String>,
         #[arg(long = "stack-from-pr")]
         stack_from_pr: Option<u64>,

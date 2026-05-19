@@ -73,6 +73,7 @@ pub fn build_launch_readiness_report(
         workspace,
         &LaunchStackOptions {
             json: true,
+            merge_plan: false,
             repo: options.repo.clone(),
             stack_from_pr: options.stack_from_pr,
             prs: options.prs.clone(),

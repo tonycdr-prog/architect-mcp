@@ -92,6 +92,9 @@ mod launch_stack_discovery;
 #[cfg(test)]
 mod launch_stack_discovery_tests;
 mod launch_stack_github;
+mod launch_stack_merge_plan;
+#[cfg(test)]
+mod launch_stack_merge_plan_tests;
 mod launch_stack_output;
 #[cfg(test)]
 mod launch_stack_tests;
