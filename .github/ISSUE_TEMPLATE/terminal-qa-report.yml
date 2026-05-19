@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for testing in a real terminal. Do not include secrets, tokens, private repository names, or private file contents.
+        Thanks for testing in a real terminal. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
   - type: dropdown
     id: platform
     attributes:
@@ -42,11 +42,24 @@ body:
     validations:
       required: true
   - type: textarea
-    id: smoke-report
+    id: launch-judge-evidence
     attributes:
-      label: Smoke report
-      description: Paste the output from architect-mcp-tui smoke --json, or the relevant short output if JSON is not available.
+      label: Launch judge terminal evidence JSON
+      description: Paste a public-safe summary that can be saved as terminal-evidence.json and passed to architect-mcp-tui launch-judge --terminal-evidence. Do not paste raw smoke JSON.
       render: json
+      value: |
+        {
+          "schemaVersion": 1,
+          "reports": [
+            {
+              "platform": "linux",
+              "status": "passed",
+              "source": "issue #136 public-safe terminal QA report",
+              "commandSummary": "architect-mcp-tui --help, config adapters --json, and gate-only run --jsonl passed",
+              "notes": "summary only, no raw logs"
+            }
+          ]
+        }
     validations:
       required: true
   - type: dropdown
