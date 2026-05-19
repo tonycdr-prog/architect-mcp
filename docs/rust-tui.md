@@ -210,6 +210,15 @@ architect-mcp-tui governance-audit --json
 
 This command is read-only. It checks the current workspace for agent instructions, architecture/build-plan docs, package scripts, lockfiles, CI and release gates, environment templates, memory-policy safety, and secret-shaped local config. It separates deterministic release gates from smoke evidence, proposes only memory-safe durable context, and calls `review_local_workspace` in `mode=audit` when architect-mcp is available. Use `--skip-mcp` only when collecting static evidence without a live MCP process. See [Governance Audit](./governance-audit.md) for the recurring workflow and public-safe issue evidence form.
 
+Launch judge:
+
+```bash
+architect-mcp-tui launch-judge --json
+architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
+```
+
+This command combines the read-only governance audit, terminal smoke, release-gate evidence, git worktree state, and known manual-evidence gaps into one `go`, `conditional_go`, or `no_go` report. By default it does not run `npm run release:check`; missing release-gate execution is a `conditional_go` warning with a next action. Use `--run-release-check` when collecting release-sensitive evidence. Use `--skip-mcp` or `--skip-smoke` only when documenting why the judge report is intentionally partial. A `no_go` result exits non-zero; `conditional_go` exits zero so maintainers can inspect incomplete external evidence without breaking static CI.
+
 ## Config
 
 Repo config lives at:

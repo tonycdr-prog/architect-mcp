@@ -26,28 +26,24 @@ impl SmokeOptions {
 }
 
 pub async fn run_smoke(workspace: PathBuf, config: TuiConfig, options: SmokeOptions) -> Result<()> {
+    let json = options.json;
     let report = build_smoke_report(workspace, config, options).await;
-    if report.options_json {
-        println!("{}", serde_json::to_string_pretty(&report.report)?);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        print_human_report(&report.report);
+        print_human_report(&report);
     }
-    if matches!(report.report.status, SmokeStatus::Failed) {
+    if matches!(report.status, SmokeStatus::Failed) {
         anyhow::bail!("terminal smoke failed");
     }
     Ok(())
 }
 
-struct BuiltSmokeReport {
-    report: SmokeReport,
-    options_json: bool,
-}
-
-async fn build_smoke_report(
+pub async fn build_smoke_report(
     workspace: PathBuf,
     config: TuiConfig,
     options: SmokeOptions,
-) -> BuiltSmokeReport {
+) -> SmokeReport {
     let orchestrator = Orchestrator::new(workspace.clone(), config.clone());
     let help = help_check();
     let adapters = adapter_summary(&config);
@@ -57,7 +53,7 @@ async fn build_smoke_report(
         run_gate_smoke(&orchestrator, &options.prompt, &config).await
     };
     let status = smoke_status(help.ok, gate_only.ok, warning_count(&adapters));
-    let report = SmokeReport {
+    SmokeReport {
         schema_version: 1,
         status,
         workspace: workspace.display().to_string(),
@@ -67,11 +63,6 @@ async fn build_smoke_report(
         help,
         adapters,
         gate_only,
-    };
-
-    BuiltSmokeReport {
-        report,
-        options_json: options.json,
     }
 }
 

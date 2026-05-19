@@ -29,6 +29,15 @@ architect-mcp-tui governance-audit --json --skip-mcp
 
 The command exits non-zero when deterministic governance checks fail. MCP review unavailability or repo-structure warnings are reported as warnings so maintainers can still inspect the report.
 
+For an explicit launch readiness decision, use:
+
+```bash
+architect-mcp-tui launch-judge --json
+architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
+```
+
+`launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and known manual-evidence gaps. It reports `go`, `conditional_go`, or `no_go`. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or uncollected Windows/Linux terminal evidence keep the result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, or a dirty git state with `--require-clean-git` produce `no_go`.
+
 ## Recurring Workflow
 
 `.github/workflows/governance-audit.yml` runs on manual dispatch and a weekly schedule. It builds the source TUI, runs:

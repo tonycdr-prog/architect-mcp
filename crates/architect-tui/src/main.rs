@@ -6,6 +6,7 @@ use architect_tui::adapter::print_adapter_table;
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
 use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
+use architect_tui::launch_judge::{LaunchJudgeOptions, run_launch_judge};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
 use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
 use architect_tui::smoke::{SmokeOptions, run_smoke};
@@ -99,6 +100,21 @@ enum Commands {
         json: bool,
         #[arg(long)]
         skip_mcp: bool,
+        #[arg(long, default_value_t = 1000)]
+        max_files: usize,
+    },
+    /// Combine smoke, governance, release, and manual-evidence gates into a launch judge report.
+    LaunchJudge {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        skip_mcp: bool,
+        #[arg(long)]
+        skip_smoke: bool,
+        #[arg(long)]
+        run_release_check: bool,
+        #[arg(long)]
+        require_clean_git: bool,
         #[arg(long, default_value_t = 1000)]
         max_files: usize,
     },
@@ -228,6 +244,28 @@ async fn main() -> Result<()> {
                 GovernanceAuditOptions {
                     json,
                     skip_mcp,
+                    max_files,
+                },
+            )
+            .await?;
+        }
+        Some(Commands::LaunchJudge {
+            json,
+            skip_mcp,
+            skip_smoke,
+            run_release_check,
+            require_clean_git,
+            max_files,
+        }) => {
+            run_launch_judge(
+                workspace,
+                config,
+                LaunchJudgeOptions {
+                    json,
+                    skip_mcp,
+                    skip_smoke,
+                    run_release_check,
+                    require_clean_git,
                     max_files,
                 },
             )
