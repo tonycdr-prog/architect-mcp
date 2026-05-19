@@ -71,6 +71,7 @@ Use `evidence-index --json` for machine-readable release handoff when a maintain
     {
       "platform": "linux",
       "status": "passed",
+      "environment": "local_terminal",
       "source": "issue #136 public-safe summary",
       "commandSummary": "architect-mcp-tui help, config adapters --json, and gate-only run --jsonl passed",
       "collectedAt": "2026-05-17",
@@ -79,6 +80,7 @@ Use `evidence-index --json` for machine-readable release handoff when a maintain
     {
       "platform": "windows",
       "status": "passed",
+      "environment": "vm_or_cloud_terminal",
       "source": "issue #136 public-safe summary",
       "commandSummary": "architect-mcp-tui help, config adapters --json, and gate-only run --jsonl passed",
       "collectedAt": "2026-05-17",

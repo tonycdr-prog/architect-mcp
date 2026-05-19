@@ -78,6 +78,8 @@ mod issue_terminal_evidence_source;
 mod issue_terminal_evidence_tests;
 pub mod launch_judge;
 mod launch_judge_evidence;
+#[cfg(test)]
+mod launch_judge_evidence_environment_tests;
 mod launch_judge_evidence_safety;
 mod launch_judge_public_summary;
 #[cfg(test)]
@@ -122,6 +124,9 @@ mod smoke_report;
 mod smoke_types;
 pub mod terminal_evidence;
 mod terminal_evidence_date;
+mod terminal_evidence_environment;
+#[cfg(test)]
+mod terminal_evidence_environment_tests;
 #[cfg(test)]
 mod terminal_evidence_tests;
 pub mod ui;

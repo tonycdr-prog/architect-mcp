@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::governance_audit_report::{GovernanceAuditReport, GovernanceAuditStatus};
 use crate::smoke_types::{SmokeReport, SmokeStatus};
+pub use crate::terminal_evidence_environment::LaunchJudgeTerminalEvidenceEnvironment;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -56,6 +57,8 @@ pub enum LaunchJudgeTerminalEvidenceStatus {
 pub struct LaunchJudgeTerminalEvidenceReport {
     pub platform: String,
     pub status: LaunchJudgeTerminalEvidenceStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub environment: Option<LaunchJudgeTerminalEvidenceEnvironment>,
     pub source: String,
     pub command_summary: String,
     pub collected_at: Option<String>,

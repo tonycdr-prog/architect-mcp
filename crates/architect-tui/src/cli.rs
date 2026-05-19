@@ -65,6 +65,11 @@ pub enum Commands {
         skip_gate: bool,
         #[arg(long)]
         platform: Option<String>,
+        #[arg(
+            long,
+            value_name = "local-terminal|vm-or-cloud-terminal|container|hosted-ci|unknown"
+        )]
+        environment: Option<String>,
         #[arg(long)]
         source: Option<String>,
         #[arg(long)]

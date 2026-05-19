@@ -1,8 +1,9 @@
 use crate::governance_audit_report::{GovernanceAuditReport, GovernanceAuditStatus};
 use crate::launch_judge_public_summary::build_public_summary_at;
 use crate::launch_judge_report::{
-    LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeTerminalEvidenceReport,
-    LaunchJudgeTerminalEvidenceStatus, LaunchJudgeTerminalEvidenceSummary, build_report, check,
+    LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeTerminalEvidenceEnvironment,
+    LaunchJudgeTerminalEvidenceReport, LaunchJudgeTerminalEvidenceStatus,
+    LaunchJudgeTerminalEvidenceSummary, build_report, check,
 };
 
 #[test]
@@ -32,6 +33,7 @@ fn public_summary_omits_workspace_and_raw_command_tails() {
             reports: vec![LaunchJudgeTerminalEvidenceReport {
                 platform: "linux".to_string(),
                 status: LaunchJudgeTerminalEvidenceStatus::Passed,
+                environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
                 source: "issue #136 /Users/example/private".to_string(),
                 command_summary: "architect-mcp-tui passed from /home/example/private".to_string(),
                 collected_at: Some("2026-05-17".to_string()),
@@ -98,6 +100,7 @@ fn public_summary_keeps_terminal_platform_statuses() {
                 LaunchJudgeTerminalEvidenceReport {
                     platform: "linux".to_string(),
                     status: LaunchJudgeTerminalEvidenceStatus::Passed,
+                    environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
                     source: "issue #136 linux report".to_string(),
                     command_summary: "terminal evidence passed on linux".to_string(),
                     collected_at: None,
@@ -106,6 +109,7 @@ fn public_summary_keeps_terminal_platform_statuses() {
                 LaunchJudgeTerminalEvidenceReport {
                     platform: "windows".to_string(),
                     status: LaunchJudgeTerminalEvidenceStatus::Passed,
+                    environment: Some(LaunchJudgeTerminalEvidenceEnvironment::VmOrCloudTerminal),
                     source: "issue #136 windows report".to_string(),
                     command_summary: "terminal evidence passed on windows".to_string(),
                     collected_at: None,
@@ -131,7 +135,15 @@ fn public_summary_keeps_terminal_platform_statuses() {
     );
     assert_eq!(summary.terminal_evidence.reports.len(), 2);
     assert_eq!(summary.terminal_evidence.reports[0].platform, "linux");
+    assert_eq!(
+        summary.terminal_evidence.reports[0].environment,
+        Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal)
+    );
     assert_eq!(summary.terminal_evidence.reports[1].platform, "windows");
+    assert_eq!(
+        summary.terminal_evidence.reports[1].environment,
+        Some(LaunchJudgeTerminalEvidenceEnvironment::VmOrCloudTerminal)
+    );
 }
 
 fn governance_report(workspace: &str) -> GovernanceAuditReport {
