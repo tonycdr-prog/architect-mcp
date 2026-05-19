@@ -140,6 +140,21 @@ pub enum Commands {
         #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
         waived_blockers: Vec<String>,
     },
+    /// Combine launch-stack and public terminal-evidence issue state into one readiness report.
+    LaunchReadiness {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long = "pr")]
+        prs: Vec<u64>,
+        #[arg(long = "blocker")]
+        blockers: Vec<u64>,
+        #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
+        waived_blockers: Vec<String>,
+        #[arg(long)]
+        terminal_evidence_issue: Option<u64>,
+    },
     /// Collect public-safe terminal evidence JSON from a GitHub issue.
     CollectTerminalEvidence {
         #[arg(long)]

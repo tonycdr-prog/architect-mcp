@@ -155,6 +155,7 @@ For successful Linux or Windows terminal QA, open a Terminal QA report and paste
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --pr 150 --blocker 136 --terminal-evidence-issue 136
 ```
 
 Use the repeated flag form when Linux and Windows evidence arrives as separate issue comments or files. The launch judge merges the reports and validates the combined evidence without requiring hand-edited JSON. Maintainers should use `--public-summary` when posting the launch-judge decision back to an issue or release note; it keeps the decision, source filenames, and platform evidence while omitting freeform evidence text, raw report internals, and local paths.
@@ -166,6 +167,8 @@ architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect
 ```
 
 This command reads issue comments through GitHub CLI, extracts public-safe terminal-evidence JSON blocks, validates them with the same launch-judge safety rules, and prints merged evidence that can be saved and passed to `launch-judge --terminal-evidence`. It is read-only and does not create, edit, or close issues.
+
+`launch-readiness` is the maintainer rollup for the release stack plus the terminal-evidence issue. It is also read-only, reports `go`, `conditional_go`, or `no_go`, and keeps waivers separate from real Linux/Windows terminal evidence. Hosted CI terminal-evidence summaries are baseline signals only and do not satisfy issue #136 manual Windows/Linux terminal QA.
 
 The generated evidence has this shape:
 

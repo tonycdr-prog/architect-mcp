@@ -19,6 +19,7 @@ const REQUIRED_LOCAL_HELP_COMMANDS = [
   "governance-audit",
   "launch-judge",
   "launch-stack",
+  "launch-readiness",
   "collect-terminal-evidence",
 ];
 
