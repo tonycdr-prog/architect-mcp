@@ -3,7 +3,9 @@ use std::path::PathBuf;
 
 use serde_json::json;
 
-use crate::approval::{REQUIRED_REVIEW_GATES, promote_approved_changes, promotion_readiness};
+use crate::approval::{
+    REQUIRED_REVIEW_GATES, promote_approved_changes, promotion_readiness, promotion_status_lines,
+};
 use crate::session::TuiSession;
 
 #[test]
@@ -82,6 +84,42 @@ fn promotion_requires_changed_file_evidence_even_with_override() {
 }
 
 #[test]
+fn promotion_override_requires_explicit_reason_before_bypassing_gates() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let workspace = temp.path();
+    let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
+    fs::create_dir_all(worktree.join("docs")).expect("worktree");
+    fs::write(worktree.join("docs/result.md"), "done\n").expect("file");
+
+    let mut session = TuiSession::new("build", "codex");
+    session.worktree = Some(worktree);
+    session.changed_files = vec![json!({ "path": "docs/result.md", "lines": 1 })];
+    session.override_approval("manual TUI override");
+
+    let readiness = promotion_readiness(&session, workspace);
+    assert!(!readiness.ready);
+    assert!(
+        readiness
+            .blockers
+            .contains(&"explicit promotion override reason missing".to_string())
+    );
+    assert!(
+        readiness
+            .blockers
+            .contains(&"missing review gate: review_implementation_against_contract".to_string())
+    );
+    assert!(
+        readiness
+            .next_actions
+            .contains(&"run override <reason>".to_string())
+    );
+    assert!(promote_approved_changes(&mut session, workspace).is_err());
+
+    session.override_approval("maintainer inspected missing gate evidence");
+    assert!(promote_approved_changes(&mut session, workspace).is_ok());
+}
+
+#[test]
 fn promotion_rejects_unsafe_paths() {
     let temp = tempfile::tempdir().expect("tempdir");
     let workspace = temp.path();
@@ -152,6 +190,8 @@ fn promotion_blocks_failed_adapter_runs_without_override() {
     assert!(promote_approved_changes(&mut session, workspace).is_err());
 
     session.override_approval("maintainer accepts failed adapter evidence");
+    let status = promotion_status_lines(&session, workspace).join("\n");
+    assert!(status.contains("adapter-run, review, and verification blockers are bypassed"));
     assert!(promote_approved_changes(&mut session, workspace).is_ok());
 }
 

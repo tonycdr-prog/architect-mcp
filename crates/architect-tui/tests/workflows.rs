@@ -448,6 +448,24 @@ async fn interactive_failed_adapter_run_blocks_normal_promotion_approval() {
         .join("\n");
     assert!(status.contains("adapter run issue: adapter exited with code 2"));
 
+    let missing_reason = engine
+        .apply_input("override")
+        .await
+        .expect_err("override reason required");
+    assert!(
+        missing_reason
+            .to_string()
+            .contains("promotion override requires an explicit reason")
+    );
+    let default_reason = engine
+        .apply_input("override manual TUI override")
+        .await
+        .expect_err("default override reason rejected");
+    assert!(
+        default_reason
+            .to_string()
+            .contains("not the default placeholder")
+    );
     engine
         .apply_input("override maintainer inspected non-zero adapter output")
         .await

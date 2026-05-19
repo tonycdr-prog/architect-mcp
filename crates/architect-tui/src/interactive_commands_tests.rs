@@ -96,6 +96,10 @@ fn parses_command_palette_actions() {
         WorkflowCommand::DiffFile("docs/live-qa.md".to_string())
     );
     assert_eq!(
+        parse_workflow_command("override"),
+        WorkflowCommand::Override(String::new())
+    );
+    assert_eq!(
         parse_workflow_command("override maintainer accepted known warning"),
         WorkflowCommand::Override("maintainer accepted known warning".to_string())
     );

@@ -82,7 +82,7 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "run adapter" => WorkflowCommand::RunAdapter,
         "approve" => WorkflowCommand::Approve("approved in TUI".to_string()),
         "reject" => WorkflowCommand::Reject("rejected in TUI".to_string()),
-        "override" => WorkflowCommand::Override("manual TUI override".to_string()),
+        "override" => WorkflowCommand::Override(String::new()),
         "promote" => WorkflowCommand::Promote,
         "promotion status" => WorkflowCommand::PromotionStatus,
         "diff" | "diff summary" => WorkflowCommand::DiffSummary,
