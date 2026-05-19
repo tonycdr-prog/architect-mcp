@@ -39,8 +39,11 @@ The final response should be specific and evidence-backed:
 
 - What changed.
 - Which checks passed, failed, were skipped, or were not run.
+- Structured command receipts when the client has them: command, status, source, timestamp or run id, and a public-safe summary.
 - Assumptions and remaining gaps.
 - No unsupported root-cause claims.
+
+Receipts help reviewers separate claimed verification text from attached execution evidence. They do not replace CI, terminal QA, or human review, and public summaries should omit raw logs, secrets, token-shaped values, and local paths.
 
 ## Optional MCP Integration Gate
 

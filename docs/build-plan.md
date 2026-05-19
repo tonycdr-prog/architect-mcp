@@ -83,3 +83,11 @@
 - Forbidden files: TUI mutation paths, filesystem sandbox claims, raw issue/PR/log payload storage, command-success inference without supplied evidence
 - Checks: node --import tsx --test tests/workGateCompleteness.test.ts tests/toolResponses.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run release:check, git diff --check
 - Stop after: stop if the audit mutates files, accepts unknown gate names at the tool boundary, reflects raw evidence payloads, or claims it can force direct clients to call every gate.
+
+### 11. Verification Command Receipts
+- Inputs: issue #246, prompt-injection threat model, final/session review tools, existing verification records
+- Outputs: structured verification receipt domain review, final/session review receipt inputs, receipt schema validation, public-safe redaction of token-shaped values and local paths, docs update, goal ledger update
+- Allowed directories: src/domain, src/tools, tests, docs
+- Forbidden files: raw command logs, stdout/stderr payload storage, CI replacement claims, human-review replacement claims, changes that require receipts from existing clients by default
+- Checks: node --import tsx --test tests/verificationReceipts.test.ts tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check
+- Stop after: stop if public summaries expose tokens or local paths, if receipt failures can be presented as passing evidence, or if missing optional receipts break existing clients.

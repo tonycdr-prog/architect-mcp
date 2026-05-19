@@ -56,6 +56,24 @@ describe("public input schema validation", () => {
     }).success, false);
   });
 
+  it("validates structured verification receipt inputs", () => {
+    assert.equal(finalResponseReviewInputSchema.safeParse({
+      response: "Changed receipt handling. Verified with npm test. Assumptions: none. Not done: none.",
+      requiredChecks: ["npm test"],
+      verificationReceipts: [{
+        command: "npm test",
+        status: "passed",
+        source: "ci",
+        summary: "CI job passed",
+        recordedAt: "2026-05-17T22:30:00.000Z"
+      }]
+    }).success, true);
+    assert.equal(finalResponseReviewInputSchema.safeParse({
+      response: "Changed receipt handling. Verified with npm test. Assumptions: none. Not done: none.",
+      verificationReceipts: [{ command: "npm test", status: "passed", source: "unknown", summary: "ok" }]
+    }).success, false);
+  });
+
   it("does not classify unknown tools as hosted-safe", () => {
     const report = classifyToolPolicy(["not_a_real_tool", "review_repo_structure"]);
 

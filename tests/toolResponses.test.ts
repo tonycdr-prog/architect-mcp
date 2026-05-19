@@ -553,10 +553,17 @@ describe("MCP tool responses", () => {
       const finalReview = await callJson(client, "review_agent_final_response", {
         request: {
           response: "Changed the V3 tools. Verified with npm run typecheck, npm test, and npm run build. Assumptions: no new assumptions. Not done: no remaining requested work.",
-          requiredChecks: ["npm run typecheck", "npm test", "npm run build"]
+          requiredChecks: ["npm run typecheck", "npm test", "npm run build"],
+          receiptNow: "2026-05-17T22:30:00.000Z",
+          verificationReceipts: [
+            { command: "npm run typecheck", status: "passed", source: "ci", summary: "CI typecheck passed.", recordedAt: "2026-05-17T22:29:00.000Z" },
+            { command: "npm test", status: "passed", source: "ci", summary: "CI tests passed.", recordedAt: "2026-05-17T22:29:00.000Z" },
+            { command: "npm run build", status: "passed", source: "ci", summary: "CI build passed.", recordedAt: "2026-05-17T22:29:00.000Z" }
+          ]
         }
       });
       assert.equal(finalReview.status, "pass");
+      assert.equal(finalReview.verificationEvidence.receipts.complete, true);
 
       const gateAudit = await callJson(client, "audit_work_gate_completeness", {
         request: {

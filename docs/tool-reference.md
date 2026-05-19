@@ -23,8 +23,8 @@ The default public surface for clarifying work, constraining edits, reviewing dr
 | `review_proposed_file_plan` | Check file paths and ownership before edits start. |
 | `review_repo_structure` | Review repository structure from supplied file summaries. |
 | `review_implementation_against_contract` | Compare changed files and verification against the pre-edit contract. |
-| `review_agent_final_response` | Check the final response for evidence, honesty, and not-done disclosure. |
-| `review_agent_session` | Combine intent, contract, drift, memory, and final-response checks into one session review. |
+| `review_agent_final_response` | Check the final response for evidence, receipts, honesty, and not-done disclosure. |
+| `review_agent_session` | Combine intent, contract, drift, receipts, memory, and final-response checks into one session review. |
 
 ## Stack Packs And Standards
 

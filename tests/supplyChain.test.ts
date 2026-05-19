@@ -251,7 +251,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#245 - Add non-TUI work-gate completeness audit\]/);
+    assert.match(goal, /Active slice: \[#246 - Attach verification command receipts to final and session review\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -297,6 +297,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /prompt-injection\/gate-bypass threat-model coverage/);
     assert.match(goal, /TUI untrusted-input labels/);
     assert.match(goal, /direct-client work-gate completeness auditing/);
+    assert.match(goal, /structured verification command receipts/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -306,6 +307,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#241 in PR #243/);
     assert.match(goal, /#242 in PR #248/);
     assert.match(goal, /#244 in PR #249/);
+    assert.match(goal, /#245 in PR #250/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
