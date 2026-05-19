@@ -286,7 +286,9 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: Stack landing from PR #150 through PR #306, plus \[#136 - Run post-release TUI terminal QA on Windows and Linux\]/);
+    assert.match(goal, /Active slice: \[#284 - Harden verification receipt evidence tiers and freshness\]/);
+    assert.match(goal, /stacked in PR #307/);
+    assert.match(goal, /launch boundary .*now has Linux VM evidence plus an explicit maintainer waiver/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -329,6 +331,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#279\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/279\)/);
     assert.match(goal, /\[#281\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/281\)/);
     assert.match(goal, /\[#283\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/283\)/);
+    assert.match(goal, /\[#284\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/284\)/);
     assert.match(goal, /\[#286\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/286\)/);
     assert.match(goal, /\[#289\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/289\)/);
     assert.match(goal, /\[#291\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/291\)/);
@@ -386,6 +389,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /terminal evidence provenance review-thread clearance for PR #231 review-thread debt/);
     assert.match(goal, /launch-stack schema compatibility hardening for PR #233 review-thread debt/);
     assert.match(goal, /remaining launch-readiness review-thread clearance for PR #235, PR #240, and PR #243 review-thread debt/);
+    assert.match(goal, /verification receipt evidence-tier hardening for issue #284/);
+    assert.match(goal, /Linux VM terminal evidence for #136/);
+    assert.match(goal, /explicit maintainer waiver for the remaining Windows terminal-evidence gap/);
+    assert.match(goal, /This is a waiver, not Windows proof/);
+    assert.match(goal, /Local, TUI, adapter, and manual receipts without `recordedAt` no longer count as fresh required evidence/);
     assert.match(goal, /published-package smoke now runs on schedule or manual dispatch/);
     assert.match(goal, /exports `ARCHITECT_MCP_WORKSPACE` under the temp smoke directory/);
     assert.match(goal, /docs distinguish install-smoke ARM64 coverage from live-QA coverage/);
@@ -458,9 +466,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#301 in PR #302/);
     assert.match(goal, /#303 in PR #304/);
     assert.match(goal, /#305 in PR #306/);
-    assert.match(goal, /#150 as the first merge candidate and #306 as the current stack head/);
+    assert.match(goal, /#284 in PR #307/);
+    assert.match(goal, /#150 as the first merge candidate and #307 as the current stack head/);
     assert.doesNotMatch(goal, /unresolved review threads on PRs #235, #240, and #243/);
-    assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
+    assert.match(goal, /Current launch readiness from stack head #307 is `go` only when the explicit #136 blocker and terminal-evidence waivers are supplied/);
+    assert.match(goal, /without the waiver, #136 still visibly reports missing Windows terminal proof/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
     assert.doesNotMatch(goal, /The full evolved objective is complete/i);

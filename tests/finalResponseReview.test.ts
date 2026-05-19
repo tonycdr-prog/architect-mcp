@@ -41,6 +41,9 @@ describe("reviewAgentFinalResponse", () => {
     assert.equal(result.status, "pass");
     assert.equal(result.verificationEvidence.claimedChecks[0].mentioned, true);
     assert.equal(result.verificationEvidence.receipts.complete, true);
+    assert.equal(result.verificationEvidence.receipts.summary.evidenceTiers.claimed, 1);
+    assert.equal(result.verificationEvidence.receipts.summary.evidenceTiers.independent, 1);
+    assert.equal(result.verificationEvidence.receipts.receipts[0].evidenceTier, "independent");
   });
 
   it("warns on explicit missing receipts and fails stale or failed receipt evidence", () => {
