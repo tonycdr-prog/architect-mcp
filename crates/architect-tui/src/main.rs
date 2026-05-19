@@ -200,6 +200,7 @@ async fn main() -> Result<()> {
         Some(Commands::LaunchStack {
             json,
             repo,
+            stack_from_pr,
             prs,
             blockers,
             waived_blockers,
@@ -208,6 +209,7 @@ async fn main() -> Result<()> {
             LaunchStackOptions {
                 json,
                 repo,
+                stack_from_pr,
                 prs,
                 blockers,
                 waived_blockers,
@@ -216,6 +218,7 @@ async fn main() -> Result<()> {
         Some(Commands::LaunchReadiness {
             json,
             repo,
+            stack_from_pr,
             prs,
             blockers,
             waived_blockers,
@@ -225,6 +228,7 @@ async fn main() -> Result<()> {
             LaunchReadinessOptions {
                 json,
                 repo,
+                stack_from_pr,
                 prs,
                 blockers,
                 waived_blockers,

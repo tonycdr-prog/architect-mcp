@@ -133,6 +133,8 @@ pub enum Commands {
         json: bool,
         #[arg(long)]
         repo: Option<String>,
+        #[arg(long = "stack-from-pr")]
+        stack_from_pr: Option<u64>,
         #[arg(long = "pr")]
         prs: Vec<u64>,
         #[arg(long = "blocker")]
@@ -146,6 +148,8 @@ pub enum Commands {
         json: bool,
         #[arg(long)]
         repo: Option<String>,
+        #[arg(long = "stack-from-pr")]
+        stack_from_pr: Option<u64>,
         #[arg(long = "pr")]
         prs: Vec<u64>,
         #[arg(long = "blocker")]

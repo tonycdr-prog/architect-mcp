@@ -14,6 +14,7 @@ use crate::launch_stack_github::public_text;
 pub struct LaunchReadinessOptions {
     pub json: bool,
     pub repo: Option<String>,
+    pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
     pub blockers: Vec<u64>,
     pub waived_blockers: Vec<String>,
@@ -55,6 +56,7 @@ pub fn build_launch_readiness_report(
         &LaunchStackOptions {
             json: true,
             repo: options.repo.clone(),
+            stack_from_pr: options.stack_from_pr,
             prs: options.prs.clone(),
             blockers: options.blockers.clone(),
             waived_blockers: options.waived_blockers.clone(),

@@ -69,7 +69,11 @@ pub mod launch_readiness;
 #[cfg(test)]
 mod launch_readiness_tests;
 pub mod launch_stack;
+mod launch_stack_discovery;
+#[cfg(test)]
+mod launch_stack_discovery_tests;
 mod launch_stack_github;
+mod launch_stack_output;
 #[cfg(test)]
 mod launch_stack_tests;
 pub mod mcp;
