@@ -41,9 +41,12 @@ When Linux and Windows reports are generated separately, pass both files to the 
 ```bash
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
+architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect-mcp --issue 136
 ```
 
 Use `--public-summary` for PR comments, release notes, and issue follow-up. It keeps the launch decision, source filenames, and platform evidence while omitting workspace paths, raw command tails, smoke internals, terminal-evidence freeform source text, command summaries, notes, cache paths, private repo names, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
+
+Use `collect-terminal-evidence` when Linux and Windows evidence is posted as fenced JSON in a GitHub issue. It performs a read-only GitHub CLI lookup, extracts public-safe evidence blocks, applies the same launch-judge validation rules, and prints merged evidence for local release judging. It does not replace the underlying terminal QA or mutate the issue.
 
 When launch readiness depends on a stack of open PRs plus external blocker issues, collect stack state separately:
 

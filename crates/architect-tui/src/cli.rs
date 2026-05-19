@@ -138,4 +138,13 @@ pub enum Commands {
         #[arg(long = "blocker")]
         blockers: Vec<u64>,
     },
+    /// Collect public-safe terminal evidence JSON from a GitHub issue.
+    CollectTerminalEvidence {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long)]
+        issue: u64,
+    },
 }

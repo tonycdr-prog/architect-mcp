@@ -122,6 +122,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(tuiLiveQa, /Manual Linux terminal smoke/);
     assert.match(tuiLiveQa, /Manual Windows terminal smoke/);
     assert.match(terminalQa, /architect-mcp-tui terminal-evidence --json/);
+    assert.match(terminalQa, /collect-terminal-evidence --json/);
+    assert.match(terminalQa, /read-only and does not create, edit, or close issues/);
     assert.match(terminalQa, /launch-judge --json --terminal-evidence terminal-evidence\.json/);
     assert.match(terminalQa, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(terminalQa, /launch-judge --public-summary --terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
@@ -154,6 +156,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --public-summary/);
     assert.match(rustTui, /architect-mcp-tui launch-stack --json/);
+    assert.match(rustTui, /architect-mcp-tui collect-terminal-evidence --json/);
+    assert.match(rustTui, /extracts fenced terminal-evidence JSON/);
     assert.match(rustTui, /draft PRs, pending checks, temporarily unstable merge states caused by pending checks, and open blocker issues are `conditional_go`/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --json/);
     assert.match(rustTui, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);

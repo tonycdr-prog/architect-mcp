@@ -19,6 +19,7 @@ const REQUIRED_LOCAL_HELP_COMMANDS = [
   "governance-audit",
   "launch-judge",
   "launch-stack",
+  "collect-terminal-evidence",
 ];
 
 const root = path.resolve(__dirname, "..");

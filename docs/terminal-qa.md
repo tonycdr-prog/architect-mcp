@@ -159,6 +159,14 @@ architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-eviden
 
 Use the repeated flag form when Linux and Windows evidence arrives as separate issue comments or files. The launch judge merges the reports and validates the combined evidence without requiring hand-edited JSON. Maintainers should use `--public-summary` when posting the launch-judge decision back to an issue or release note; it keeps the decision, source filenames, and platform evidence while omitting freeform evidence text, raw report internals, and local paths.
 
+When reports are posted as fenced JSON in a GitHub issue, maintainers can collect and validate them without hand-copying each comment:
+
+```bash
+architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect-mcp --issue 136
+```
+
+This command reads issue comments through GitHub CLI, extracts public-safe terminal-evidence JSON blocks, validates them with the same launch-judge safety rules, and prints merged evidence that can be saved and passed to `launch-judge --terminal-evidence`. It is read-only and does not create, edit, or close issues.
+
 The generated evidence has this shape:
 
 ```json
