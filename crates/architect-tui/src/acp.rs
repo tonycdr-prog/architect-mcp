@@ -11,6 +11,12 @@ pub use crate::acp_state::{AcpSession, AcpSessionStatus};
 const SESSION_PROMPT_PARAMS: [&str; 2] = ["sessionId", "prompt"];
 const SESSION_ID_PARAMS: [&str; 1] = ["sessionId"];
 
+struct JsonRpcRequest {
+    id: Option<Value>,
+    method: String,
+    params: Value,
+}
+
 pub fn acp_sdk_marker() -> &'static str {
     std::any::type_name::<agent_client_protocol::schema::ProtocolVersion>()
 }
@@ -52,13 +58,12 @@ pub fn handle_json_rpc_value(
     config: &TuiConfig,
     request: Value,
 ) -> Option<Value> {
-    let id = request.get("id").cloned()?;
-    let method = request
-        .get("method")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-    let params = request.get("params").cloned().unwrap_or_else(|| json!({}));
-    let result = match method {
+    let request = match validate_json_rpc_request(request) {
+        Ok(request) => request,
+        Err((id, message)) => return Some(error_response(id, -32600, &message)),
+    };
+    let id = request.id.clone()?;
+    let result = match request.method.as_str() {
         "initialize" => json!({
             "protocolVersion": "1",
             "serverInfo": {
@@ -86,17 +91,18 @@ pub fn handle_json_rpc_value(
             "approvalPolicy": config.agents.approval_policy
         }),
         "session/new" => {
-            let session = match state.create_session(config, &params) {
+            let session = match state.create_session(config, &request.params) {
                 Ok(session) => session,
                 Err(error) => return Some(error_response(id, -32602, &error.to_string())),
             };
             json!({ "session": session })
         }
         "session/prompt" => {
-            let params = match validate_params("session/prompt", &params, &SESSION_PROMPT_PARAMS) {
-                Ok(params) => params,
-                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
-            };
+            let params =
+                match validate_params("session/prompt", &request.params, &SESSION_PROMPT_PARAMS) {
+                    Ok(params) => params,
+                    Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+                };
             let session_id = match required_string_param("session/prompt", params, "sessionId") {
                 Ok(session_id) => session_id,
                 Err(error) => return Some(error_response(id, -32602, &error.to_string())),
@@ -125,7 +131,7 @@ pub fn handle_json_rpc_value(
             })
         }
         "session/get" => {
-            let params = match validate_params("session/get", &params, &SESSION_ID_PARAMS) {
+            let params = match validate_params("session/get", &request.params, &SESSION_ID_PARAMS) {
                 Ok(params) => params,
                 Err(error) => return Some(error_response(id, -32602, &error.to_string())),
             };
@@ -140,10 +146,11 @@ pub fn handle_json_rpc_value(
             json!({ "session": session })
         }
         "session/events" => {
-            let params = match validate_params("session/events", &params, &SESSION_ID_PARAMS) {
-                Ok(params) => params,
-                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
-            };
+            let params =
+                match validate_params("session/events", &request.params, &SESSION_ID_PARAMS) {
+                    Ok(params) => params,
+                    Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+                };
             let session_id = match required_string_param("session/events", params, "sessionId") {
                 Ok(session_id) => session_id,
                 Err(error) => return Some(error_response(id, -32602, &error.to_string())),
@@ -155,10 +162,11 @@ pub fn handle_json_rpc_value(
             json!({ "sessionId": session_id, "events": session.events })
         }
         "session/cancel" => {
-            let params = match validate_params("session/cancel", &params, &SESSION_ID_PARAMS) {
-                Ok(params) => params,
-                Err(error) => return Some(error_response(id, -32602, &error.to_string())),
-            };
+            let params =
+                match validate_params("session/cancel", &request.params, &SESSION_ID_PARAMS) {
+                    Ok(params) => params,
+                    Err(error) => return Some(error_response(id, -32602, &error.to_string())),
+                };
             let session_id = match required_string_param("session/cancel", params, "sessionId") {
                 Ok(session_id) => session_id,
                 Err(error) => return Some(error_response(id, -32602, &error.to_string())),
@@ -174,7 +182,7 @@ pub fn handle_json_rpc_value(
             return Some(error_response(
                 id,
                 -32601,
-                &format!("unknown method '{method}'"),
+                &format!("unknown method '{}'", request.method),
             ));
         }
     };
@@ -184,6 +192,67 @@ pub fn handle_json_rpc_value(
         "id": id,
         "result": result
     }))
+}
+
+fn validate_json_rpc_request(
+    request: Value,
+) -> std::result::Result<JsonRpcRequest, (Value, String)> {
+    let Some(object) = request.as_object() else {
+        return Err((
+            Value::Null,
+            "ACP JSON-RPC request must be an object".to_string(),
+        ));
+    };
+
+    let id = match object.get("id") {
+        Some(id) if is_valid_json_rpc_id(id) => Some(id.clone()),
+        Some(_) => {
+            return Err((
+                Value::Null,
+                "ACP JSON-RPC request id must be a string, number, or null".to_string(),
+            ));
+        }
+        None => None,
+    };
+
+    if object.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
+        return Err((
+            id.unwrap_or(Value::Null),
+            "ACP JSON-RPC request must include jsonrpc=\"2.0\"".to_string(),
+        ));
+    }
+
+    let method = match object.get("method") {
+        Some(Value::String(method)) if !method.trim().is_empty() => method.clone(),
+        Some(Value::String(_)) => {
+            return Err((
+                id.unwrap_or(Value::Null),
+                "ACP JSON-RPC method must not be blank".to_string(),
+            ));
+        }
+        Some(_) => {
+            return Err((
+                id.unwrap_or(Value::Null),
+                "ACP JSON-RPC method must be a string".to_string(),
+            ));
+        }
+        None => {
+            return Err((
+                id.unwrap_or(Value::Null),
+                "ACP JSON-RPC method is required".to_string(),
+            ));
+        }
+    };
+
+    Ok(JsonRpcRequest {
+        id,
+        method,
+        params: object.get("params").cloned().unwrap_or_else(|| json!({})),
+    })
+}
+
+fn is_valid_json_rpc_id(id: &Value) -> bool {
+    id.is_string() || id.is_number() || id.is_null()
 }
 
 fn validate_params<'a>(

@@ -83,7 +83,7 @@ ACP stdio server:
 architect-mcp-tui acp --stdio
 ```
 
-ACP mode is currently a provisional JSON-RPC compatibility surface for early client testing, not a full ACP conformance claim. It still fails closed on the session boundary: clients can only create sessions with configured adapters, supported modes, known session parameters, concurrency in the advertised range, and the configured worktree-isolation and approval policy. Session-scoped methods also reject non-object params, unknown fields, missing `sessionId`, wrong `sessionId` types, and blank prompt turns before reading or mutating session state.
+ACP mode is currently a provisional JSON-RPC compatibility surface for early client testing, not a full ACP conformance claim. It fails closed on malformed request envelopes before method dispatch: messages must be JSON-RPC 2.0 objects, request ids must be strings, numbers, or null, and request methods must be non-blank strings. Valid notifications still produce no response. The session boundary is also strict: clients can only create sessions with configured adapters, supported modes, known session parameters, concurrency in the advertised range, and the configured worktree-isolation and approval policy. Session-scoped methods reject non-object params, unknown fields, missing `sessionId`, wrong `sessionId` types, and blank prompt turns before reading or mutating session state.
 
 Config commands:
 
