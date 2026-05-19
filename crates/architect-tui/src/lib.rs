@@ -52,6 +52,7 @@ mod interactive_integrations_support;
 mod interactive_support;
 mod interactive_update;
 pub mod launch_judge;
+mod launch_judge_evidence;
 mod launch_judge_report;
 #[cfg(test)]
 mod launch_judge_tests;

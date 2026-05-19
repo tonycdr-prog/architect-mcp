@@ -1,6 +1,9 @@
+use std::io::Write;
+
+use crate::launch_judge_evidence::read_terminal_evidence;
 use crate::launch_judge_report::{
-    LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeResult, judge_result,
-    release_check_status, skipped_command,
+    LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeResult,
+    LaunchJudgeTerminalEvidenceStatus, judge_result, release_check_status, skipped_command,
 };
 
 #[test]
@@ -41,4 +44,143 @@ fn failed_release_check_is_no_go_blocker() {
     let check = release_check_status(&evidence);
 
     assert_eq!(check.status, LaunchJudgeCheckStatus::Failed);
+}
+
+#[test]
+fn missing_terminal_evidence_is_conditional() {
+    let (summary, check) = read_terminal_evidence(None);
+
+    assert!(!summary.supplied);
+    assert_eq!(summary.reports.len(), 0);
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Warning);
+    assert!(
+        check
+            .detail
+            .contains("manual Windows and Linux terminal evidence")
+    );
+}
+
+#[test]
+fn complete_terminal_evidence_passes() {
+    let evidence = r##"{
+      "schemaVersion": 1,
+      "reports": [
+        {
+          "platform": "linux",
+          "status": "passed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
+          "collectedAt": "2026-05-17",
+          "notes": "summary only"
+        },
+        {
+          "platform": "windows",
+          "status": "passed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
+          "collectedAt": "2026-05-17",
+          "notes": "summary only"
+        }
+      ]
+    }"##;
+
+    let file = write_evidence(evidence);
+    let (summary, check) = read_terminal_evidence(Some(file.path()));
+
+    assert!(summary.supplied);
+    assert_eq!(summary.issues.len(), 0);
+    assert_eq!(summary.reports.len(), 2);
+    assert_eq!(
+        summary.reports[0].status,
+        LaunchJudgeTerminalEvidenceStatus::Passed
+    );
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Passed);
+}
+
+#[test]
+fn missing_platform_terminal_evidence_stays_conditional() {
+    let evidence = r##"{
+      "schemaVersion": 1,
+      "reports": [
+        {
+          "platform": "linux",
+          "status": "passed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed"
+        }
+      ]
+    }"##;
+
+    let file = write_evidence(evidence);
+    let (summary, check) = read_terminal_evidence(Some(file.path()));
+
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Warning);
+    assert!(summary.issues.iter().any(|issue| issue.contains("windows")));
+}
+
+#[test]
+fn failed_terminal_evidence_is_no_go() {
+    let evidence = r##"{
+      "schemaVersion": 1,
+      "reports": [
+        {
+          "platform": "linux",
+          "status": "failed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "launch command failed before drawing"
+        },
+        {
+          "platform": "windows",
+          "status": "passed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed"
+        }
+      ]
+    }"##;
+
+    let file = write_evidence(evidence);
+    let (summary, check) = read_terminal_evidence(Some(file.path()));
+
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Failed);
+    assert!(summary.issues.iter().any(|issue| issue.contains("failed")));
+}
+
+#[test]
+fn unsafe_terminal_evidence_fails_closed() {
+    let evidence = r##"{
+      "schemaVersion": 1,
+      "reports": [
+        {
+          "platform": "linux",
+          "status": "passed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "architect-mcp-tui help passed",
+          "stdout": "/Users/example/private/path"
+        },
+        {
+          "platform": "windows",
+          "status": "passed",
+          "source": "issue #136 public-safe summary",
+          "commandSummary": "architect-mcp-tui help passed"
+        }
+      ]
+    }"##;
+
+    let file = write_evidence(evidence);
+    let (summary, check) = read_terminal_evidence(Some(file.path()));
+
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Failed);
+    assert!(
+        summary
+            .issues
+            .iter()
+            .any(|issue| issue.contains("unsafe") || issue.contains("local-path"))
+    );
+}
+
+fn write_evidence(contents: &str) -> tempfile::NamedTempFile {
+    let mut file = tempfile::NamedTempFile::new().expect("create terminal evidence fixture");
+    file.write_all(contents.as_bytes())
+        .expect("write terminal evidence fixture");
+    file
 }

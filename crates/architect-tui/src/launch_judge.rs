@@ -5,6 +5,7 @@ use anyhow::Result;
 
 use crate::config::TuiConfig;
 use crate::governance_audit::{GovernanceAuditOptions, build_governance_audit_report};
+use crate::launch_judge_evidence::read_terminal_evidence;
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeReport,
     LaunchJudgeResult, build_report, check, print_text_report, skipped_command, tail_lines,
@@ -19,6 +20,7 @@ pub struct LaunchJudgeOptions {
     pub run_release_check: bool,
     pub require_clean_git: bool,
     pub max_files: usize,
+    pub terminal_evidence: Option<PathBuf>,
 }
 
 pub async fn run_launch_judge(
@@ -77,12 +79,16 @@ pub async fn build_launch_judge_report(
         skipped_command("npm run release:check")
     };
     let git_clean = git_clean_check(&workspace, options.require_clean_git);
+    let (terminal_evidence, terminal_evidence_check) =
+        read_terminal_evidence(options.terminal_evidence.as_deref());
     build_report(
         &workspace,
         governance_audit,
         smoke,
         release_check,
         git_clean,
+        terminal_evidence,
+        terminal_evidence_check,
     )
 }
 

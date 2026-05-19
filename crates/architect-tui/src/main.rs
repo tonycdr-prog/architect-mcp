@@ -103,7 +103,7 @@ enum Commands {
         #[arg(long, default_value_t = 1000)]
         max_files: usize,
     },
-    /// Combine smoke, governance, release, and manual-evidence gates into a launch judge report.
+    /// Combine smoke, governance, release, and external-evidence gates into a launch judge report.
     LaunchJudge {
         #[arg(long)]
         json: bool,
@@ -117,6 +117,8 @@ enum Commands {
         require_clean_git: bool,
         #[arg(long, default_value_t = 1000)]
         max_files: usize,
+        #[arg(long)]
+        terminal_evidence: Option<PathBuf>,
     },
 }
 
@@ -256,6 +258,7 @@ async fn main() -> Result<()> {
             run_release_check,
             require_clean_git,
             max_files,
+            terminal_evidence,
         }) => {
             run_launch_judge(
                 workspace,
@@ -267,6 +270,7 @@ async fn main() -> Result<()> {
                     run_release_check,
                     require_clean_git,
                     max_files,
+                    terminal_evidence,
                 },
             )
             .await?;

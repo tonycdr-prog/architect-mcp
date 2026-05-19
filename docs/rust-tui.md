@@ -215,9 +215,36 @@ Launch judge:
 ```bash
 architect-mcp-tui launch-judge --json
 architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
+architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 ```
 
-This command combines the read-only governance audit, terminal smoke, release-gate evidence, git worktree state, and known manual-evidence gaps into one `go`, `conditional_go`, or `no_go` report. By default it does not run `npm run release:check`; missing release-gate execution is a `conditional_go` warning with a next action. Use `--run-release-check` when collecting release-sensitive evidence. Use `--skip-mcp` or `--skip-smoke` only when documenting why the judge report is intentionally partial. A `no_go` result exits non-zero; `conditional_go` exits zero so maintainers can inspect incomplete external evidence without breaking static CI.
+This command combines the read-only governance audit, terminal smoke, release-gate evidence, git worktree state, and external terminal evidence into one `go`, `conditional_go`, or `no_go` report. By default it does not run `npm run release:check`; missing release-gate execution is a `conditional_go` warning with a next action. Use `--run-release-check` when collecting release-sensitive evidence. Use `--skip-mcp` or `--skip-smoke` only when documenting why the judge report is intentionally partial. A `no_go` result exits non-zero; `conditional_go` exits zero so maintainers can inspect incomplete external evidence without breaking static CI.
+
+`--terminal-evidence` accepts a public-safe JSON summary of manual Linux and Windows terminal QA. It is intentionally not a raw log importer: files with `stdout`, `stderr`, raw log fields, absolute local paths, or secret-shaped strings fail closed. Use short summaries and public issue or PR references:
+
+```json
+{
+  "schemaVersion": 1,
+  "reports": [
+    {
+      "platform": "linux",
+      "status": "passed",
+      "source": "issue #136 public-safe summary",
+      "commandSummary": "architect-mcp-tui help, config adapters --json, and gate-only run --jsonl passed",
+      "collectedAt": "2026-05-17",
+      "notes": "summary only, no raw logs"
+    },
+    {
+      "platform": "windows",
+      "status": "passed",
+      "source": "issue #136 public-safe summary",
+      "commandSummary": "architect-mcp-tui help, config adapters --json, and gate-only run --jsonl passed",
+      "collectedAt": "2026-05-17",
+      "notes": "summary only, no raw logs"
+    }
+  ]
+}
+```
 
 ## Config
 

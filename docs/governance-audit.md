@@ -34,9 +34,38 @@ For an explicit launch readiness decision, use:
 ```bash
 architect-mcp-tui launch-judge --json
 architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
+architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 ```
 
-`launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and known manual-evidence gaps. It reports `go`, `conditional_go`, or `no_go`. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or uncollected Windows/Linux terminal evidence keep the result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, or a dirty git state with `--require-clean-git` produce `no_go`.
+`launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and external terminal evidence. It reports `go`, `conditional_go`, or `no_go`. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or missing Linux/Windows terminal evidence keep the result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, unsafe terminal evidence, failed external terminal QA, or a dirty git state with `--require-clean-git` produce `no_go`.
+
+`--terminal-evidence` is for short, public-safe Linux and Windows QA summaries, not raw output. The JSON schema is:
+
+```json
+{
+  "schemaVersion": 1,
+  "reports": [
+    {
+      "platform": "linux",
+      "status": "passed",
+      "source": "issue #136 public-safe summary",
+      "commandSummary": "architect-mcp-tui help, config adapters --json, and gate-only run --jsonl passed",
+      "collectedAt": "2026-05-17",
+      "notes": "summary only, no raw logs"
+    },
+    {
+      "platform": "windows",
+      "status": "passed",
+      "source": "issue #136 public-safe summary",
+      "commandSummary": "architect-mcp-tui help, config adapters --json, and gate-only run --jsonl passed",
+      "collectedAt": "2026-05-17",
+      "notes": "summary only, no raw logs"
+    }
+  ]
+}
+```
+
+Do not include secrets, raw stdout or stderr, private repo names, absolute local paths, customer data, or sensitive security details. The command fails closed when the evidence contains raw log fields, local paths, secret-shaped strings, failed platform status, duplicate platforms, or unsupported platforms.
 
 ## Recurring Workflow
 

@@ -137,6 +137,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /npm run tui:live-qa/);
     assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
+    assert.match(rustTui, /--terminal-evidence/);
+    assert.match(rustTui, /public-safe JSON summary/);
     assert.match(rustTui, /conditional_go/);
   });
 
