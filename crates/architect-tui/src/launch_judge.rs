@@ -57,6 +57,7 @@ pub async fn build_launch_judge_report(
         config.clone(),
         &GovernanceAuditOptions {
             json: true,
+            public_summary: false,
             skip_mcp: options.skip_mcp,
             max_files: options.max_files,
         },
