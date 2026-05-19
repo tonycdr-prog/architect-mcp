@@ -112,6 +112,14 @@ async fn interactive_approval_commands_cover_reject_cancel_and_failed_review() {
         update.session.expect("session").approval_status,
         ApprovalStatus::Pending
     );
+    let missing_receipt = engine
+        .apply_input("promotion receipt")
+        .await
+        .expect("missing receipt")
+        .transcript
+        .join("\n");
+    assert!(missing_receipt.contains("promotion receipt: missing"));
+    assert!(missing_receipt.contains("promote approved changes"));
 
     let too_early = engine
         .apply_input("approve review gates passed")
@@ -164,12 +172,14 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
         .adapters
         .insert("shell".to_string(), shell);
     orchestrator.config_mut().agents.default_adapter = "shell".to_string();
+    let resume_orchestrator = orchestrator.clone();
     let mut engine = InteractiveWorkflowEngine::new(orchestrator);
 
-    engine
+    let created = engine
         .apply_input("new app ready app with users flows stack risks verification")
         .await
         .expect("new app");
+    let session_id = created.session.expect("session").id;
     engine.apply_input("grill").await.expect("grill");
     engine.apply_input("contract").await.expect("contract");
     engine.apply_input("review plan").await.expect("plan");
@@ -379,6 +389,34 @@ async fn interactive_adapter_execution_requires_distinct_approval() {
         update.session.expect("session").approval_status,
         ApprovalStatus::Promoted
     );
+    let receipt = engine
+        .apply_input("promotion receipt")
+        .await
+        .expect("promotion receipt")
+        .transcript
+        .join("\n");
+    assert!(receipt.contains("promotion receipt: recorded"));
+    assert!(receipt.contains("decision: approved"));
+    assert!(receipt.contains("reason: promote reviewed diff"));
+    assert!(receipt.contains("promoted files: 1"));
+    assert!(receipt.contains("file: docs/approved-run.md"));
+    assert!(receipt.contains("changed-file evidence: 1"));
+    assert!(receipt.contains("review_agent_session: present"));
+    assert!(receipt.contains("npm test=passed"));
+
+    let mut resumed = InteractiveWorkflowEngine::new(resume_orchestrator);
+    resumed
+        .apply_input(&format!("resume {session_id}"))
+        .await
+        .expect("resume promoted session");
+    let resumed_receipt = resumed
+        .apply_input("receipt")
+        .await
+        .expect("resumed receipt")
+        .transcript
+        .join("\n");
+    assert!(resumed_receipt.contains("promotion receipt: recorded"));
+    assert!(resumed_receipt.contains("file: docs/approved-run.md"));
 }
 
 #[cfg(unix)]

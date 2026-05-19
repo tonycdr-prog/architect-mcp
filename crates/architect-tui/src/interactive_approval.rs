@@ -4,6 +4,7 @@ use crate::approval::{promote_approved_changes, promotion_status_lines};
 use crate::approval_reason::normalize_promotion_override_reason;
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
+use crate::promotion_receipt::promotion_receipt_lines;
 use crate::session::SessionPhase;
 use crate::verification::ensure_verification_passed;
 
@@ -89,6 +90,15 @@ impl InteractiveWorkflowEngine {
         let session = self.active()?;
         Ok(update(
             promotion_status_lines(session, &self.orchestrator.workspace),
+            inspector_for(session),
+            Some(session.clone()),
+        ))
+    }
+
+    pub(crate) fn promotion_receipt(&self) -> Result<WorkflowUpdate> {
+        let session = self.active()?;
+        Ok(update(
+            promotion_receipt_lines(session),
             inspector_for(session),
             Some(session.clone()),
         ))
