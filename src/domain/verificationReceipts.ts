@@ -5,7 +5,7 @@ export const verificationReceiptSources = ["local_terminal", "ci", "tui", "adapt
 
 export type VerificationReceiptSource = typeof verificationReceiptSources[number];
 export type VerificationReceiptStatus = "passed" | "failed" | "skipped" | "not_run";
-export type VerificationEvidenceTier = "supplied" | "independent";
+export type VerificationEvidenceTier = "supplied" | "unverifiable" | "independent";
 export type VerificationFreshnessStatus = "fresh" | "independent_run_id" | "missing" | "stale" | "future" | "invalid";
 
 export type VerificationReceipt = {
@@ -68,7 +68,7 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
     const safeSummary = publicSafeSummary(receipt.summary);
     const freshness = reviewFreshness(receipt, nowMs, maxAgeSeconds);
     const independentlyResolvable = hasIndependentHandle(receipt, freshness);
-    const evidenceTier = receiptEvidenceTier(independentlyResolvable);
+    const evidenceTier = receiptEvidenceTier(independentlyResolvable, freshness);
     return {
       sourceReceipt: receipt,
       command: safeCommand.value,
@@ -185,6 +185,7 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   const freshMatchedRequired = requiredReceiptMatches.filter((match) => match.receipts.some(isFreshPassedReceipt)).length;
   const verificationSummary = summarizeVerificationRecords(verificationRecords);
   const suppliedReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "supplied").length;
+  const unverifiableReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "unverifiable").length;
   const independentReceipts = reviewedReceipts.filter((receipt) => receipt.evidenceTier === "independent").length;
 
   return {
@@ -202,6 +203,7 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
       evidenceTiers: {
         claimed: requiredChecks.length,
         supplied: verificationRecords.length + suppliedReceipts,
+        unverifiable: unverifiableReceipts,
         independent: independentReceipts
       },
       redacted: redactedCount,
@@ -214,7 +216,7 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
         check: safeCheck.value,
         receiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).length > 0,
         freshReceiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).some(isFreshPassedReceipt),
-        independentReceiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).some((receipt) => receipt.independentlyResolvable),
+        independentReceiptSupplied: (receiptsByCommand.get(normalizeKey(check)) ?? []).some((receipt) => receipt.evidenceTier === "independent"),
         redacted: safeCheck.redacted
       };
     }),
@@ -235,8 +237,8 @@ export function reviewVerificationReceipts(input: VerificationReceiptReviewInput
   };
 }
 
-function receiptEvidenceTier(independentlyResolvable: boolean): VerificationEvidenceTier {
-  return independentlyResolvable ? "independent" : "supplied";
+function receiptEvidenceTier(independentlyResolvable: boolean, freshness: ReviewedReceipt["freshness"]): VerificationEvidenceTier {
+  return !freshness.satisfied ? "unverifiable" : independentlyResolvable ? "independent" : "supplied";
 }
 
 function reviewFreshness(receipt: VerificationReceipt, nowMs: number, maxAgeSeconds: number): ReviewedReceipt["freshness"] {
