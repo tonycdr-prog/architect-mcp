@@ -133,3 +133,67 @@ fn clear_adapter_run_evidence_resets_stale_promotion_state() {
     assert!(!session.gates.contains_key("review_agent_final_response"));
     assert!(!session.gates.contains_key("review_agent_session"));
 }
+
+#[test]
+fn session_store_only_persists_mcp_integration_metadata() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let store = SessionStore::for_workspace(temp.path());
+    let mut session = TuiSession::new("build controlled TUI", "codex");
+    session.set_mcp_recommendation(json!({
+        "status": "pass",
+        "recommendations": [{
+            "serverId": "supabase",
+            "provider": "Supabase",
+            "confidence": "high",
+            "name": "Supabase",
+            "requiredEnv": ["SUPABASE_ACCESS_TOKEN"]
+        }],
+        "policy": ["policy"]
+    }));
+    session.set_mcp_install_plan(json!({
+        "id": "mcp-install-supabase",
+        "serverId": "supabase",
+        "serverName": "supabase",
+        "targetClient": "codex",
+        "status": "dry-run",
+        "hostedMode": false,
+        "localOnly": true,
+        "requiresApproval": true,
+        "writeFiles": false,
+        "packagePin": "npm:@supabase/mcp-server-supabase@0.5.4",
+        "env": ["SUPABASE_ACCESS_TOKEN"],
+        "postInstall": ["Set SUPABASE_ACCESS_TOKEN"],
+        "warnings": [],
+        "mcpConfig": { "mcpServers": { "supabase": { "command": "npx", "args": ["secret-token"] } } },
+        "clientConfig": { "mcpServers": { "supabase": { "env": { "SUPABASE_ACCESS_TOKEN": "secret-token" } } } }
+    }));
+    session.set_mcp_install_review(json!({
+        "status": "pass",
+        "findings": [{
+            "code": "SAFE",
+            "severity": "warning",
+            "message": "checked",
+            "recommendation": "keep dry-run",
+            "raw": "secret-token"
+        }],
+        "security": { "raw": "secret-token" }
+    }));
+    session.set_mcp_install_apply_result(json!({
+        "status": "dry-run",
+        "targetPath": "/tmp/.mcp.json",
+        "files": [{ "path": "/tmp/.mcp.json", "content": "{ secret-token }" }],
+        "review": {
+            "status": "pass",
+            "findings": [{ "code": "SAFE", "severity": "warning", "message": "checked" }]
+        }
+    }));
+
+    let path = store.save(&mut session).expect("save");
+    let body = std::fs::read_to_string(path).expect("session json");
+    assert!(!body.contains("secret-token"));
+    assert!(!body.contains("\"clientConfig\""));
+    assert!(!body.contains("\"mcpConfig\""));
+    assert!(!body.contains("\"files\""));
+    assert!(body.contains("\"packagePin\""));
+    assert!(body.contains("\"SUPABASE_ACCESS_TOKEN\""));
+}

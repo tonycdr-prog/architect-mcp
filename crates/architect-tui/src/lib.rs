@@ -26,6 +26,9 @@ mod interactive_arena_evidence;
 mod interactive_commands;
 mod interactive_diff;
 mod interactive_gate_flow;
+mod interactive_integrations;
+mod interactive_integrations_summary;
+mod interactive_integrations_support;
 mod interactive_support;
 mod interactive_update;
 pub mod mcp;
@@ -37,6 +40,7 @@ mod promotion_smoke_script;
 mod promotion_smoke_verification;
 mod promotion_smoke_workspace;
 pub mod session;
+mod session_mcp_integrations;
 #[cfg(test)]
 mod session_tests;
 pub mod smoke;

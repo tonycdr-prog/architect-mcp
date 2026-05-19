@@ -2,7 +2,10 @@
 pub enum WorkflowCommand {
     NewApp(String),
     Resume(String),
-    Answer { key: String, value: String },
+    Answer {
+        key: String,
+        value: String,
+    },
     Grill,
     CreateContract,
     ReviewPlan,
@@ -18,8 +21,24 @@ pub enum WorkflowCommand {
     ArenaRun(Vec<String>),
     ArenaRank,
     ArenaSelect(String),
+    IntegrationsRecommend(String),
+    IntegrationsPlan {
+        server_id: String,
+        target_client: Option<String>,
+    },
+    IntegrationsReview,
+    IntegrationsApplyDryRun {
+        target_path: Option<String>,
+    },
+    IntegrationsApprove(String),
+    IntegrationsWrite {
+        target_path: Option<String>,
+    },
     VerificationStatus,
-    RecordVerification { check: String, status: String },
+    RecordVerification {
+        check: String,
+        status: String,
+    },
     FinalReview(String),
     SessionReview,
     Cancel,
@@ -58,6 +77,16 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "promotion status" => WorkflowCommand::PromotionStatus,
         "diff" | "diff summary" => WorkflowCommand::DiffSummary,
         "arena rank" => WorkflowCommand::ArenaRank,
+        "integrations recommend" | "mcp recommend" => {
+            WorkflowCommand::IntegrationsRecommend(String::new())
+        }
+        "integrations review" | "mcp review" => WorkflowCommand::IntegrationsReview,
+        "integrations apply" | "mcp apply" => {
+            WorkflowCommand::IntegrationsApplyDryRun { target_path: None }
+        }
+        "integrations write" | "mcp write" => {
+            WorkflowCommand::IntegrationsWrite { target_path: None }
+        }
         "verification" | "verification status" => WorkflowCommand::VerificationStatus,
         "session review" => WorkflowCommand::SessionReview,
         "cancel" => WorkflowCommand::Cancel,
@@ -79,11 +108,73 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         _ if trimmed.starts_with("arena select ") => {
             WorkflowCommand::ArenaSelect(trimmed["arena select ".len()..].trim().to_string())
         }
+        _ if trimmed.starts_with("integrations recommend ") => {
+            WorkflowCommand::IntegrationsRecommend(
+                trimmed["integrations recommend ".len()..]
+                    .trim()
+                    .to_string(),
+            )
+        }
+        _ if trimmed.starts_with("mcp recommend ") => WorkflowCommand::IntegrationsRecommend(
+            trimmed["mcp recommend ".len()..].trim().to_string(),
+        ),
+        _ if trimmed.starts_with("integrations plan ") => {
+            parse_integration_plan(&trimmed["integrations plan ".len()..])
+        }
+        _ if trimmed.starts_with("mcp plan ") => {
+            parse_integration_plan(&trimmed["mcp plan ".len()..])
+        }
+        _ if trimmed.starts_with("integrations apply ") => {
+            WorkflowCommand::IntegrationsApplyDryRun {
+                target_path: optional_string(&trimmed["integrations apply ".len()..]),
+            }
+        }
+        _ if trimmed.starts_with("mcp apply ") => WorkflowCommand::IntegrationsApplyDryRun {
+            target_path: optional_string(&trimmed["mcp apply ".len()..]),
+        },
+        _ if trimmed.starts_with("integrations approve ") => WorkflowCommand::IntegrationsApprove(
+            trimmed["integrations approve ".len()..].trim().to_string(),
+        ),
+        _ if trimmed.starts_with("mcp approve ") => {
+            WorkflowCommand::IntegrationsApprove(trimmed["mcp approve ".len()..].trim().to_string())
+        }
+        _ if trimmed.starts_with("integrations write ") => WorkflowCommand::IntegrationsWrite {
+            target_path: optional_string(&trimmed["integrations write ".len()..]),
+        },
+        _ if trimmed.starts_with("mcp write ") => WorkflowCommand::IntegrationsWrite {
+            target_path: optional_string(&trimmed["mcp write ".len()..]),
+        },
         _ if trimmed.starts_with("record verification ") => parse_verification(trimmed),
         _ if trimmed.starts_with("final review ") => {
             WorkflowCommand::FinalReview(trimmed["final review ".len()..].trim().to_string())
         }
         _ => WorkflowCommand::Help,
+    }
+}
+
+fn parse_integration_plan(value: &str) -> WorkflowCommand {
+    let mut parts = value.split_whitespace();
+    let Some(server_id) = parts.next() else {
+        return WorkflowCommand::Help;
+    };
+    let target_client = parts.next().map(|part| {
+        part.strip_prefix("target=")
+            .unwrap_or(part)
+            .trim()
+            .to_string()
+    });
+    WorkflowCommand::IntegrationsPlan {
+        server_id: server_id.trim().to_string(),
+        target_client,
+    }
+}
+
+fn optional_string(value: &str) -> Option<String> {
+    let value = value.trim();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
     }
 }
 
@@ -151,6 +242,33 @@ mod tests {
         assert_eq!(
             parse_workflow_command("arena select codex"),
             WorkflowCommand::ArenaSelect("codex".to_string())
+        );
+        assert_eq!(
+            parse_workflow_command("integrations recommend database=supabase"),
+            WorkflowCommand::IntegrationsRecommend("database=supabase".to_string())
+        );
+        assert_eq!(
+            parse_workflow_command("integrations plan supabase target=codex"),
+            WorkflowCommand::IntegrationsPlan {
+                server_id: "supabase".to_string(),
+                target_client: Some("codex".to_string())
+            }
+        );
+        assert_eq!(
+            parse_workflow_command("integrations apply .mcp.json"),
+            WorkflowCommand::IntegrationsApplyDryRun {
+                target_path: Some(".mcp.json".to_string())
+            }
+        );
+        assert_eq!(
+            parse_workflow_command("integrations approve reviewed plan"),
+            WorkflowCommand::IntegrationsApprove("reviewed plan".to_string())
+        );
+        assert_eq!(
+            parse_workflow_command("integrations write .mcp.json"),
+            WorkflowCommand::IntegrationsWrite {
+                target_path: Some(".mcp.json".to_string())
+            }
         );
         assert_eq!(
             parse_workflow_command("diff file docs/live-qa.md"),

@@ -157,6 +157,21 @@ Agents run in a PTY by default when execution is explicitly enabled. Headless `-
 
 The `arena run <adapter[,adapter]>` command requires file-plan review plus explicit execution approval, then runs two or more named adapters against the current contract in isolated worktrees and records each candidate's diff evidence. The `arena rank` command ranks recorded candidates with a deterministic score based on implementation review status, verification status, diff size, contract drift, and crash state. Use `arena select <adapter>` to move one recorded candidate into the normal verification, final/session review, approval, and promotion path. Crashed, timed-out, cancelled, or otherwise failed candidates cannot be selected for the normal promotion path. Selection does not copy files by itself; candidate promotion remains manual and the arena never auto-merges a winner.
 
+## Integrations
+
+The command palette exposes the MCP catalog flow through guarded `integrations` commands:
+
+```text
+integrations recommend [extra context]
+integrations plan <server-id> [target-client]
+integrations review
+integrations apply [target-path]
+integrations approve <reason>
+integrations write [target-path]
+```
+
+`integrations recommend` calls the live `recommend_mcp_servers` tool with the current brief and current clarified answers instead of shortcutting from the original prompt text. Generic database needs ask for a provider before Supabase can be planned. `integrations plan` is blocked unless the server was recommended by the latest recommendation result. `integrations review` must pass before apply, approval, or write. `integrations apply` is dry-run only and does not write files. `integrations write` calls `apply_mcp_install_plan` with `writeFiles=true` only after `integrations approve <reason>`, and the write approval is consumed after a successful write. Session persistence keeps recommendation/plan/review metadata, not raw MCP config payloads or credentials.
+
 ## Config
 
 Repo config lives at:

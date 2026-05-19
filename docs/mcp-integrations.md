@@ -11,6 +11,21 @@ architect-mcp can recommend additional MCP servers, but it does not auto-install
 5. Call `review_mcp_install_plan`.
 6. Only local clients may call `apply_mcp_install_plan`; it is dry-run by default and writes only when `writeFiles: true` and explicit approval are supplied.
 
+## TUI Flow
+
+The Rust TUI command palette wraps the same tools:
+
+```text
+integrations recommend [extra context]
+integrations plan <server-id> [target-client]
+integrations review
+integrations apply [target-path]
+integrations approve <reason>
+integrations write [target-path]
+```
+
+The TUI stores recommendation, install-plan, and review metadata in the session, but it does not persist raw MCP config payloads or credentials. A server cannot be planned unless it appears in the latest recommendation response. `integrations apply` is dry-run only. `integrations write` requires a passing review plus `integrations approve <reason>` and consumes that approval after a successful write.
+
 ## Policy
 
 - Unknown MCP servers are not safe by default. Add them to the local catalog with source, package, transport, credential, and security notes first.

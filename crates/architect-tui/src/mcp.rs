@@ -157,4 +157,12 @@ mod tests {
         let spec = bridge.process_spec();
         assert_eq!(spec.tool_surface, "advanced");
     }
+
+    #[test]
+    fn integration_catalog_tools_exclude_apply_tool() {
+        let bridge = ArchitectMcpBridge::new(".", TuiConfig::default());
+        let names = bridge.integration_catalog_tools();
+        assert!(names.contains(&"review_mcp_install_plan"));
+        assert!(!names.contains(&"apply_mcp_install_plan"));
+    }
 }
