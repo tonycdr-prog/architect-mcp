@@ -31,6 +31,8 @@ pub struct LaunchReadinessPublicStack {
     pub pull_request_count: usize,
     pub pull_request_order: Vec<u64>,
     pub pull_request_status: LaunchReadinessPublicStatusCounts,
+    pub missing_required_check_count: usize,
+    pub missing_required_checks: Vec<LaunchReadinessPublicMissingRequiredCheck>,
     pub blocker_issues: Vec<LaunchReadinessPublicBlockerIssue>,
 }
 
@@ -50,6 +52,13 @@ pub struct LaunchReadinessPublicBlockerIssue {
     pub state: String,
     pub status: LaunchStackItemStatus,
     pub waived: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchReadinessPublicMissingRequiredCheck {
+    pub pull_request: u64,
+    pub names: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -113,6 +122,11 @@ fn generated_at_unix_seconds() -> u64 {
 }
 
 fn public_stack(stack: &LaunchStackReport) -> LaunchReadinessPublicStack {
+    let missing_required_checks = missing_required_checks(stack);
+    let missing_required_check_count = missing_required_checks
+        .iter()
+        .map(|entry| entry.names.len())
+        .sum();
     LaunchReadinessPublicStack {
         result: stack.result.clone(),
         from_pr: stack
@@ -130,6 +144,8 @@ fn public_stack(stack: &LaunchStackReport) -> LaunchReadinessPublicStack {
             .map(|discovery| discovery.pull_requests.clone())
             .unwrap_or_else(|| stack.pull_requests.iter().map(|pr| pr.number).collect()),
         pull_request_status: status_counts(stack.pull_requests.iter().map(|pr| &pr.status)),
+        missing_required_check_count,
+        missing_required_checks,
         blocker_issues: stack
             .blocker_issues
             .iter()
@@ -141,6 +157,20 @@ fn public_stack(stack: &LaunchStackReport) -> LaunchReadinessPublicStack {
             })
             .collect(),
     }
+}
+
+fn missing_required_checks(
+    stack: &LaunchStackReport,
+) -> Vec<LaunchReadinessPublicMissingRequiredCheck> {
+    stack
+        .pull_requests
+        .iter()
+        .filter(|pr| !pr.checks.missing_required_names.is_empty())
+        .map(|pr| LaunchReadinessPublicMissingRequiredCheck {
+            pull_request: pr.number,
+            names: public_strings(&pr.checks.missing_required_names, 120),
+        })
+        .collect()
 }
 
 fn status_counts<'a>(

@@ -40,6 +40,11 @@ fn evidence_index_combines_launch_and_governance_public_summaries() {
     assert_eq!(report.sections[1].name, "governance audit");
     assert_eq!(report.sections[1].status, "passed_with_warnings");
     assert!(report.sections[0].summary.contains("2 PRs"));
+    assert!(
+        report.sections[0]
+            .summary
+            .contains("0 missing required checks")
+    );
     assert!(report.sections[1].summary.contains("1 categories"));
 }
 
@@ -216,6 +221,8 @@ fn launch_summary(result: LaunchJudgeResult) -> LaunchReadinessPublicSummary {
                 warning: 0,
                 failed: 0,
             },
+            missing_required_check_count: 0,
+            missing_required_checks: Vec::new(),
             blocker_issues: Vec::new(),
         },
         terminal_evidence: LaunchReadinessPublicTerminalEvidence {

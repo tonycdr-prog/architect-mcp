@@ -227,6 +227,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(docs, /launch-judge --public-summary/);
     assert.match(docs, /launch-stack --json/);
     assert.match(docs, /--required-check <name>/);
+    assert.match(docs, /missing required-check evidence/);
     assert.match(docs, /launch-readiness --json/);
     assert.match(docs, /evidence-index --json/);
     assert.match(docs, /evidence-index --markdown/);
@@ -238,7 +239,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#234 - Require explicit launch-stack checks before launch go\]/);
+    assert.match(goal, /Active slice: \[#236 - Expose required-check evidence in public launch summaries\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -250,12 +251,14 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[PR #229\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/229\)/);
     assert.match(goal, /\[PR #231\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/231\)/);
     assert.match(goal, /\[PR #233\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/233\)/);
+    assert.match(goal, /\[PR #235\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/235\)/);
     assert.match(goal, /\[#224\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/224\)/);
     assert.match(goal, /\[#226\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/226\)/);
     assert.match(goal, /\[#228\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/228\)/);
     assert.match(goal, /\[#230\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/230\)/);
     assert.match(goal, /\[#232\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/232\)/);
     assert.match(goal, /\[#234\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/234\)/);
+    assert.match(goal, /\[#236\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/236\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -269,10 +272,12 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /provenance-aware terminal evidence validation/);
     assert.match(goal, /PR review-decision launch readiness/);
     assert.match(goal, /explicit required-check launch readiness/);
+    assert.match(goal, /public required-check evidence handoffs/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
-    assert.match(goal, /#234 stacked next/);
+    assert.match(goal, /#234 in PR #235/);
+    assert.match(goal, /#236 stacked next/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

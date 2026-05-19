@@ -62,6 +62,29 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
                 .failed
         )
     ));
+    if report
+        .launch_readiness
+        .launch_stack
+        .missing_required_check_count
+        > 0
+    {
+        out.push_str(&format!(
+            "- Missing required checks: {}\n",
+            inline_code(
+                report
+                    .launch_readiness
+                    .launch_stack
+                    .missing_required_check_count
+            )
+        ));
+        for missing in &report.launch_readiness.launch_stack.missing_required_checks {
+            out.push_str(&format!(
+                "  - PR #{}: {}\n",
+                missing.pull_request,
+                inline_list(&missing.names)
+            ));
+        }
+    }
     out.push_str(&format!(
         "- Blockers: {}\n",
         inline_code(report.launch_readiness.launch_stack.blocker_issues.len())

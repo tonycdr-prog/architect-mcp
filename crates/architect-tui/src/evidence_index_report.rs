@@ -115,6 +115,9 @@ fn sanitize_launch_readiness_summary(
     for blocker in &mut summary.launch_stack.blocker_issues {
         blocker.state = public_text(&blocker.state, 80);
     }
+    for missing in &mut summary.launch_stack.missing_required_checks {
+        missing.names = public_strings(&missing.names, 120);
+    }
     summary.terminal_evidence.platforms = public_strings(&summary.terminal_evidence.platforms, 80);
     summary.terminal_evidence.issues = public_strings(&summary.terminal_evidence.issues, 320);
     if let Some(waiver) = &mut summary.terminal_evidence_waiver {
@@ -194,8 +197,9 @@ fn combine_results(results: &[LaunchJudgeResult]) -> LaunchJudgeResult {
 fn launch_summary(summary: &LaunchReadinessPublicSummary) -> String {
     public_text(
         &format!(
-            "{} PRs, {} blockers, {} terminal reports",
+            "{} PRs, {} missing required checks, {} blockers, {} terminal reports",
             summary.launch_stack.pull_request_count,
+            summary.launch_stack.missing_required_check_count,
             summary.launch_stack.blocker_issues.len(),
             summary.terminal_evidence.report_count
         ),
