@@ -38,10 +38,7 @@ impl IssueContent {
 pub(crate) fn extract_json_blocks(body: &str) -> Vec<String> {
     let mut blocks = Vec::new();
     let trimmed = body.trim();
-    if trimmed.starts_with('{')
-        && trimmed.contains("\"schemaVersion\"")
-        && trimmed.contains("\"reports\"")
-    {
+    if is_terminal_evidence_json(trimmed) {
         blocks.push(trimmed.to_string());
     }
 
@@ -66,6 +63,13 @@ pub(crate) fn extract_json_blocks(body: &str) -> Vec<String> {
     }
 
     blocks
+}
+
+fn is_terminal_evidence_json(text: &str) -> bool {
+    let Ok(value) = serde_json::from_str::<Value>(text) else {
+        return false;
+    };
+    value.get("schemaVersion").is_some() && value.get("reports").is_some()
 }
 
 pub(crate) fn fetch_issue_content(
@@ -140,6 +144,19 @@ pub(crate) fn issue_view_args(issue: u64) -> Vec<String> {
     ]
 }
 
+pub(crate) fn issue_terminal_evidence_source_path(
+    issue_number: u64,
+    has_issue_body_blocks: bool,
+    has_comment_blocks: bool,
+) -> Option<String> {
+    match (has_issue_body_blocks, has_comment_blocks) {
+        (false, false) => None,
+        (true, false) => Some(format!("issue #{issue_number} body")),
+        (false, true) => Some(format!("issue #{issue_number} comments")),
+        (true, true) => Some(format!("issue #{issue_number} body + comments")),
+    }
+}
+
 fn run_gh_json(workspace: &Path, args: &[String]) -> Result<Value, String> {
     let output = Command::new("gh")
         .args(args)
@@ -184,20 +201,99 @@ pub(crate) fn public_text(value: &str, max_len: usize) -> String {
 
 fn redact_token(token: &str) -> String {
     let lower = token.to_ascii_lowercase();
-    if lower.contains("npm_")
-        || lower.contains("ghp_")
-        || lower.contains("github_pat_")
-        || lower.contains("sk-")
-        || lower.contains("xoxb-")
-    {
+    if contains_secret_token(&lower) {
         "[redacted-secret]".to_string()
-    } else if lower.starts_with("/")
-        || lower.contains("/users/")
-        || lower.contains("/home/")
-        || (lower.len() >= 3 && lower.as_bytes()[1] == b':' && lower.as_bytes()[2] == b'/')
-    {
+    } else if contains_local_path(&lower) {
         "[redacted-local-path]".to_string()
     } else {
         token.to_string()
     }
+}
+
+fn contains_secret_token(value: &str) -> bool {
+    if value.contains("begin") && value.contains("private") && value.contains("key") {
+        return true;
+    }
+    value
+        .split(secret_segment_boundary)
+        .any(is_secret_like_segment)
+}
+
+fn secret_segment_boundary(ch: char) -> bool {
+    matches!(
+        ch,
+        '=' | ':' | '"' | '\'' | '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | '`' | ',' | ';'
+    )
+}
+
+fn is_secret_like_segment(segment: &str) -> bool {
+    let segment = segment.trim_matches(|ch: char| matches!(ch, '.' | '!' | '?'));
+    has_credential_tail(segment, "github_pat_", 16)
+        || has_credential_tail(segment, "npm_", 16)
+        || has_credential_tail(segment, "ghp_", 16)
+        || has_credential_tail(segment, "sk-", 16)
+        || has_credential_tail(segment, "xoxb-", 16)
+}
+
+fn has_credential_tail(segment: &str, prefix: &str, min_tail_len: usize) -> bool {
+    let Some(tail) = segment.strip_prefix(prefix) else {
+        return false;
+    };
+    tail.chars().count() >= min_tail_len
+        && tail
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-'))
+}
+
+fn contains_local_path(value: &str) -> bool {
+    if value.starts_with('/') {
+        return true;
+    }
+    let bytes = value.as_bytes();
+    for index in 0..bytes.len() {
+        if is_embedded_unix_path(bytes, index) || is_embedded_windows_path(bytes, index) {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_embedded_unix_path(bytes: &[u8], index: usize) -> bool {
+    if bytes[index] != b'/' {
+        return false;
+    }
+    if index + 1 < bytes.len() && bytes[index + 1] == b'/' {
+        return false;
+    }
+    path_prefix_boundary(bytes, index) && slash_starts_path(bytes, index)
+}
+
+fn is_embedded_windows_path(bytes: &[u8], index: usize) -> bool {
+    if index + 2 >= bytes.len()
+        || !bytes[index].is_ascii_alphabetic()
+        || bytes[index + 1] != b':'
+        || bytes[index + 2] != b'/'
+    {
+        return false;
+    }
+    if index + 3 < bytes.len() && bytes[index + 3] == b'/' {
+        return false;
+    }
+    path_prefix_boundary(bytes, index)
+}
+
+fn path_prefix_boundary(bytes: &[u8], index: usize) -> bool {
+    index == 0
+        || matches!(
+            bytes[index - 1],
+            b'=' | b':' | b'(' | b'[' | b'{' | b'<' | b'"' | b'\'' | b'`' | b',' | b';'
+        )
+}
+
+fn slash_starts_path(bytes: &[u8], index: usize) -> bool {
+    index + 1 == bytes.len()
+        || matches!(
+            bytes[index + 1],
+            b'.' | b'_' | b'-' | b'~' | b'a'..=b'z' | b'0'..=b'9'
+        )
 }
