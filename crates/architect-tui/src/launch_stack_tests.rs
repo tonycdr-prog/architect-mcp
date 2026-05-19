@@ -1,11 +1,8 @@
-use std::collections::BTreeMap;
-
 use serde_json::json;
 
 use crate::launch_judge_report::LaunchJudgeResult;
 use crate::launch_stack::{
     LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest, build_report_from_items,
-    build_report_from_items_with_waivers, parse_waivers,
 };
 use crate::launch_stack_github::{issue_from_value, pr_from_value, summarize_checks};
 
@@ -93,82 +90,6 @@ fn launch_stack_is_conditional_for_drafts_pending_checks_and_open_blockers() {
             .next_actions
             .iter()
             .any(|action| action.contains("blocker issue #20"))
-    );
-}
-
-#[test]
-fn launch_stack_go_allows_explicit_open_blocker_waiver() {
-    let pr = ready_pr(10);
-    let blocker = blocker_issue(20, "OPEN");
-    let waivers = BTreeMap::from([(
-        20,
-        "maintainer accepted temporary Linux terminal waiver".to_string(),
-    )]);
-
-    let report =
-        build_report_from_items_with_waivers(None, vec![pr], vec![blocker], Vec::new(), waivers);
-
-    assert_eq!(report.result, LaunchJudgeResult::Go);
-    assert_eq!(
-        report.blocker_issues[0].status,
-        LaunchStackItemStatus::Waived
-    );
-    assert_eq!(
-        report.blocker_issues[0].waiver_reason.as_deref(),
-        Some("maintainer accepted temporary Linux terminal waiver")
-    );
-    let report_json = serde_json::to_value(&report).expect("serialize launch-stack report");
-    assert_eq!(
-        report_json["blockerIssues"][0]["waiverReason"],
-        "maintainer accepted temporary Linux terminal waiver"
-    );
-    assert!(report.next_actions.is_empty());
-}
-
-#[test]
-fn launch_stack_omits_waiver_reason_when_not_waived() {
-    let pr = ready_pr(10);
-    let blocker = blocker_issue(20, "CLOSED");
-    let report = build_report_from_items(None, vec![pr], vec![blocker], Vec::new());
-    let report_json = serde_json::to_value(&report).expect("serialize launch-stack report");
-    assert!(
-        report_json["blockerIssues"][0]
-            .get("waiverReason")
-            .is_none()
-    );
-}
-
-#[test]
-fn malformed_or_unmatched_blocker_waivers_fail_closed() {
-    let (waivers, findings) = parse_waivers(&[
-        "20=".to_string(),
-        "not-a-number=maintainer reason".to_string(),
-        "21=maintainer reason".to_string(),
-    ]);
-    let blocker = blocker_issue(20, "OPEN");
-    let mut combined_findings = findings;
-    combined_findings.push(
-        "waiver supplied for issue #21, but that issue was not supplied as a blocker".to_string(),
-    );
-
-    let report = build_report_from_items_with_waivers(
-        None,
-        Vec::new(),
-        vec![blocker],
-        combined_findings,
-        waivers,
-    );
-
-    assert_eq!(report.result, LaunchJudgeResult::NoGo);
-    assert_eq!(
-        report.blocker_issues[0].status,
-        LaunchStackItemStatus::Warning
-    );
-    assert!(
-        report
-            .findings
-            .iter()
-            .any(|finding| finding.contains("needs a public reason"))
     );
 }
 

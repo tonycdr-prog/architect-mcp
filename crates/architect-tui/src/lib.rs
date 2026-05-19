@@ -140,6 +140,8 @@ mod launch_stack_review_decision_tests;
 mod launch_stack_review_threads;
 #[cfg(test)]
 mod launch_stack_tests;
+#[cfg(test)]
+mod launch_stack_waiver_tests;
 mod launch_stack_waivers;
 pub mod mcp;
 mod mcp_client;
