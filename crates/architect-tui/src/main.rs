@@ -82,6 +82,7 @@ async fn main() -> Result<()> {
         }
         Some(Commands::TerminalEvidence {
             json,
+            markdown,
             prompt,
             skip_gate,
             platform,
@@ -93,6 +94,7 @@ async fn main() -> Result<()> {
                 config,
                 TerminalEvidenceOptions {
                     json,
+                    markdown,
                     prompt,
                     skip_gate,
                     platform,

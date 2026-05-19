@@ -1,13 +1,16 @@
 use std::collections::BTreeMap;
 
 use crate::adapter::{AdapterHealth, AuthStatus};
+use crate::issue_terminal_evidence_source::extract_json_blocks;
 use crate::launch_judge_report::LaunchJudgeTerminalEvidenceStatus;
 use crate::mcp::McpProcessSpec;
 use crate::smoke::SmokeStatus;
 use crate::smoke_types::{
     AdapterSummary, BinarySummary, CommandCheck, EnvironmentSummary, GateSmoke, SmokeReport,
 };
-use crate::terminal_evidence::{TerminalEvidenceOptions, evidence_from_smoke};
+use crate::terminal_evidence::{
+    TerminalEvidenceOptions, evidence_from_smoke, render_markdown, validate_output_mode,
+};
 
 #[test]
 fn evidence_from_smoke_outputs_public_safe_summary() {
@@ -17,12 +20,16 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
         &TerminalEvidenceOptions {
             json: true,
             prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
+            markdown: false,
             skip_gate: false,
             platform: None,
             source: Some(
-                "/home/example/private issue #136 public-safe terminal QA report".to_string(),
+                "/home/example/private issue #136 public-safe terminal QA report ghp_secret"
+                    .to_string(),
             ),
-            notes: Some("/home/example/private interactive resize and exit passed".to_string()),
+            notes: Some(
+                "/home/example/private interactive resize and exit passed npm_secret".to_string(),
+            ),
         },
     )
     .expect("terminal evidence");
@@ -54,6 +61,8 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
             .unwrap()
             .contains("example/private")
     );
+    assert!(!serde_json::to_string(&evidence).unwrap().contains("ghp_"));
+    assert!(!serde_json::to_string(&evidence).unwrap().contains("npm_"));
 }
 
 #[test]
@@ -63,6 +72,7 @@ fn evidence_from_smoke_rejects_unsupported_auto_platform() {
         &smoke,
         &TerminalEvidenceOptions {
             json: true,
+            markdown: false,
             prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
             skip_gate: false,
             platform: None,
@@ -73,6 +83,51 @@ fn evidence_from_smoke_rejects_unsupported_auto_platform() {
     .expect_err("macos is not launch terminal evidence");
 
     assert!(error.to_string().contains("linux or windows"));
+}
+
+#[test]
+fn terminal_evidence_markdown_is_ready_for_issue_comments() {
+    let smoke = smoke_report(SmokeStatus::Passed, "windows");
+    let evidence = evidence_from_smoke(
+        &smoke,
+        &TerminalEvidenceOptions {
+            json: false,
+            markdown: true,
+            prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
+            skip_gate: false,
+            platform: None,
+            source: Some("issue #136 Windows terminal report".to_string()),
+            notes: Some("resize, mouse, and exit checks passed".to_string()),
+        },
+    )
+    .expect("terminal evidence");
+
+    let markdown = render_markdown(&evidence).expect("markdown");
+    assert!(markdown.contains("```json"));
+    assert!(markdown.contains("\"schemaVersion\": 1"));
+    assert!(markdown.contains("\"platform\": \"windows\""));
+    assert!(markdown.contains("This command does not create, edit, or close GitHub issues"));
+    assert_eq!(extract_json_blocks(&markdown).len(), 1);
+    assert!(!markdown.contains("/Users/"));
+    assert!(!markdown.contains("/home/"));
+    assert!(!markdown.contains("ghp_"));
+    assert!(!markdown.contains("npm_"));
+}
+
+#[test]
+fn terminal_evidence_rejects_ambiguous_output_modes() {
+    let error = validate_output_mode(&TerminalEvidenceOptions {
+        json: true,
+        markdown: true,
+        prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
+        skip_gate: false,
+        platform: None,
+        source: None,
+        notes: None,
+    })
+    .expect_err("ambiguous output mode should fail");
+
+    assert!(error.to_string().contains("--json or --markdown"));
 }
 
 fn smoke_report(status: SmokeStatus, os: &str) -> SmokeReport {

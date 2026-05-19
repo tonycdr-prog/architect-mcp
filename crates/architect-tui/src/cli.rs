@@ -55,6 +55,8 @@ pub enum Commands {
     TerminalEvidence {
         #[arg(long)]
         json: bool,
+        #[arg(long)]
+        markdown: bool,
         #[arg(long, default_value = SmokeOptions::DEFAULT_PROMPT)]
         prompt: String,
         #[arg(long)]

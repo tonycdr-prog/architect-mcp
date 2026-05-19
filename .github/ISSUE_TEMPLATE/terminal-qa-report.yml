@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for testing in a real terminal. On Linux and Windows, run `architect-mcp-tui terminal-evidence --json` and paste that public-safe summary below. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
+        Thanks for testing in a real terminal. On Linux and Windows, run `architect-mcp-tui terminal-evidence --markdown` and paste that public-safe issue comment below. Use `architect-mcp-tui terminal-evidence --json` only when a maintainer asks for a local file. Do not include secrets, tokens, private repository names, absolute local paths, raw stdout/stderr logs, or private file contents. Summarize command results instead of pasting raw `architect-mcp-tui smoke --json` output.
   - type: dropdown
     id: platform
     attributes:
@@ -44,10 +44,10 @@ body:
   - type: textarea
     id: launch-judge-evidence
     attributes:
-      label: Launch judge terminal evidence JSON
-      description: Required for Linux and Windows launch-readiness reports. Paste the public-safe output from architect-mcp-tui terminal-evidence --json, or a maintainer-normalized equivalent that can be saved as terminal-evidence.json and passed to architect-mcp-tui launch-judge --terminal-evidence. Do not paste raw smoke JSON.
-      render: json
+      label: Launch judge terminal evidence Markdown
+      description: Required for Linux and Windows launch-readiness reports. Paste the public-safe output from architect-mcp-tui terminal-evidence --markdown, or paste only the JSON from architect-mcp-tui terminal-evidence --json if a maintainer asks for a local file. Do not paste raw smoke JSON.
       value: |
+        ```json
         {
           "schemaVersion": 1,
           "reports": [
@@ -60,6 +60,7 @@ body:
             }
           ]
         }
+        ```
     validations:
       required: false
   - type: dropdown
