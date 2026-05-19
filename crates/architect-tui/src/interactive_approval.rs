@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::approval::promote_approved_changes;
+use crate::approval::{promote_approved_changes, promotion_status_lines};
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
 use crate::session::SessionPhase;
@@ -65,6 +65,15 @@ impl InteractiveWorkflowEngine {
         let session = self.active()?;
         Ok(update(
             vec![format!("promoted {} changed file(s)", promoted.len())],
+            inspector_for(session),
+            Some(session.clone()),
+        ))
+    }
+
+    pub(crate) fn promotion_status(&self) -> Result<WorkflowUpdate> {
+        let session = self.active()?;
+        Ok(update(
+            promotion_status_lines(session, &self.orchestrator.workspace),
             inspector_for(session),
             Some(session.clone()),
         ))

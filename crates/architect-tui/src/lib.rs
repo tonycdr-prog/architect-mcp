@@ -6,6 +6,8 @@ mod adapter_probe_command;
 mod adapter_pty;
 mod adapter_review;
 mod approval;
+#[cfg(test)]
+mod approval_tests;
 pub mod arena;
 mod brief;
 #[cfg(test)]

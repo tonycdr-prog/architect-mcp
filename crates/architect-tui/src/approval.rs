@@ -3,37 +3,43 @@ use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-use crate::session::{ApprovalStatus, TuiSession};
+use crate::session::{ApprovalStatus, SessionPhase, TuiSession};
 use crate::verification::ensure_verification_passed;
 
-const REQUIRED_REVIEW_GATES: &[&str] = &[
+pub(crate) const REQUIRED_REVIEW_GATES: &[&str] = &[
     "review_implementation_against_contract",
     "review_repo_structure",
     "review_agent_final_response",
     "review_agent_session",
 ];
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PromotionReadiness {
+    pub ready: bool,
+    pub blockers: Vec<String>,
+    pub next_actions: Vec<String>,
+}
+
 pub fn promote_approved_changes(
     session: &mut TuiSession,
     workspace: &Path,
 ) -> Result<Vec<PathBuf>> {
-    if !session.can_promote() {
-        anyhow::bail!("approval is required before promotion");
+    let readiness = promotion_readiness(session, workspace);
+    if !readiness.ready {
+        anyhow::bail!(
+            "promotion blocked: {}; next: {}",
+            readiness.blockers.join("; "),
+            readiness.next_actions.join("; ")
+        );
     }
-    ensure_reviews_or_override(session)?;
     let worktree = session
         .worktree
         .as_ref()
-        .context("adapter run has no isolated worktree evidence")?;
-    ensure_isolated_worktree(workspace, worktree)?;
+        .expect("readiness checked worktree");
 
     let mut promoted = Vec::new();
     for file in &session.changed_files {
-        let path = file
-            .get("path")
-            .and_then(|value| value.as_str())
-            .context("changed file evidence is missing a path")?;
-        let relative = safe_relative_path(path)?;
+        let relative = changed_file_relative_path(file)?;
         let source = worktree.join(&relative);
         let destination = workspace.join(&relative);
         if source.exists() {
@@ -48,22 +54,133 @@ pub fn promote_approved_changes(
     Ok(promoted)
 }
 
-fn ensure_reviews_or_override(session: &TuiSession) -> Result<()> {
-    if session.approval_status == ApprovalStatus::Override {
-        return Ok(());
-    }
-    ensure_verification_passed(session)?;
-    for gate in REQUIRED_REVIEW_GATES {
-        let review = session
-            .gates
-            .get(*gate)
-            .with_context(|| format!("promotion requires {gate} or explicit override"))?;
-        let text = review.to_string().to_lowercase();
-        if text.contains("fail") || text.contains("blocker") {
-            anyhow::bail!("promotion blocked by {gate}");
+pub(crate) fn promotion_readiness(session: &TuiSession, workspace: &Path) -> PromotionReadiness {
+    let mut blockers = Vec::new();
+    let mut next_actions = Vec::new();
+    let override_recorded = session.approval_status == ApprovalStatus::Override;
+
+    if !session.can_promote() {
+        blockers.push("promotion approval missing".to_string());
+        if session.phase == SessionPhase::Complete {
+            push_action(&mut next_actions, "run approve <reason>");
+        } else {
+            push_action(
+                &mut next_actions,
+                "complete final/session review, then run approve <reason>",
+            );
         }
     }
-    Ok(())
+
+    match &session.worktree {
+        Some(worktree) => {
+            if let Err(error) = ensure_isolated_worktree(workspace, worktree) {
+                blockers.push(error.to_string());
+                push_action(&mut next_actions, "rerun adapter in an isolated worktree");
+            }
+        }
+        None => {
+            blockers.push("adapter isolated worktree evidence missing".to_string());
+            push_action(&mut next_actions, "run adapter after execution approval");
+        }
+    }
+
+    if session.changed_files.is_empty() {
+        blockers.push("changed-file evidence missing".to_string());
+        push_action(
+            &mut next_actions,
+            "run diff summary after adapter execution",
+        );
+    } else {
+        for file in &session.changed_files {
+            if let Err(error) = changed_file_relative_path(file) {
+                blockers.push(format!("changed-file evidence invalid: {error}"));
+                push_action(
+                    &mut next_actions,
+                    "rerun adapter to refresh changed-file evidence",
+                );
+            }
+        }
+    }
+
+    if !override_recorded {
+        if let Err(error) = ensure_verification_passed(session) {
+            blockers.push(error.to_string());
+            push_action(
+                &mut next_actions,
+                "run verification status and record verification <required check>=passed",
+            );
+        }
+        review_gate_blockers(session, &mut blockers, &mut next_actions);
+    }
+
+    PromotionReadiness {
+        ready: blockers.is_empty(),
+        blockers,
+        next_actions,
+    }
+}
+
+pub(crate) fn promotion_status_lines(session: &TuiSession, workspace: &Path) -> Vec<String> {
+    let readiness = promotion_readiness(session, workspace);
+    let mut lines = vec![format!(
+        "promotion: {}",
+        if readiness.ready { "ready" } else { "blocked" }
+    )];
+    if session.approval_status == ApprovalStatus::Override {
+        lines.push("override: recorded; review and verification blockers are bypassed".to_string());
+    }
+    lines.extend(
+        readiness
+            .blockers
+            .into_iter()
+            .map(|blocker| format!("blocker: {blocker}")),
+    );
+    lines.extend(
+        readiness
+            .next_actions
+            .into_iter()
+            .map(|action| format!("next: {action}")),
+    );
+    lines
+}
+
+fn review_gate_blockers(
+    session: &TuiSession,
+    blockers: &mut Vec<String>,
+    next_actions: &mut Vec<String>,
+) {
+    if session.approval_status == ApprovalStatus::Override {
+        return;
+    }
+    for gate in REQUIRED_REVIEW_GATES {
+        match session.gates.get(*gate) {
+            Some(review) => {
+                let text = review.to_string().to_lowercase();
+                if text.contains("fail") || text.contains("blocker") {
+                    blockers.push(format!("review gate blocking: {gate}"));
+                    push_action(next_actions, review_gate_next_action(gate));
+                }
+            }
+            None => {
+                blockers.push(format!("missing review gate: {gate}"));
+                push_action(next_actions, review_gate_next_action(gate));
+            }
+        }
+    }
+}
+
+fn review_gate_next_action(gate: &str) -> &'static str {
+    match gate {
+        "review_agent_final_response" => "run final review <response>",
+        "review_agent_session" => "run session review",
+        _ => "rerun adapter to refresh implementation review evidence",
+    }
+}
+
+fn push_action(next_actions: &mut Vec<String>, action: &str) {
+    if !next_actions.iter().any(|existing| existing == action) {
+        next_actions.push(action.to_string());
+    }
 }
 
 fn ensure_isolated_worktree(workspace: &Path, worktree: &Path) -> Result<()> {
@@ -78,6 +195,14 @@ fn ensure_isolated_worktree(workspace: &Path, worktree: &Path) -> Result<()> {
         anyhow::bail!("promotion requires an architect-mcp isolated worktree");
     }
     Ok(())
+}
+
+fn changed_file_relative_path(file: &serde_json::Value) -> Result<PathBuf> {
+    let path = file
+        .get("path")
+        .and_then(|value| value.as_str())
+        .context("changed file evidence is missing a path")?;
+    safe_relative_path(path)
 }
 
 fn safe_relative_path(path: &str) -> Result<PathBuf> {
@@ -115,74 +240,4 @@ fn copy_file_from_worktree(source: &Path, destination: &Path) -> Result<()> {
         )
     })?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn promotion_requires_approval_and_isolated_worktree() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let workspace = temp.path();
-        let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
-        fs::create_dir_all(worktree.join("docs")).expect("worktree");
-        fs::write(worktree.join("docs/result.md"), "done\n").expect("file");
-
-        let mut session = TuiSession::new("build", "codex");
-        session.worktree = Some(worktree);
-        session.changed_files = vec![json!({ "path": "docs/result.md", "lines": 1 })];
-        assert!(promote_approved_changes(&mut session, workspace).is_err());
-
-        session.approve("reviewed");
-        session.set_required_verification(vec!["npm test".to_string()]);
-        session
-            .verification
-            .insert("npm test".to_string(), "passed".to_string());
-        for gate in REQUIRED_REVIEW_GATES {
-            session.set_gate(gate, json!({ "ok": true }));
-        }
-        let promoted = promote_approved_changes(&mut session, workspace).expect("promote");
-        assert_eq!(promoted, vec![PathBuf::from("docs/result.md")]);
-        assert_eq!(
-            fs::read_to_string(workspace.join("docs/result.md")).expect("promoted"),
-            "done\n"
-        );
-    }
-
-    #[test]
-    fn promotion_rejects_unsafe_paths() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let workspace = temp.path();
-        let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
-        fs::create_dir_all(&worktree).expect("worktree");
-
-        let mut session = TuiSession::new("build", "codex");
-        session.approve("reviewed");
-        session.worktree = Some(worktree);
-        for gate in REQUIRED_REVIEW_GATES {
-            session.set_gate(gate, json!({ "ok": true }));
-        }
-        session.changed_files = vec![json!({ "path": "../secrets.env", "lines": 1 })];
-        assert!(promote_approved_changes(&mut session, workspace).is_err());
-    }
-
-    #[test]
-    fn promotion_requires_review_gates_unless_overridden() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let workspace = temp.path();
-        let worktree = workspace.join(".architect-mcp/worktrees/session/codex");
-        fs::create_dir_all(worktree.join("docs")).expect("worktree");
-        fs::write(worktree.join("docs/result.md"), "done\n").expect("file");
-
-        let mut session = TuiSession::new("build", "codex");
-        session.approve("reviewed");
-        session.worktree = Some(worktree);
-        session.changed_files = vec![json!({ "path": "docs/result.md", "lines": 1 })];
-        assert!(promote_approved_changes(&mut session, workspace).is_err());
-
-        session.override_approval("maintainer override for smoke fixture");
-        assert!(promote_approved_changes(&mut session, workspace).is_ok());
-    }
 }

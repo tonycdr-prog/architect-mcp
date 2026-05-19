@@ -12,6 +12,7 @@ pub enum WorkflowCommand {
     Reject(String),
     Override(String),
     Promote,
+    PromotionStatus,
     DiffSummary,
     DiffFile(String),
     ArenaRun(Vec<String>),
@@ -53,6 +54,7 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "reject" => WorkflowCommand::Reject("rejected in TUI".to_string()),
         "override" => WorkflowCommand::Override("manual TUI override".to_string()),
         "promote" => WorkflowCommand::Promote,
+        "promotion status" => WorkflowCommand::PromotionStatus,
         "diff" | "diff summary" => WorkflowCommand::DiffSummary,
         "arena rank" => WorkflowCommand::ArenaRank,
         "verification" | "verification status" => WorkflowCommand::VerificationStatus,
@@ -149,6 +151,10 @@ mod tests {
         assert_eq!(
             parse_workflow_command("override maintainer accepted known warning"),
             WorkflowCommand::Override("maintainer accepted known warning".to_string())
+        );
+        assert_eq!(
+            parse_workflow_command("promotion status"),
+            WorkflowCommand::PromotionStatus
         );
     }
 }
