@@ -4,6 +4,7 @@ use serde_json::{Value, json};
 
 use crate::launch_stack::{
     LaunchStackCheckSummary, LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest,
+    LaunchStackReviewThread,
 };
 pub(crate) use crate::launch_stack_github_support::{public_text, run_gh_json};
 use crate::launch_stack_pr_status::{PrStatusEvidence, pr_next_action, pr_status};
@@ -32,12 +33,16 @@ pub(crate) fn fetch_pr(
         .and_then(Value::as_str)
         .filter(|id| !id.trim().is_empty())
         .ok_or_else(|| format!("PR #{number}: GitHub response omitted PR node id"))?;
-    let unresolved_review_threads = fetch_unresolved_review_threads(workspace, pr_id)
+    let unresolved_review_thread_details = fetch_unresolved_review_threads(workspace, pr_id)
         .map_err(|error| format!("PR #{number}: {error}"))?;
     if let Some(object) = value.as_object_mut() {
         object.insert(
             "unresolvedReviewThreads".to_string(),
-            json!(unresolved_review_threads),
+            json!(unresolved_review_thread_details.len()),
+        );
+        object.insert(
+            "unresolvedReviewThreadDetails".to_string(),
+            json!(unresolved_review_thread_details),
         );
     }
     Ok(pr_from_value_with_required_checks(
@@ -103,6 +108,8 @@ pub(crate) fn pr_from_value_with_required_checks(
         .get("unresolvedReviewThreads")
         .and_then(Value::as_u64)
         .unwrap_or_default() as usize;
+    let unresolved_review_thread_details =
+        parse_unresolved_review_thread_details(value.get("unresolvedReviewThreadDetails"));
     let mut checks = summarize_checks(value.get("statusCheckRollup"));
     apply_required_checks(&mut checks, required_checks);
     let evidence = PrStatusEvidence {
@@ -126,12 +133,42 @@ pub(crate) fn pr_from_value_with_required_checks(
         is_draft,
         review_decision,
         unresolved_review_threads,
+        unresolved_review_thread_details,
         merge_state_status: public_text(&merge_state_status, 80),
         mergeable,
         checks,
         status,
         next_action,
     }
+}
+
+fn parse_unresolved_review_thread_details(value: Option<&Value>) -> Vec<LaunchStackReviewThread> {
+    let Some(items) = value.and_then(Value::as_array) else {
+        return Vec::new();
+    };
+    items
+        .iter()
+        .filter_map(|item| {
+            let url = item.get("url").and_then(Value::as_str).unwrap_or("");
+            let path = item.get("path").and_then(Value::as_str).unwrap_or("");
+            if url.trim().is_empty() && path.trim().is_empty() {
+                return None;
+            }
+            Some(LaunchStackReviewThread {
+                url: public_text(url, 240),
+                path: public_text(path, 180),
+                line: item.get("line").and_then(Value::as_u64),
+                author: item
+                    .get("author")
+                    .and_then(Value::as_str)
+                    .map(|author| public_text(author, 80)),
+                outdated: item
+                    .get("outdated")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
+            })
+        })
+        .collect()
 }
 
 pub(crate) fn issue_from_value(fallback_number: u64, value: &Value) -> LaunchStackIssue {

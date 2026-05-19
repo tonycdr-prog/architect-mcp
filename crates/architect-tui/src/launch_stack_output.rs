@@ -35,6 +35,19 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
                 pr.checks.missing_required_names.join(", ")
             );
         }
+        for thread in &pr.unresolved_review_thread_details {
+            println!(
+                "  review thread: {} path={} line={} author={} outdated={}",
+                thread.url,
+                thread.path,
+                thread
+                    .line
+                    .map(|line| line.to_string())
+                    .unwrap_or_else(|| "unknown".to_string()),
+                thread.author.as_deref().unwrap_or("unknown"),
+                thread.outdated
+            );
+        }
     }
     for issue in &report.blocker_issues {
         print!(

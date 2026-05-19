@@ -205,6 +205,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /requested PR changes, or review-thread lookup failures are `no_go`/);
     assert.match(rustTui, /unresolved review threads, pending checks, unstable merge states without explicit required-check evidence, and open blocker issues are `conditional_go`/);
     assert.match(rustTui, /unresolved review-thread counts/);
+    assert.match(rustTui, /unresolvedReviewThreadDetails/);
+    assert.match(rustTui, /URL, path, line, author, and outdated metadata/);
+    assert.match(rustTui, /omits raw review-thread text, diff hunks/);
     assert.match(rustTui, /mergeable=MERGEABLE/);
     assert.match(rustTui, /does not merge PRs, close issues, edit branches, tag releases, publish packages/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --markdown/);
@@ -252,6 +255,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(docs, /--required-check <name>/);
     assert.match(docs, /missing required-check evidence/);
     assert.match(docs, /unresolved review threads/);
+    assert.match(docs, /thread URL, path, line, author, and outdated flag/);
     assert.match(docs, /launch-readiness --json/);
     assert.match(docs, /evidence-index --json/);
     assert.match(docs, /evidence-index --markdown/);
@@ -264,7 +268,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#261 - Expose terminal evidence provenance in launch readiness summaries\]/);
+    assert.match(goal, /Active slice: \[#263 - Expose public-safe unresolved review-thread handoff details\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -296,6 +300,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#257\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/257\)/);
     assert.match(goal, /\[#259\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/259\)/);
     assert.match(goal, /\[#261\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/261\)/);
+    assert.match(goal, /\[#263\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/263\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -322,6 +327,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /unresolved review-thread launch-readiness gating/);
     assert.match(goal, /terminal-QA template provenance guidance/);
     assert.match(goal, /launch-readiness\/evidence-index terminal provenance summaries/);
+    assert.match(goal, /unresolved review-thread handoff details/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -338,8 +344,10 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#255 in PR #256/);
     assert.match(goal, /#257 in PR #258/);
     assert.match(goal, /#259 in PR #260/);
-    assert.match(goal, /#261 in the current PR/);
-    assert.match(goal, /#136 remains open and is still the evidence boundary/);
+    assert.match(goal, /#261 in PR #262/);
+    assert.match(goal, /#263 in the current PR/);
+    assert.match(goal, /unresolved review threads across older stacked PRs must be resolved/);
+    assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
     assert.doesNotMatch(goal, /The full evolved objective is complete/i);
