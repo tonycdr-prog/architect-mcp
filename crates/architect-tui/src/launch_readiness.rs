@@ -7,12 +7,15 @@ use crate::issue_terminal_evidence::{
     IssueTerminalEvidenceOptions, IssueTerminalEvidenceReport, build_issue_terminal_evidence_report,
 };
 use crate::launch_judge_report::LaunchJudgeResult;
+use crate::launch_readiness_output::print_text_report;
+use crate::launch_readiness_public_summary::build_public_summary;
 use crate::launch_stack::{LaunchStackOptions, LaunchStackReport, build_launch_stack_report};
 use crate::launch_stack_github::public_text;
 
 #[derive(Debug, Clone)]
 pub struct LaunchReadinessOptions {
     pub json: bool,
+    pub public_summary: bool,
     pub repo: Option<String>,
     pub stack_from_pr: Option<u64>,
     pub prs: Vec<u64>,
@@ -46,7 +49,12 @@ pub struct LaunchReadinessTerminalEvidenceWaiver {
 
 pub fn run_launch_readiness(workspace: &Path, options: LaunchReadinessOptions) -> Result<()> {
     let report = build_launch_readiness_report(workspace, &options);
-    if options.json {
+    if options.public_summary {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&build_public_summary(&report))?
+        );
+    } else if options.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
         print_text_report(&report);
@@ -257,42 +265,4 @@ fn combine_results(results: &[LaunchJudgeResult]) -> LaunchJudgeResult {
 fn dedupe(values: &mut Vec<String>) {
     let mut seen = std::collections::BTreeSet::new();
     values.retain(|value| seen.insert(value.clone()));
-}
-
-fn print_text_report(report: &LaunchReadinessReport) {
-    println!("architect-mcp-tui launch readiness: {:?}", report.result);
-    println!("- read-only: {}", report.read_only);
-    println!("- stack: {:?}", report.launch_stack.result);
-    match &report.terminal_evidence_issue {
-        Some(evidence) => {
-            println!("- terminal evidence issue: {:?}", evidence.result);
-            println!(
-                "- terminal evidence reports: {}",
-                evidence.terminal_evidence.reports.len()
-            );
-        }
-        None => {
-            println!("- terminal evidence issue: not supplied");
-        }
-    }
-    if let Some(waiver) = &report.terminal_evidence_waiver {
-        let status = if waiver.applied {
-            "applied"
-        } else {
-            "recorded"
-        };
-        println!(
-            "- terminal evidence waiver: issue #{} {status}: {}",
-            waiver.issue, waiver.reason
-        );
-    }
-    for finding in &report.findings {
-        println!("- finding: {finding}");
-    }
-    if !report.next_actions.is_empty() {
-        println!("next actions:");
-        for action in &report.next_actions {
-            println!("- {action}");
-        }
-    }
 }

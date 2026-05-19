@@ -43,10 +43,11 @@ architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui collect-terminal-evidence --json --repo tonycdr-prog/architect-mcp --issue 136
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted launch with platform QA waiver" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 
-Use `--public-summary` for PR comments, release notes, and issue follow-up. It keeps the launch decision, source filenames, and platform evidence while omitting workspace paths, raw command tails, smoke internals, terminal-evidence freeform source text, command summaries, notes, cache paths, private repo names, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
+Use `launch-judge --public-summary` or `launch-readiness --public-summary` for PR comments, release notes, and issue follow-up. These summaries keep the launch decision, next actions, stack/evidence status, source filenames or platform evidence where relevant, and waiver state while omitting workspace paths, raw command tails, smoke internals, full PR/check payloads, terminal-evidence freeform source text, command summaries, notes, cache paths, private repo names, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
 
 Use `collect-terminal-evidence` when Linux and Windows evidence is posted as fenced JSON in a GitHub issue. It performs a read-only GitHub CLI lookup, extracts public-safe evidence blocks, applies the same launch-judge validation rules, and prints merged evidence for local release judging. It does not replace the underlying terminal QA or mutate the issue.
 
@@ -61,6 +62,7 @@ architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136
 architect-mcp-tui launch-stack --json --repo tonycdr-prog/architect-mcp --pr 150 --pr 178 --blocker 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason"
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
+architect-mcp-tui launch-readiness --public-summary --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 190 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted a temporary platform waiver with reason" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 

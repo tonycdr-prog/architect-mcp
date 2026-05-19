@@ -66,6 +66,10 @@ mod launch_judge_report;
 #[cfg(test)]
 mod launch_judge_tests;
 pub mod launch_readiness;
+mod launch_readiness_output;
+mod launch_readiness_public_summary;
+#[cfg(test)]
+mod launch_readiness_public_summary_tests;
 #[cfg(test)]
 mod launch_readiness_tests;
 pub mod launch_stack;

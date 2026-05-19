@@ -217,6 +217,7 @@ async fn main() -> Result<()> {
         )?,
         Some(Commands::LaunchReadiness {
             json,
+            public_summary,
             repo,
             stack_from_pr,
             prs,
@@ -228,6 +229,7 @@ async fn main() -> Result<()> {
             &workspace,
             LaunchReadinessOptions {
                 json,
+                public_summary,
                 repo,
                 stack_from_pr,
                 prs,
