@@ -79,7 +79,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /architect-mcp-tui-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
     assert.match(workflow, /\.sha256/);
     assert.match(workflow, /gh release upload/);
-    assert.match(workflow, /platform:\s+linux/);
+    assert.match(workflow, /os:\s+ubuntu-latest[\s\S]*platform:\s+linux[\s\S]*arch:\s+x64[\s\S]*target:\s+x86_64-unknown-linux-gnu/);
+    assert.match(workflow, /os:\s+ubuntu-24\.04-arm[\s\S]*platform:\s+linux[\s\S]*arch:\s+arm64[\s\S]*target:\s+aarch64-unknown-linux-gnu/);
     assert.match(workflow, /platform:\s+macos/);
     assert.match(workflow, /platform:\s+windows/);
   });
@@ -91,6 +92,7 @@ describe("supply-chain and release hygiene", () => {
     assert.equal(usesLines.length > 0, true);
     assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
     assert.match(workflow, /ubuntu-latest/);
+    assert.match(workflow, /ubuntu-24\.04-arm/);
     assert.match(workflow, /macos-14/);
     assert.match(workflow, /windows-latest/);
     assert.match(workflow, /rustup toolchain install 1\.94\.0 --profile minimal/);
@@ -239,7 +241,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#239 - Add published npm TUI smoke workflow\]/);
+    assert.match(goal, /Active slice: \[#241 - Ship Linux ARM64 TUI release assets\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -260,6 +262,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#234\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/234\)/);
     assert.match(goal, /\[#236\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/236\)/);
     assert.match(goal, /\[#239\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/239\)/);
+    assert.match(goal, /\[#241\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/241\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -275,6 +278,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /explicit required-check launch readiness/);
     assert.match(goal, /public required-check evidence handoffs/);
     assert.match(goal, /published-package hosted smoke coverage/);
+    assert.match(goal, /Linux ARM64 TUI release assets/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);

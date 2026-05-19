@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { chmodSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -167,6 +168,43 @@ describe("architect-mcp-tui npm shim", () => {
         }),
       /checksum mismatch/
     );
+  });
+
+  it("downloads Linux ARM64 release assets with matching cache keys", async () => {
+    const cacheRoot = mkdtempSync(join(tmpdir(), "architect-tui-linux-arm64-"));
+    const version = "9.9.9-linux-arm64";
+    const archiveBody = "linux-arm64-archive";
+    const expectedSha = createHash("sha256").update(archiveBody).digest("hex");
+    const requestedUrls: string[] = [];
+    const executablePaths = new Set<string>();
+
+    const resolved = await shim.ensureCachedReleaseBinary({
+      cacheRoot,
+      version,
+      platform: "linux",
+      arch: "arm64",
+      downloadText: async (url: string) => {
+        requestedUrls.push(url);
+        return `${expectedSha}  architect-mcp-tui-linux-arm64.tar.gz\n`;
+      },
+      downloadFile: async (url: string, destination: string) => {
+        requestedUrls.push(url);
+        writeFileSync(destination, archiveBody);
+      },
+      extractArchive: (_archivePath: string, destination: string) => {
+        const binary = join(destination, binaryName);
+        writeFileSync(binary, "#!/bin/sh\nexit 0\n");
+        chmodSync(binary, 0o755);
+        executablePaths.add(binary);
+      },
+      isExecutable: (candidate: string) => executablePaths.has(candidate),
+    });
+
+    assert.equal(resolved, join(cacheRoot, version, "linux-arm64", binaryName));
+    assert.deepEqual(requestedUrls, [
+      `https://github.com/tonycdr-prog/architect-mcp/releases/download/v${version}/architect-mcp-tui-linux-arm64.tar.gz.sha256`,
+      `https://github.com/tonycdr-prog/architect-mcp/releases/download/v${version}/architect-mcp-tui-linux-arm64.tar.gz`,
+    ]);
   });
 
   it("follows https redirects for text and file downloads", async () => {

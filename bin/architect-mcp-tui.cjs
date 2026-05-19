@@ -132,7 +132,7 @@ async function ensureCachedReleaseBinary(options = {}) {
   const downloadFileFn = options.downloadFile || downloadFile;
   const extractArchiveFn = options.extractArchive || extractArchive;
   const isExecutableFn = options.isExecutable || isExecutable;
-  const assetName = `architect-mcp-tui-${platform}-${arch}${process.platform === "win32" ? ".zip" : ".tar.gz"}`;
+  const assetName = `architect-mcp-tui-${platform}-${arch}${platform === "windows" ? ".zip" : ".tar.gz"}`;
   const cacheDir = path.join(cacheRoot, version, `${platform}-${arch}`);
   const cachedBinary = path.join(cacheDir, binaryName);
   if (isExecutableFn(cachedBinary)) {

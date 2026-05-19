@@ -41,7 +41,7 @@ Keep the smoke JSON locally for troubleshooting. Do not paste the raw smoke JSON
 
 ## Hosted Published-Package Smoke
 
-The published-package smoke workflow is hosted non-interactive baseline evidence only. It installs `@tonycdr-prog/architect-mcp@latest` into a clean temporary runner workspace on Ubuntu and Windows, points the TUI at that installed package's `dist/index.js`, then runs `architect-mcp-tui --help`, `architect-mcp-tui config adapters --json`, and a gate-only `architect-mcp-tui run --jsonl` that must stop at approval before adapter execution. This catches package install, command-surface, MCP bridge, and JSONL regressions in the published npm package, but it does not open the interactive TUI and does not replace #136 manual terminal QA.
+The published-package smoke workflow is hosted non-interactive baseline evidence only. It installs `@tonycdr-prog/architect-mcp@latest` into a clean temporary runner workspace on Ubuntu and Windows, points the TUI at that installed package's `dist/index.js`, then runs `architect-mcp-tui --help`, `architect-mcp-tui config adapters --json`, and a gate-only `architect-mcp-tui run --jsonl` that must stop at approval before adapter execution. This catches package install, command-surface, MCP bridge, and JSONL regressions in the published npm package, but it does not open the interactive TUI and does not replace #136 manual terminal QA. Linux ARM64 package smoke depends on a release that includes `architect-mcp-tui-linux-arm64.tar.gz`; before that release, use source-built install smoke or record the missing asset as package evidence rather than manual terminal success.
 
 ## Scripted Walkthrough
 
