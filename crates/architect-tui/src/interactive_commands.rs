@@ -196,18 +196,27 @@ fn parse_foundry_plan(value: &str) -> WorkflowCommand {
 }
 
 fn parse_integration_plan(value: &str) -> WorkflowCommand {
-    let mut parts = value.split_whitespace();
-    let Some(server_id) = parts.next() else {
+    let parts = value.split_whitespace().collect::<Vec<_>>();
+    let ([server_id] | [server_id, _]) = parts.as_slice() else {
         return WorkflowCommand::Help;
     };
-    let target_client = parts.next().map(|part| {
-        part.strip_prefix("target=")
-            .unwrap_or(part)
-            .trim()
-            .to_string()
-    });
+    let server_id = server_id.trim();
+    if server_id.is_empty() {
+        return WorkflowCommand::Help;
+    }
+    let target_client = match parts.as_slice() {
+        [_] => None,
+        [_, target] => {
+            let target = target.strip_prefix("target=").unwrap_or(target).trim();
+            if target.is_empty() {
+                return WorkflowCommand::Help;
+            }
+            Some(target.to_string())
+        }
+        _ => unreachable!("integration plan parser already rejected extra arguments"),
+    };
     WorkflowCommand::IntegrationsPlan {
-        server_id: server_id.trim().to_string(),
+        server_id: server_id.to_string(),
         target_client,
     }
 }

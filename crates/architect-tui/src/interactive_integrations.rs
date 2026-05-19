@@ -132,15 +132,13 @@ impl InteractiveWorkflowEngine {
             .and_then(Value::as_str)
             .unwrap_or("unknown")
             .to_string();
-        let session = self.update_active(|session| {
-            session.set_mcp_install_apply_result(result);
-            if status == "written" {
-                session.clear_mcp_install_approval();
-            }
-        })?;
         if status != "written" {
             anyhow::bail!("MCP install write did not complete: {status}");
         }
+        let session = self.update_active(|session| {
+            session.set_mcp_install_apply_result(result);
+            session.clear_mcp_install_approval();
+        })?;
         Ok(update(
             apply_lines(session.gates.get("apply_mcp_install_plan"), true),
             inspector_for(session),

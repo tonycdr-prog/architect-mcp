@@ -33,6 +33,14 @@ pub(crate) fn apply_brief_answer(brief: &mut Value, key: &str, value: &str) {
     }
 }
 
+pub(crate) fn answer_affects_mcp_recommendations(key: &str) -> bool {
+    match canonical_key(key).as_deref() {
+        Some("idea" | "users" | "job" | "coreFlows" | "stack" | "constraints") => true,
+        Some(field) if field.starts_with("stack.") => true,
+        _ => false,
+    }
+}
+
 fn labeled_segments(input: &str) -> Vec<(String, String)> {
     let labels = [
         ("core flows", "coreFlows"),
