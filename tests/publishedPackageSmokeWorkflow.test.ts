@@ -14,7 +14,12 @@ describe("published package TUI smoke workflow", () => {
     assert.match(workflow, /ubuntu-latest/);
     assert.match(workflow, /windows-latest/);
     assert.doesNotMatch(workflow, /macos-14/);
+    assert.doesNotMatch(workflow, /^\s*pull_request:/m);
+    assert.match(workflow, /workflow_dispatch:/);
+    assert.match(workflow, /schedule:/);
     assert.match(workflow, /node-version: "22"/);
+    assert.match(workflow, /workspace_dir="\$smoke_dir\/workspace"/);
+    assert.match(workflow, /export ARCHITECT_MCP_WORKSPACE="\$workspace_dir"/);
     assert.match(workflow, /npm install --prefix "\$smoke_dir" @tonycdr-prog\/architect-mcp@latest/);
     assert.match(workflow, /node_modules", "@tonycdr-prog", "architect-mcp", "dist", "index\.js"/);
     assert.match(workflow, /path\.join\(smokeDir, "tui\.toml"\)/);
@@ -29,7 +34,10 @@ describe("published package TUI smoke workflow", () => {
     assert.doesNotMatch(workflow, /architect-mcp-tui\s*$/m);
     assert.match(terminalQa, /published-package smoke workflow/);
     assert.match(terminalQa, /hosted non-interactive baseline evidence only/);
+    assert.match(terminalQa, /schedule or manual dispatch/);
+    assert.match(terminalQa, /isolated temporary workspace/);
     assert.match(tuiLiveQa, /TUI published package smoke workflow/);
+    assert.match(tuiLiveQa, /runs on a schedule or manual dispatch instead of pull requests/);
     assert.match(tuiLiveQa, /does not replace #136 manual terminal QA/);
   });
 });

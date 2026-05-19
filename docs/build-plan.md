@@ -55,7 +55,7 @@
 ### 7. Linux ARM64 TUI Release Assets
 - Inputs: issue #241, npm shim Linux ARM64 asset naming, GitHub hosted ARM64 runner support, existing TUI release workflow
 - Outputs: Linux ARM64 TUI release matrix entry, Linux ARM64 source-built install-smoke coverage, public docs boundary, goal ledger update
-- Allowed directories: .github/workflows, tests, docs
+- Allowed directories: .github/workflows, tests, docs, bin
 - Forbidden files: published-package ARM64 smoke before a matching release asset exists, release tags, package publishing, auto-closing issue #136
 - Checks: node --import tsx --test tests/supplyChain.test.ts, node --import tsx --test tests/tuiShim.test.ts, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if Linux ARM64 hosted evidence is described as satisfying manual Linux/Windows terminal QA or if existing Linux x64, macOS, or Windows release coverage is removed.

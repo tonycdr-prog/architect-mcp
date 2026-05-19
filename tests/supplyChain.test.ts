@@ -286,7 +286,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#303 - Document and guard launch-stack schema compatibility for review decisions\]/);
+    assert.match(goal, /Active slice: Stack landing from PR #150 through PR #306, plus \[#136 - Run post-release TUI terminal QA on Windows and Linux\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -338,6 +338,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#299\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/299\)/);
     assert.match(goal, /\[#301\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/301\)/);
     assert.match(goal, /\[#303\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/303\)/);
+    assert.match(goal, /\[#305\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/305\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -384,6 +385,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /foundry retention boundary hardening for PR #229 review-thread debt/);
     assert.match(goal, /terminal evidence provenance review-thread clearance for PR #231 review-thread debt/);
     assert.match(goal, /launch-stack schema compatibility hardening for PR #233 review-thread debt/);
+    assert.match(goal, /remaining launch-readiness review-thread clearance for PR #235, PR #240, and PR #243 review-thread debt/);
+    assert.match(goal, /published-package smoke now runs on schedule or manual dispatch/);
+    assert.match(goal, /exports `ARCHITECT_MCP_WORKSPACE` under the temp smoke directory/);
+    assert.match(goal, /docs distinguish install-smoke ARM64 coverage from live-QA coverage/);
+    assert.match(goal, /Linux ARM64 build-plan boundary includes `bin`/);
     assert.match(goal, /absent optional `reviewDecision` fields are omitted/);
     assert.match(goal, /additive fields can appear in version 1/);
     assert.match(goal, /quoted and punctuated local paths are covered through public-summary regression tests/);
@@ -398,6 +404,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /hosted PR #304 checks pass/);
     assert.match(goal, /PR #304 launch-stack is `go`/);
     assert.match(goal, /PR #233 launch-stack is now `go`/);
+    assert.match(goal, /hosted PR #306 checks pass/);
+    assert.match(goal, /PR #306 launch-stack is `go`/);
+    assert.match(goal, /PR #235, PR #240, and PR #243 launch-stack checks are now `go`/);
     assert.match(goal, /whitespace-only orphan retention reasons fail closed/);
     assert.match(goal, /dry-run retention metadata fails closed/);
     assert.match(goal, /sourcePath now reflects issue body, comments, or body plus comments/);
@@ -448,7 +457,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#299 in PR #300/);
     assert.match(goal, /#301 in PR #302/);
     assert.match(goal, /#303 in PR #304/);
-    assert.match(goal, /unresolved review threads on PRs #235, #240, and #243/);
+    assert.match(goal, /#305 in PR #306/);
+    assert.match(goal, /#150 as the first merge candidate and #306 as the current stack head/);
+    assert.doesNotMatch(goal, /unresolved review threads on PRs #235, #240, and #243/);
     assert.match(goal, /#136 remains open for real Linux\/Windows terminal reports/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);
