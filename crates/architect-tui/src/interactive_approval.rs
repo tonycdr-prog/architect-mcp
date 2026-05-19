@@ -3,15 +3,33 @@ use anyhow::Result;
 use crate::approval::promote_approved_changes;
 use crate::interactive::InteractiveWorkflowEngine;
 use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
+use crate::session::SessionPhase;
 
 impl InteractiveWorkflowEngine {
     pub(crate) fn approve(&mut self, reason: &str) -> Result<WorkflowUpdate> {
-        let session = self.update_active(|session| session.approve(reason))?;
-        Ok(update(
-            vec![format!("changes approved: {reason}")],
-            inspector_for(session),
-            Some(session.clone()),
-        ))
+        let phase = self.active()?.phase.clone();
+        let has_worktree = self.active()?.worktree.is_some();
+        match (phase, has_worktree) {
+            (SessionPhase::FilePlanReviewed, false) => {
+                let session = self.update_active(|session| session.approve_execution(reason))?;
+                Ok(update(
+                    vec![format!("adapter execution approved: {reason}")],
+                    inspector_for(session),
+                    Some(session.clone()),
+                ))
+            }
+            (SessionPhase::ReviewRequired | SessionPhase::Complete, true) => {
+                let session = self.update_active(|session| session.approve(reason))?;
+                Ok(update(
+                    vec![format!("changes approved for promotion: {reason}")],
+                    inspector_for(session),
+                    Some(session.clone()),
+                ))
+            }
+            _ => anyhow::bail!(
+                "approval is available after file review for adapter execution, or after adapter review for promotion"
+            ),
+        }
     }
 
     pub(crate) fn reject(&mut self, reason: &str) -> Result<WorkflowUpdate> {

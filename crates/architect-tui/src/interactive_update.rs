@@ -30,6 +30,7 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
         format!("adapter: {}", session.adapter),
         format!("gates: {}", session.gates.len()),
         format!("verification: {}", session.verification.len()),
+        format!("execution approved: {}", session.execution_approved),
         format!("approval: {:?}", session.approval_status),
         format!("changed files: {}", session.changed_files.len()),
         format!("arena candidates: {}", session.arena_candidates.len()),

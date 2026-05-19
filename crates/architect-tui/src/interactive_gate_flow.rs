@@ -117,6 +117,7 @@ impl InteractiveWorkflowEngine {
         let session = self.update_active(|session| {
             session.set_gate("review_proposed_file_plan", result);
             session.phase = SessionPhase::FilePlanReviewed;
+            session.clear_execution_approval();
         })?;
         Ok(update(
             vec!["file plan reviewed".to_string()],
@@ -131,6 +132,12 @@ impl InteractiveWorkflowEngine {
             "review files before run adapter",
         )?;
         let session = self.active()?.clone();
+        if session.phase != SessionPhase::FilePlanReviewed {
+            anyhow::bail!("run adapter is only available after review files");
+        }
+        if !session.execution_approved {
+            anyhow::bail!("approve adapter execution before run adapter");
+        }
         let pre_edit = session
             .gates
             .get("create_pre_edit_contract")
@@ -166,6 +173,9 @@ impl InteractiveWorkflowEngine {
             } else {
                 SessionPhase::FilePlanReviewed
             };
+            if executed {
+                session.clear_execution_approval();
+            }
         })?;
         let summary = if executed {
             "adapter run completed; review evidence recorded"
