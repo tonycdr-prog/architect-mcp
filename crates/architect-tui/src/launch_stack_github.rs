@@ -6,7 +6,7 @@ use serde_json::Value;
 use crate::launch_stack::{
     LaunchStackCheckSummary, LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest,
 };
-use crate::launch_stack_pr_status::{pr_next_action, pr_status};
+use crate::launch_stack_pr_status::{PrStatusEvidence, pr_next_action, pr_status};
 use crate::launch_stack_required_checks::apply_required_checks;
 
 pub(crate) fn fetch_pr(
@@ -20,7 +20,8 @@ pub(crate) fn fetch_pr(
         "view".to_string(),
         number.to_string(),
         "--json".to_string(),
-        "number,title,url,isDraft,reviewDecision,mergeStateStatus,statusCheckRollup".to_string(),
+        "number,title,url,isDraft,reviewDecision,mergeStateStatus,mergeable,statusCheckRollup"
+            .to_string(),
     ];
     append_repo_args(&mut args, repo);
     let value = run_gh_json(workspace, &args).map_err(|error| format!("PR #{number}: {error}"))?;
@@ -77,22 +78,24 @@ pub(crate) fn pr_from_value_with_required_checks(
         .map(str::trim)
         .filter(|decision| !decision.is_empty())
         .map(|decision| public_text(&decision.to_ascii_uppercase(), 80));
+    let mergeable = value
+        .get("mergeable")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| public_text(&value.to_ascii_uppercase(), 80));
     let mut checks = summarize_checks(value.get("statusCheckRollup"));
     apply_required_checks(&mut checks, required_checks);
-    let status = pr_status(
+    let evidence = PrStatusEvidence {
         is_draft,
-        review_decision.as_deref(),
-        &merge_state_status,
-        &checks,
-    );
-    let next_action = pr_next_action(
-        number,
-        is_draft,
-        review_decision.as_deref(),
-        &merge_state_status,
-        &checks,
-        &status,
-    );
+        review_decision: review_decision.as_deref(),
+        merge_state_status: &merge_state_status,
+        mergeable: mergeable.as_deref(),
+        checks: &checks,
+        required_checks_supplied: !required_checks.is_empty(),
+    };
+    let status = pr_status(&evidence);
+    let next_action = pr_next_action(number, &evidence, &status);
     LaunchStackPullRequest {
         number,
         title: public_text(
@@ -103,6 +106,7 @@ pub(crate) fn pr_from_value_with_required_checks(
         is_draft,
         review_decision,
         merge_state_status: public_text(&merge_state_status, 80),
+        mergeable,
         checks,
         status,
         next_action,

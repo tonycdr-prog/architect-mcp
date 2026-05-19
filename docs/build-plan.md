@@ -99,3 +99,11 @@
 - Forbidden files: TUI mutation paths, persistent receipt storage, raw MCP payload storage, run-id/token leakage, claims that direct clients are forced to run every gate
 - Checks: node --import tsx --test tests/workGateCompleteness.test.ts tests/schemaValidation.test.ts tests/toolResponses.test.ts tests/supplyChain.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check
 - Stop after: stop if receipts pass without confirmed inputs and evidence, if unknown gates are accepted as known, if summaries leak token-shaped values or local paths, or if the default core surface changes.
+
+### 13. Mergeable Unstable Launch Readiness
+- Inputs: issue #253, launch-stack PR status policy, current PR #250 mergeable/unstable evidence shape, explicit required-check gate
+- Outputs: `mergeable` PR evidence in launch-stack reports, narrow pass condition for `UNSTABLE` plus `MERGEABLE` plus explicit green required checks, focused Rust tests, docs update, goal ledger update
+- Allowed directories: crates/architect-tui/src, docs
+- Forbidden files: release tags, GitHub branch updates, PR merges, terminal-evidence issue closure, weaker #136 terminal-evidence rules
+- Checks: cargo test -p architect-tui launch_stack, cargo test --workspace, npm run release:check, live launch-readiness with --required-check verify
+- Stop after: stop if `DIRTY` or `UNKNOWN` merge states can pass, if failed/pending/missing required checks can pass, if `UNSTABLE` can pass without an explicit required check, or if launch-readiness claims #136 evidence exists.
