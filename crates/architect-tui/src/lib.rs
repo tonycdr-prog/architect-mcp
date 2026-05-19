@@ -97,6 +97,8 @@ mod launch_judge_evidence;
 #[cfg(test)]
 mod launch_judge_evidence_environment_tests;
 mod launch_judge_evidence_safety;
+#[cfg(test)]
+mod launch_judge_evidence_validation_tests;
 mod launch_judge_public_summary;
 #[cfg(test)]
 mod launch_judge_public_summary_tests;

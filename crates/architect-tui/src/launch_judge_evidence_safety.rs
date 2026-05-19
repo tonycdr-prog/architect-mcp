@@ -65,14 +65,43 @@ fn risky_key(key: &str) -> bool {
 
 fn contains_sensitive_text(text: &str) -> bool {
     let lower = text.to_ascii_lowercase();
-    text.contains("/Users/")
-        || text.contains("C:\\Users\\")
-        || text.contains("C:/Users/")
-        || lower.contains("/home/")
+    contains_unix_absolute_path(&lower)
+        || contains_windows_user_path(&lower)
         || text.contains("BEGIN PRIVATE KEY")
         || lower.contains("npm_")
         || lower.contains("ghp_")
         || lower.contains("github_pat_")
         || lower.contains("sk-")
         || lower.contains("xoxb-")
+}
+
+fn contains_unix_absolute_path(text: &str) -> bool {
+    ["/users/", "/home/", "/var/", "/private/", "/tmp/", "/opt/"]
+        .iter()
+        .any(|prefix| starts_at_path_boundary(text, prefix))
+}
+
+fn contains_windows_user_path(text: &str) -> bool {
+    ["c:\\users\\", "c:/users/"]
+        .iter()
+        .any(|prefix| starts_at_path_boundary(text, prefix))
+}
+
+fn starts_at_path_boundary(text: &str, prefix: &str) -> bool {
+    let mut offset = 0;
+    while let Some(index) = text[offset..].find(prefix) {
+        let absolute_index = offset + index;
+        if absolute_index == 0 || is_path_boundary(text.as_bytes()[absolute_index - 1]) {
+            return true;
+        }
+        offset = absolute_index + prefix.len();
+    }
+    false
+}
+
+fn is_path_boundary(byte: u8) -> bool {
+    matches!(
+        byte,
+        b' ' | b'\t' | b'\n' | b'\r' | b'"' | b'\'' | b'`' | b'(' | b'[' | b'{' | b'=' | b':'
+    )
 }

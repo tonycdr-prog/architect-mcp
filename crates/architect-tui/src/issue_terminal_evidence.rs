@@ -160,24 +160,27 @@ fn build_report_from_issue(
             match serde_json::from_str::<Value>(block) {
                 Ok(value) => match parse_terminal_evidence_value(value, &source) {
                     Ok(mut envelope) => {
-                        let mut issues = Vec::new();
-                        if let Some(version) = envelope.schema_version
-                            && version != 1
-                        {
-                            issues.push(format!(
+                        if envelope.schema_version != 1 {
+                            hard_failure = true;
+                            let issues = vec![format!(
                                 "{source}: terminal evidence schemaVersion must be 1"
-                            ));
+                            )];
+                            findings.extend(issues.clone());
+                            blocks.push(IssueTerminalEvidenceBlock {
+                                source,
+                                status: IssueTerminalEvidenceBlockStatus::Rejected,
+                                report_count: 0,
+                                issues,
+                            });
+                            continue;
                         }
                         let report_count = envelope.reports.len();
                         reports.append(&mut envelope.reports);
-                        if !issues.is_empty() {
-                            findings.extend(issues.clone());
-                        }
                         blocks.push(IssueTerminalEvidenceBlock {
                             source,
                             status: IssueTerminalEvidenceBlockStatus::Accepted,
                             report_count,
-                            issues,
+                            issues: Vec::new(),
                         });
                     }
                     Err(issues) => {

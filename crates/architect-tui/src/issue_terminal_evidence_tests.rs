@@ -203,7 +203,7 @@ fn collector_rejects_malformed_json_blocks() {
 }
 
 #[test]
-fn collector_warns_on_duplicate_or_missing_platforms() {
+fn collector_fails_closed_on_duplicate_platforms() {
     let value = json!({
         "number": 136,
         "title": "Run post-release TUI terminal QA on Windows and Linux",
@@ -218,7 +218,7 @@ fn collector_warns_on_duplicate_or_missing_platforms() {
 
     let report = build_issue_terminal_evidence_report_from_value(None, 136, &value);
 
-    assert_eq!(report.result, LaunchJudgeResult::ConditionalGo);
+    assert_eq!(report.result, LaunchJudgeResult::NoGo);
     assert!(
         report
             .findings

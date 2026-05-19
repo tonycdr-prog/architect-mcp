@@ -14,7 +14,7 @@ use crate::terminal_evidence_environment::validate_report_environment;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TerminalEvidenceEnvelope {
-    pub(crate) schema_version: Option<u8>,
+    pub(crate) schema_version: u8,
     pub(crate) reports: Vec<LaunchJudgeTerminalEvidenceReport>,
 }
 
@@ -53,9 +53,8 @@ pub(crate) fn read_terminal_evidence(
         let file_name = public_file_name(path);
         match read_terminal_evidence_file(path, &file_name) {
             Ok(mut envelope) => {
-                if let Some(version) = envelope.schema_version
-                    && version != 1
-                {
+                if envelope.schema_version != 1 {
+                    hard_failure = true;
                     issues.push(format!(
                         "{file_name}: terminal evidence schemaVersion must be 1"
                     ));
@@ -125,12 +124,15 @@ pub(crate) fn build_terminal_evidence_summary(
         issues: Vec::new(),
     };
 
-    normalize_and_validate_reports(&mut reports, &mut issues);
+    let report_validation_failed = normalize_and_validate_reports(&mut reports, &mut issues);
     summary.reports = reports;
     summary.issues = issues;
 
     if hard_failure {
         return failed(summary, "terminal evidence file could not be validated");
+    }
+    if report_validation_failed {
+        return failed(summary, "terminal evidence platform data is invalid");
     }
     if summary.issues.iter().any(|issue| issue.contains("failed")) {
         return failed(summary, "terminal evidence includes failed platform QA");
@@ -170,10 +172,11 @@ fn public_file_name(path: &Path) -> String {
 fn normalize_and_validate_reports(
     reports: &mut [LaunchJudgeTerminalEvidenceReport],
     issues: &mut Vec<String>,
-) {
+) -> bool {
+    let mut failed = false;
     if reports.is_empty() {
         issues.push("terminal evidence reports must include linux and windows".to_string());
-        return;
+        return failed;
     }
 
     let mut seen = HashSet::new();
@@ -195,6 +198,7 @@ fn normalize_and_validate_reports(
             .map(ToString::to_string);
 
         if !matches!(report.platform.as_str(), "linux" | "windows") {
+            failed = true;
             issues.push(format!(
                 "terminal evidence platform '{}' must be linux or windows",
                 report.platform
@@ -202,6 +206,7 @@ fn normalize_and_validate_reports(
             continue;
         }
         if !seen.insert(report.platform.clone()) {
+            failed = true;
             issues.push(format!(
                 "terminal evidence platform '{}' is duplicated",
                 report.platform
@@ -246,6 +251,8 @@ fn normalize_and_validate_reports(
             ));
         }
     }
+
+    failed
 }
 
 fn uses_template_placeholder(report: &LaunchJudgeTerminalEvidenceReport) -> bool {
