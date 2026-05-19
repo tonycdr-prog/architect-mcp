@@ -71,7 +71,7 @@ fn complete_terminal_evidence_passes() {
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
           "collectedAt": "2026-05-17",
-          "notes": "summary only"
+          "notes": "summary only, no raw logs"
         },
         {
           "platform": "windows",
@@ -79,7 +79,7 @@ fn complete_terminal_evidence_passes() {
           "source": "issue #136 public-safe summary",
           "commandSummary": "architect-mcp-tui help, adapters JSON, and gate-only JSONL passed",
           "collectedAt": "2026-05-17",
-          "notes": "summary only"
+          "notes": "summary only, no raw logs"
         }
       ]
     }"##;
@@ -142,6 +142,43 @@ fn multiple_terminal_evidence_files_are_merged() {
     assert_eq!(summary.issues.len(), 0);
     assert_eq!(summary.reports.len(), 2);
     assert_eq!(check.status, LaunchJudgeCheckStatus::Passed);
+}
+
+#[test]
+fn template_placeholder_terminal_evidence_is_not_go() {
+    let evidence = r##"{
+      "schemaVersion": 1,
+      "reports": [
+        {
+          "platform": "linux",
+          "status": "passed",
+          "source": "REPLACE with public issue or PR link for this real terminal run",
+          "commandSummary": "REPLACE with commands that passed or failed on this real machine",
+          "notes": "REPLACE with rendering, mouse, resize, install, or checksum notes; keep raw logs local"
+        },
+        {
+          "platform": "windows",
+          "status": "passed",
+          "source": "issue #136 public-safe terminal QA report",
+          "commandSummary": "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized",
+          "notes": "summary only, no raw logs"
+        }
+      ]
+    }"##;
+
+    let file = write_evidence(evidence);
+    let (summary, check) = read_terminal_evidence(&[file.path().to_path_buf()]);
+
+    assert_eq!(check.status, LaunchJudgeCheckStatus::Warning);
+    assert_eq!(summary.reports.len(), 2);
+    assert!(
+        summary
+            .issues
+            .iter()
+            .filter(|issue| issue.contains("template placeholder"))
+            .count()
+            >= 2
+    );
 }
 
 #[test]

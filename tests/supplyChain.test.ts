@@ -128,9 +128,13 @@ describe("supply-chain and release hygiene", () => {
     assert.match(terminalQa, /--terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(terminalQa, /launch-judge --public-summary --terminal-evidence linux-evidence\.json --terminal-evidence windows-evidence\.json/);
     assert.match(terminalQa, /Do not paste the raw smoke JSON into public issues/);
+    assert.match(terminalQa, /unchanged template values/);
+    assert.match(terminalQa, /placeholder evidence/);
     assert.match(terminalQaIssue, /Launch judge terminal evidence JSON/);
     assert.match(terminalQaIssue, /architect-mcp-tui terminal-evidence --json/);
     assert.match(terminalQaIssue, /Do not paste raw smoke JSON/);
+    assert.match(terminalQaIssue, /REPLACE with public issue or PR link/);
+    assert.doesNotMatch(terminalQaIssue, /issue #136 public-safe terminal QA report/);
     assert.doesNotMatch(terminalQaIssue, /Paste the output from architect-mcp-tui smoke --json/);
   });
 
@@ -164,10 +168,12 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /--terminal-evidence/);
     assert.match(rustTui, /public-safe JSON summary/);
     assert.match(rustTui, /terminal-evidence freeform source text, command summaries, notes/);
+    assert.match(rustTui, /Template placeholders are treated as incomplete evidence/);
     assert.match(rustTui, /conditional_go/);
     const tuiLiveQa = readFileSync("docs/tui-live-qa.md", "utf8");
     assert.match(tuiLiveQa, /hosted CI baseline evidence/);
     assert.match(tuiLiveQa, /not a substitute for the real post-release terminal QA tracked in #136/);
+    assert.match(tuiLiveQa, /Unchanged issue-template placeholders are not acceptable evidence/);
   });
 
   it("runs recurring governance audit with pinned actions and public-safe summaries", () => {

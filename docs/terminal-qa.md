@@ -195,6 +195,8 @@ Use `platform` as `linux` or `windows`, and `status` as `passed`, `passed_with_w
 - Whether `architect-mcp-tui smoke --json`, `walkthrough --json`, or `promotion-smoke --json` was run.
 - Any terminal rendering, resize, mouse, cache, checksum, or JSONL issue.
 
+Do not submit unchanged template values such as `REPLACE with ...` or `issue #136 public-safe terminal QA report`. The launch judge treats those as placeholder evidence and keeps the result at `conditional_go` until real platform-specific evidence is supplied.
+
 Keep raw `architect-mcp-tui-smoke.json`, `architect-mcp-tui-walkthrough.json`, and `architect-mcp-tui-promotion-smoke.json` files local unless a maintainer asks for a redacted excerpt. Public issues should contain summaries, not raw logs, absolute local paths, cache paths, private repo names, tokens, or full environment dumps.
 
 For install, checksum, cache, download, or binary launch failures, use the Install failure form.
