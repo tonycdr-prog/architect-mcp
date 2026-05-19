@@ -16,6 +16,7 @@ pub enum WorkflowCommand {
     DiffFile(String),
     ArenaRun(Vec<String>),
     ArenaRank,
+    VerificationStatus,
     RecordVerification { check: String, status: String },
     FinalReview(String),
     SessionReview,
@@ -54,6 +55,7 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         "promote" => WorkflowCommand::Promote,
         "diff" | "diff summary" => WorkflowCommand::DiffSummary,
         "arena rank" => WorkflowCommand::ArenaRank,
+        "verification" | "verification status" => WorkflowCommand::VerificationStatus,
         "session review" => WorkflowCommand::SessionReview,
         "cancel" => WorkflowCommand::Cancel,
         _ if trimmed.starts_with("approve ") => {
@@ -131,6 +133,10 @@ mod tests {
         assert_eq!(
             parse_workflow_command("arena rank"),
             WorkflowCommand::ArenaRank
+        );
+        assert_eq!(
+            parse_workflow_command("verification status"),
+            WorkflowCommand::VerificationStatus
         );
         assert_eq!(
             parse_workflow_command("arena run codex, shell"),

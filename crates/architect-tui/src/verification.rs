@@ -39,6 +39,21 @@ pub(crate) fn verification_records(session: &TuiSession) -> Vec<Value> {
         .collect()
 }
 
+pub(crate) fn ensure_known_verification_check(session: &TuiSession, check: &str) -> Result<()> {
+    if session.required_verification.is_empty()
+        || session
+            .required_verification
+            .iter()
+            .any(|required| required == check)
+    {
+        return Ok(());
+    }
+    anyhow::bail!(
+        "verification check is not required: {check}; required checks: {}",
+        session.required_verification.join(", ")
+    )
+}
+
 pub(crate) fn ensure_verification_passed(session: &TuiSession) -> Result<()> {
     let blockers = verification_blockers(session);
     if blockers.is_empty() {
@@ -67,6 +82,27 @@ fn verification_blockers(session: &TuiSession) -> Vec<String> {
         .collect()
 }
 
+pub(crate) fn verification_summary_lines(session: &TuiSession) -> Vec<String> {
+    let checks = required_checks(session);
+    if checks.is_empty() {
+        return vec!["verification: no required checks captured yet".to_string()];
+    }
+    let passed = checks
+        .iter()
+        .filter(|check| session.verification.get(*check).map(String::as_str) == Some("passed"))
+        .count();
+    let mut lines = vec![format!("verification: {passed}/{} passed", checks.len())];
+    lines.extend(checks.into_iter().map(|check| {
+        let status = session
+            .verification
+            .get(&check)
+            .map(String::as_str)
+            .unwrap_or("not_run");
+        format!("  {check}={status}")
+    }));
+    lines
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,5 +122,24 @@ mod tests {
             .verification
             .insert("npm test".to_string(), "passed".to_string());
         assert!(ensure_verification_passed(&session).is_ok());
+    }
+
+    #[test]
+    fn verification_rejects_records_outside_required_checks() {
+        let mut session = TuiSession::new("build", "shell");
+        session.set_required_verification(vec!["npm test".to_string()]);
+
+        assert!(ensure_known_verification_check(&session, "npm test").is_ok());
+        assert!(ensure_known_verification_check(&session, "npm run test").is_err());
+    }
+
+    #[test]
+    fn verification_allows_new_records_for_legacy_sessions_without_required_checks() {
+        let mut session = TuiSession::new("build", "shell");
+        session
+            .verification
+            .insert("npm test".to_string(), "passed".to_string());
+
+        assert!(ensure_known_verification_check(&session, "npm run build").is_ok());
     }
 }
