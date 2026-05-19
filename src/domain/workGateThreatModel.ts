@@ -1,3 +1,13 @@
+import {
+  validateThreatModelReferences as validateReferences,
+  type ThreatModelReferenceReview
+} from "./threatModelReferences.js";
+
+export type {
+  ThreatModelReferenceFinding,
+  ThreatModelReferenceReview
+} from "./threatModelReferences.js";
+
 export type WorkGateEnforcement =
   | "mcp_report_only"
   | "tui_state_enforced"
@@ -223,6 +233,19 @@ export function classifyWorkGateBoundary(idOrName: string): WorkGateBoundary {
   };
 }
 
+export function validateThreatModelReferences(
+  cases: readonly WorkGateBypassCase[] = WORK_GATE_BYPASS_CASES,
+  catalogs: {
+    untrustedInputs?: readonly UntrustedInputSource[];
+    boundaries?: readonly WorkGateBoundary[];
+  } = {}
+): ThreatModelReferenceReview {
+  return validateReferences(cases, {
+    untrustedInputs: catalogs.untrustedInputs ?? UNTRUSTED_AGENT_INPUTS,
+    boundaries: catalogs.boundaries ?? WORK_GATE_BOUNDARIES
+  });
+}
+
 export function evaluateBypassCase(id: string) {
   const testCase = WORK_GATE_BYPASS_CASES.find((candidate) => candidate.id === id);
   if (!testCase) {
@@ -231,22 +254,41 @@ export function evaluateBypassCase(id: string) {
       known: false,
       publicSafe: false,
       protectedByArchitectMcpAlone: false,
-      requiredControls: ["define a public-safe bypass case before claiming coverage"]
+      requiredControls: ["define a public-safe bypass case before claiming coverage"],
+      referenceReview: {
+        valid: false,
+        findings: [{
+          caseId: id,
+          field: "affectedBoundaryIds" as const,
+          id,
+          message: `Unknown bypass case ${id}.`
+        }]
+      }
     };
   }
 
+  const referenceReview = validateThreatModelReferences([testCase]);
   const boundaries = testCase.affectedBoundaryIds.map(classifyWorkGateBoundary);
-  const protectedByArchitectMcpAlone = boundaries.every((boundary) =>
-    boundary.codeEnforced &&
-    (boundary.enforcement === "tui_state_enforced" || boundary.enforcement === "ci_release_enforced")
-  );
+  const protectedByArchitectMcpAlone = referenceReview.valid &&
+    boundaries.every((boundary) =>
+      boundary.codeEnforced &&
+      (boundary.enforcement === "tui_state_enforced" || boundary.enforcement === "ci_release_enforced")
+    );
+  const referenceLimitations = referenceReview.findings.map((finding) => finding.message);
 
   return {
     id: testCase.id,
     known: true,
     publicSafe: testCase.publicSafe,
     protectedByArchitectMcpAlone,
-    requiredControls: Array.from(new Set(boundaries.flatMap((boundary) => boundary.enforcedBy))),
-    limitations: Array.from(new Set(boundaries.map((boundary) => boundary.limitation)))
+    requiredControls: Array.from(new Set([
+      ...(referenceReview.valid ? [] : ["fix threat-model reference ids before claiming coverage"]),
+      ...boundaries.flatMap((boundary) => boundary.enforcedBy)
+    ])),
+    limitations: Array.from(new Set([
+      ...boundaries.map((boundary) => boundary.limitation),
+      ...referenceLimitations
+    ])),
+    referenceReview
   };
 }
