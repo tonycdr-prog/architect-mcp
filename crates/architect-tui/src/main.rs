@@ -245,6 +245,7 @@ async fn main() -> Result<()> {
         Some(Commands::EvidenceIndex {
             json,
             markdown,
+            markdown_output,
             repo,
             stack_from_pr,
             prs,
@@ -261,6 +262,7 @@ async fn main() -> Result<()> {
                 EvidenceIndexOptions {
                     json,
                     markdown,
+                    markdown_output,
                     repo,
                     stack_from_pr,
                     prs,
