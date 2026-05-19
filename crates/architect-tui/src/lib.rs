@@ -25,6 +25,13 @@ mod foundry_smoke_tests;
 pub mod foundry_stage;
 mod foundry_stage_content;
 mod gate_calls;
+pub mod governance_audit;
+mod governance_audit_mcp;
+mod governance_audit_report;
+mod governance_audit_support;
+#[cfg(test)]
+mod governance_audit_tests;
+mod governance_memory;
 mod headless;
 mod headless_adapter;
 mod headless_events;

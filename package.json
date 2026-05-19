@@ -66,7 +66,7 @@
     "docs:preview": "vitepress preview docs --host 0.0.0.0",
     "tui:build": "cargo build --workspace --release",
     "tui:test": "cargo test --workspace",
-    "tui:live-qa": "npm run build && cargo build --workspace --bin architect-mcp-tui && node bin/architect-mcp-tui.cjs --help && node bin/architect-mcp-tui.cjs walkthrough --json && node bin/architect-mcp-tui.cjs foundry-smoke --owner local-smoke --repo architect-mcp-foundry-dry-run --json && cargo test -p architect-tui promotion_smoke && cargo test --workspace --test workflows && cargo test --workspace --test adapter_rerun",
+    "tui:live-qa": "npm run build && cargo build --workspace --bin architect-mcp-tui && node bin/architect-mcp-tui.cjs --help && node bin/architect-mcp-tui.cjs walkthrough --json && node bin/architect-mcp-tui.cjs foundry-smoke --owner local-smoke --repo architect-mcp-foundry-dry-run --json && node bin/architect-mcp-tui.cjs governance-audit --json && cargo test -p architect-tui promotion_smoke && cargo test --workspace --test workflows && cargo test --workspace --test adapter_rerun",
     "rust:check": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace",
     "pack:dry-run": "npm pack --dry-run --json",
     "precheck:v3": "npm run build",

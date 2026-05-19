@@ -30,6 +30,7 @@ export default defineConfig({
         items: [
           { text: "Rust TUI", link: "/rust-tui" },
           { text: "Terminal QA", link: "/terminal-qa" },
+          { text: "Governance Audit", link: "/governance-audit" },
           { text: "TUI Live QA", link: "/tui-live-qa" }
         ]
       },

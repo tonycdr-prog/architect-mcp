@@ -96,11 +96,12 @@ Historical V3-V10 labels remain in tool names, scripts, tests, and document file
 
 ## Rust TUI
 
-The package also exposes `architect-mcp-tui`, a Ratatui client for local work-gate sessions, adapter readiness, safe headless automation, approval/promotion commands, arena ranking, private-by-default repo-foundry staging/smoke checks, and provisional ACP:
+The package also exposes `architect-mcp-tui`, a Ratatui client for local work-gate sessions, adapter readiness, safe headless automation, approval/promotion commands, arena ranking, private-by-default repo-foundry staging/smoke checks, read-only governance audits, and provisional ACP:
 
 ```bash
 architect-mcp-tui
 architect-mcp-tui smoke --json
+architect-mcp-tui governance-audit --json
 architect-mcp-tui foundry-smoke --owner <github-owner> --json
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl --execute
@@ -121,6 +122,7 @@ See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config
 - [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)
 - [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui)
 - [Terminal QA](https://tonycdr-prog.github.io/architect-mcp/terminal-qa)
+- [Governance Audit](https://tonycdr-prog.github.io/architect-mcp/governance-audit)
 - [Stack Packs](https://tonycdr-prog.github.io/architect-mcp/stack-packs)
 - [Release Readiness](https://tonycdr-prog.github.io/architect-mcp/release-readiness)
 - [Read-Only Smoke Matrix](https://tonycdr-prog.github.io/architect-mcp/read-only-smoke-matrix)

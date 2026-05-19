@@ -5,6 +5,7 @@ use architect_tui::acp::run_acp_stdio;
 use architect_tui::adapter::print_adapter_table;
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::foundry_smoke::{FoundrySmokeOptions, run_foundry_smoke};
+use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
 use architect_tui::orchestrator::{HeadlessRunOptions, Orchestrator};
 use architect_tui::promotion_smoke::{PromotionSmokeOptions, run_promotion_smoke};
 use architect_tui::smoke::{SmokeOptions, run_smoke};
@@ -91,6 +92,15 @@ enum Commands {
         confirm_private_repo_mutation: bool,
         #[arg(long)]
         keep_workspace: bool,
+    },
+    /// Run a read-only governance and drift audit for the current workspace.
+    GovernanceAudit {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        skip_mcp: bool,
+        #[arg(long, default_value_t = 1000)]
+        max_files: usize,
     },
 }
 
@@ -203,6 +213,22 @@ async fn main() -> Result<()> {
                     execute,
                     confirm_private_repo_mutation,
                     keep_workspace,
+                },
+            )
+            .await?;
+        }
+        Some(Commands::GovernanceAudit {
+            json,
+            skip_mcp,
+            max_files,
+        }) => {
+            run_governance_audit(
+                workspace,
+                config,
+                GovernanceAuditOptions {
+                    json,
+                    skip_mcp,
+                    max_files,
                 },
             )
             .await?;

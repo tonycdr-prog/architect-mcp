@@ -1,0 +1,80 @@
+name: Governance audit report
+description: Report a public-safe governance audit result.
+title: "[governance-audit]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for `architect-mcp-tui governance-audit --json` or the Governance audit workflow summary.
+
+        Do not include secrets, tokens, private repository names, private file contents, absolute local paths, raw audit JSON, raw conversation logs, customer data, or sensitive security details.
+  - type: dropdown
+    id: source
+    attributes:
+      label: Audit source
+      options:
+        - GitHub scheduled workflow
+        - GitHub manual workflow
+        - Local command
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: architect-mcp version or commit
+      description: Paste the release tag, package version, or commit SHA tested.
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Audit status
+      options:
+        - Passed
+        - Passed with warnings
+        - Failed
+    validations:
+      required: true
+  - type: textarea
+    id: public-summary
+    attributes:
+      label: Public-safe summary
+      description: Paste the workflow step summary or summarize status, read-only state, MCP gate status, files reviewed, errors, and warnings. Redact paths and private names.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: category-findings
+    attributes:
+      label: Category findings
+      description: List categories with findings only. Do not paste raw file contents or local paths.
+      render: markdown
+    validations:
+      required: false
+  - type: textarea
+    id: gates
+    attributes:
+      label: Gates and smoke evidence
+      description: List deterministic gates and smoke commands. Keep `npm run release:check` identified as the release-sensitive gate.
+      render: markdown
+    validations:
+      required: true
+  - type: dropdown
+    id: memory-safety
+    attributes:
+      label: Memory safety confirmed
+      description: Confirm the report excludes secrets, raw chat, customer data, transient task details, speculative guesses, and sensitive security findings.
+      options:
+        - "Yes"
+        - "No"
+        - "Not checked"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything unclear, stale, brittle, or worth following up.
+    validations:
+      required: false

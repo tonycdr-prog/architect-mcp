@@ -133,6 +133,26 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /npm run tui:live-qa/);
   });
 
+  it("runs recurring governance audit with pinned actions and public-safe summaries", () => {
+    const workflow = readFileSync(".github/workflows/governance-audit.yml", "utf8");
+    const issueTemplate = readFileSync(".github/ISSUE_TEMPLATE/governance-audit-report.yml", "utf8");
+    const docs = readFileSync("docs/governance-audit.md", "utf8");
+    const usesLines = workflow.split("\n").filter((line) => line.trim().startsWith("uses:"));
+
+    assert.equal(usesLines.length > 0, true);
+    assert.equal(usesLines.every((line) => /@[0-9a-f]{40}(?:\s+#.*)?$/.test(line.trim())), true);
+    assert.match(workflow, /workflow_dispatch:/);
+    assert.match(workflow, /schedule:/);
+    assert.match(workflow, /npm run build && cargo build --workspace --bin architect-mcp-tui/);
+    assert.match(workflow, /node bin\/architect-mcp-tui\.cjs governance-audit --json > governance-audit\.json/);
+    assert.match(workflow, /GITHUB_STEP_SUMMARY/);
+    assert.doesNotMatch(workflow, /upload-artifact/);
+    assert.match(issueTemplate, /Do not include secrets/);
+    assert.match(issueTemplate, /Memory safety confirmed/);
+    assert.match(docs, /public-safe/i);
+    assert.match(docs, /npm run release:check/);
+  });
+
   it("configures Dependabot for npm, Cargo, and GitHub Actions", () => {
     const config = readFileSync(".github/dependabot.yml", "utf8");
 

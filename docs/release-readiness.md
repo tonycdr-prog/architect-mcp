@@ -87,6 +87,8 @@ If token-backed publishing is still enabled, rotate the token after any suspecte
 
 The shim follows HTTPS redirects for GitHub release asset and checksum downloads. `.github/workflows/tui-install-smoke.yml` runs the shim and release-binary build path across Ubuntu, macOS, and Windows on pull requests and manual dispatch. `.github/workflows/tui-live-qa.yml` adds cross-platform TUI workflow smoke coverage. Manual OS evidence is tracked in [TUI Live QA](./tui-live-qa.md).
 
+`.github/workflows/governance-audit.yml` runs the read-only governance audit on manual dispatch and a weekly schedule. It writes a public-safe GitHub step summary rather than uploading raw local audit JSON. Governance reports and redaction rules live in [Governance Audit](./governance-audit.md).
+
 ## GitHub Pages
 
 The docs site builds with VitePress from the existing `docs/` directory and uses `base: "/architect-mcp/"`. The Pages workflow runs on pushes to `main` and manual dispatch, installs with Node 22, builds with `npm run docs:build`, uploads `docs/.vitepress/dist`, and deploys via GitHub Pages Actions.
