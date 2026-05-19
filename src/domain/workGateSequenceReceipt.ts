@@ -157,7 +157,9 @@ function sanitizePublicSummary(value: string | undefined): { value: string | und
     [/\b(?:npm|gh[pousr]|github_pat|sk|xox[baprs])_[A-Za-z0-9_=-]{16,}\b/g, "[redacted-token]"],
     [/\b[A-Za-z0-9_-]{48,}\b/g, "[redacted-token]"],
     [/(?:\/Users|\/home|\/private\/tmp|\/tmp|\/var\/folders|\/Volumes)\/[^\s,;)"']+/g, "[redacted-local-path]"],
-    [/\b[A-Za-z]:\\[^\s,;)"']+/g, "[redacted-local-path]"]
+    [/\b[A-Za-z]:\\[^\s,;)"']+/g, "[redacted-local-path]"],
+    [/```[\s\S]*?```/g, "[redacted-raw-output]"],
+    [/\b(?:stdout|stderr|payload)\s*[:=][^\n]*/gi, "[redacted-raw-output]"]
   ];
   for (const [pattern, replacement] of replacements) {
     safe = safe.replace(pattern, () => {
@@ -169,5 +171,5 @@ function sanitizePublicSummary(value: string | undefined): { value: string | und
 }
 
 function containsRawOutput(value: string): boolean {
-  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/.test(value);
+  return /```[\s\S]*?```/.test(value);
 }
