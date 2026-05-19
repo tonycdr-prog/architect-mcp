@@ -118,6 +118,7 @@ mod launch_readiness_public_summary_tests;
 #[cfg(test)]
 mod launch_readiness_tests;
 pub mod launch_stack;
+mod launch_stack_check_summary;
 pub mod launch_stack_discovery;
 #[cfg(test)]
 mod launch_stack_discovery_tests;
