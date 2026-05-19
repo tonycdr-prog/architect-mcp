@@ -2,6 +2,8 @@
 
 The core work gate is the default product story. It is deliberately smaller than the full advanced surface so agents start with the behavior that matters most: clarify, constrain, review, verify.
 
+Boundary note: the MCP tools are report-only unless a client, host, TUI session, CI workflow, or human reviewer enforces the result. For untrusted input handling and gate-bypass cases, see [Prompt Injection And Gate Bypass Threat Model](./prompt-injection-threat-model.md).
+
 ## Tool Sequence
 
 1. `grill_me`: pressure-test the brief and stop while blockers remain.

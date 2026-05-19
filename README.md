@@ -19,6 +19,8 @@
 
 architect-mcp keeps coding agents honest. It is a local-first agent work gate that clarifies intent before edits, constrains the plan, reviews implementation drift, and requires verification evidence before completion.
 
+The MCP tools return structured reviews and blockers; they do not sandbox a model, shell, or filesystem by themselves. Use the TUI, host approvals, CI, and human review when you need an enforced workflow boundary.
+
 Full docs: [tonycdr-prog.github.io/architect-mcp](https://tonycdr-prog.github.io/architect-mcp/)
 
 ## Launch Snapshot
@@ -116,6 +118,7 @@ See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config
 - [MCP Client Setup](https://tonycdr-prog.github.io/architect-mcp/mcp-client-setup)
 - [Core Work Gate](https://tonycdr-prog.github.io/architect-mcp/core-work-gate)
 - [New App Work Gate](https://tonycdr-prog.github.io/architect-mcp/new-app-work-gate)
+- [Prompt Injection And Gate Bypass Threat Model](https://tonycdr-prog.github.io/architect-mcp/prompt-injection-threat-model)
 - [AI Software Foundry Goal](https://tonycdr-prog.github.io/architect-mcp/goal-ai-software-foundry)
 - [Tool Reference](https://tonycdr-prog.github.io/architect-mcp/tool-reference)
 - [Hosted Mode](https://tonycdr-prog.github.io/architect-mcp/hosted-mode)
