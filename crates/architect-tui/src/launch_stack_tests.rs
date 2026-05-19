@@ -42,6 +42,7 @@ fn launch_stack_go_requires_clean_non_draft_prs_and_closed_blockers() {
     );
 
     assert_eq!(report.result, LaunchJudgeResult::Go);
+    assert_eq!(report.schema_version, 2);
     assert!(report.next_actions.is_empty());
 }
 
@@ -128,7 +129,45 @@ fn launch_stack_go_allows_explicit_open_blocker_waiver() {
         report.blocker_issues[0].waiver_reason.as_deref(),
         Some("maintainer accepted temporary Linux terminal waiver")
     );
+    let report_json = serde_json::to_value(&report).expect("serialize launch-stack report");
+    assert_eq!(
+        report_json["blockerIssues"][0]["waiverReason"],
+        "maintainer accepted temporary Linux terminal waiver"
+    );
     assert!(report.next_actions.is_empty());
+}
+
+#[test]
+fn launch_stack_omits_waiver_reason_when_not_waived() {
+    let pr = pr_from_value(
+        10,
+        &json!({
+            "number": 10,
+            "title": "ready slice",
+            "url": "https://github.com/example/repo/pull/10",
+            "isDraft": false,
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+    );
+    let blocker = issue_from_value(
+        20,
+        &json!({
+            "number": 20,
+            "title": "external terminal evidence",
+            "url": "https://github.com/example/repo/issues/20",
+            "state": "CLOSED"
+        }),
+    );
+    let report = build_report_from_items(None, vec![pr], vec![blocker], Vec::new());
+    let report_json = serde_json::to_value(&report).expect("serialize launch-stack report");
+    assert!(
+        report_json["blockerIssues"][0]
+            .get("waiverReason")
+            .is_none()
+    );
 }
 
 #[test]
