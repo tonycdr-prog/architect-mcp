@@ -80,7 +80,7 @@ export function reviewAgentSession(input: AgentSessionReviewInput) {
       name: "verification-evidence",
       status: receiptReview.status as "pass" | "warn" | "fail",
       summary: receiptReview.valid
-        ? "Verification records and command receipts are public-safe."
+        ? "Verification records and command receipts were reviewed with public-safe output."
         : "Verification receipts are missing, stale, failed, or incomplete.",
       details: receiptReview
     });

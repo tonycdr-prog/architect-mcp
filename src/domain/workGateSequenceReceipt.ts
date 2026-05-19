@@ -87,7 +87,7 @@ export function createWorkGateSequenceReceipt(input: WorkGateSequenceReceiptInpu
       status: record?.status ?? "missing",
       inputsPresent: record?.inputsPresent === true,
       evidencePresent: record?.evidencePresent === true,
-      recordedAt: record?.recordedAt,
+      recordedAtPresent: Boolean(record?.recordedAt),
       runIdPresent: Boolean(record?.runId),
       publicSummary: safeSummary.value,
       redacted: safeSummary.redacted
@@ -150,6 +150,7 @@ function isWorkGateName(value: string): value is WorkGateName {
 
 function sanitizePublicSummary(value: string | undefined): { value: string | undefined; redacted: boolean } {
   if (!value) return { value: undefined, redacted: false };
+  if (containsRawOutput(value)) return { value: "[redacted-raw-output]", redacted: true };
   let redacted = false;
   let safe = value.trim();
   const replacements: Array<[RegExp, string]> = [
@@ -167,4 +168,8 @@ function sanitizePublicSummary(value: string | undefined): { value: string | und
     });
   }
   return { value: safe, redacted };
+}
+
+function containsRawOutput(value: string): boolean {
+  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/.test(value);
 }

@@ -1,5 +1,5 @@
 import { normalizeUntrustedInputs, type RawUntrustedInput } from "./untrustedInputs.js";
-import { reviewVerificationReceipts, type VerificationReceipt } from "./verificationReceipts.js";
+import { publicSafeText, reviewVerificationReceipts, type VerificationReceipt } from "./verificationReceipts.js";
 
 export type FinalResponseReviewInput = {
   response: string;
@@ -35,10 +35,11 @@ export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
 
   for (const check of input.requiredChecks ?? []) {
     if (!response.toLowerCase().includes(check.toLowerCase())) {
+      const safeCheck = publicSafeText(check);
       findings.push({
         code: "FINAL003_REQUIRED_CHECK_MISSING",
         severity: "error",
-        message: `Final response does not mention required check: ${check}.`,
+        message: `Final response does not mention required check: ${safeCheck.value}.`,
         recommendation: "Mention each required check as passed, failed, skipped, or not run."
       });
     }
@@ -90,10 +91,14 @@ export function reviewAgentFinalResponse(input: FinalResponseReviewInput) {
       verificationReceipts: verificationReceiptReview.summary.receipts
     },
     verificationEvidence: {
-      claimedChecks: (input.requiredChecks ?? []).map((check) => ({
-        check,
-        mentioned: response.toLowerCase().includes(check.toLowerCase())
-      })),
+      claimedChecks: (input.requiredChecks ?? []).map((check) => {
+        const safeCheck = publicSafeText(check);
+        return {
+          check: safeCheck.value,
+          mentioned: response.toLowerCase().includes(check.toLowerCase()),
+          redacted: safeCheck.redacted
+        };
+      }),
       receipts: verificationReceiptReview
     },
     untrustedInputPolicy: untrustedInputs.length
