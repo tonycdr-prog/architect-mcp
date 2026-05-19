@@ -84,6 +84,7 @@ pub struct LaunchStackIssue {
     pub url: String,
     pub state: String,
     pub status: LaunchStackItemStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub waiver_reason: Option<String>,
     pub next_action: Option<String>,
 }
@@ -245,7 +246,7 @@ fn build_report_from_items_with_waivers_and_discovery(
     };
 
     LaunchStackReport {
-        schema_version: 1,
+        schema_version: 2,
         result,
         repository: repository.map(|repo| public_text(&repo, 160)),
         stack_discovery,

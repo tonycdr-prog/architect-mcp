@@ -158,11 +158,11 @@ describe("createWorkGateSequenceReceipt", () => {
     assert.equal(receipt.findings.some((finding) => finding.code === "WG009_EVIDENCE_UNCONFIRMED"), true);
   });
 
-  it("redacts token-shaped values and local paths from public receipt summaries", () => {
+  it("redacts token/path/raw-output values from public receipt summaries", () => {
     const receipt = createWorkGateSequenceReceipt({
       records: workGateSequence.map((gate) => receiptRecord(gate, {
         publicSummary: gate === "grill_me"
-          ? "Reviewed /Users/example/private/repo with npm_abcdefghijklmnopqrstuvwxyz123456"
+          ? "Reviewed /Users/example/private/repo with npm_abcdefghijklmnopqrstuvwxyz123456 stdout: GET /private payload={\"secret\":true}"
           : "Reviewed public-safe evidence."
       }))
     });
@@ -171,7 +171,8 @@ describe("createWorkGateSequenceReceipt", () => {
     assert.equal(receipt.summary.redacted, 1);
     assert.match(receipt.steps[0].publicSummary ?? "", /\[redacted-local-path\]/);
     assert.match(receipt.steps[0].publicSummary ?? "", /\[redacted-token\]/);
-    assert.doesNotMatch(JSON.stringify(receipt), /abcdefghijklmnopqrstuvwxyz123456|\/Users\/example/);
+    assert.match(receipt.steps[0].publicSummary ?? "", /\[redacted-raw-output\]/);
+    assert.doesNotMatch(JSON.stringify(receipt), /abcdefghijklmnopqrstuvwxyz123456|\/Users\/example|stdout:|payload=\{"secret":true\}/i);
   });
 });
 
