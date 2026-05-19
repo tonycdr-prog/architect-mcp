@@ -95,7 +95,7 @@ export function reviewFileSummaries(
       }));
     }
 
-    if (file.hasUseClient && importsServerOnlyModule(file.imports ?? [])) {
+    if (isSourceCodeFile(path) && file.hasUseClient && importsServerOnlyModule(file.imports ?? [])) {
       violations.push(createFinding({
         code: "ARCH003_CLIENT_SERVER_LEAK",
         severity: "error",

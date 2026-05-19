@@ -54,6 +54,32 @@ describe("reviewFileSummaries", () => {
     assert.equal(violations[0]?.confidence, "medium");
   });
 
+  it("does not treat MDX documentation examples as client source", () => {
+    const violations = reviewFileSummaries([
+      {
+        path: "docs/01-app/01-getting-started/05-server-and-client-components.mdx",
+        lines: 180,
+        hasUseClient: true,
+        imports: ["@/server/auth/session", "server-only"]
+      },
+      {
+        path: "src/app/page.tsx",
+        lines: 80,
+        hasUseClient: true,
+        imports: ["@/server/auth/session"]
+      }
+    ], undefined, 300, [], undefined, { profile: "existing-repo" });
+
+    assert.equal(violations.some((violation) =>
+      violation.code === "ARCH003_CLIENT_SERVER_LEAK" &&
+      violation.path === "docs/01-app/01-getting-started/05-server-and-client-components.mdx"
+    ), false);
+    assert.equal(violations.some((violation) =>
+      violation.code === "ARCH003_CLIENT_SERVER_LEAK" &&
+      violation.path === "src/app/page.tsx"
+    ), true);
+  });
+
   it("uses file-category line thresholds", () => {
     const violations = reviewFileSummaries([
       {
