@@ -5,19 +5,14 @@ use crate::evidence_index::{
 };
 use crate::evidence_index_markdown::render_markdown;
 use crate::evidence_index_report::build_evidence_index_report_from_public_summaries_at;
-use crate::governance_audit_public_summary::{
-    GovernanceAuditPublicCategory, GovernanceAuditPublicFinding,
-    GovernanceAuditPublicFindingCounts, GovernanceAuditPublicGateSummary,
-    GovernanceAuditPublicMcpReview, GovernanceAuditPublicMemorySummary,
-    GovernanceAuditPublicSummary,
+use crate::evidence_index_test_support::{governance_summary, launch_summary};
+use crate::governance_audit_report::GovernanceAuditStatus;
+use crate::launch_judge_report::{
+    LaunchJudgeResult, LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
 };
-use crate::governance_audit_report::{GovernanceAuditStatus, GovernanceFindingSeverity};
-use crate::launch_judge_report::LaunchJudgeResult;
 use crate::launch_readiness_public_summary::{
-    LaunchReadinessPublicBlockerIssue, LaunchReadinessPublicStack,
-    LaunchReadinessPublicStatusCounts, LaunchReadinessPublicSummary,
-    LaunchReadinessPublicTerminalEvidence, LaunchReadinessPublicTerminalEvidenceIssue,
-    LaunchReadinessPublicTerminalEvidenceWaiver,
+    LaunchReadinessPublicBlockerIssue, LaunchReadinessPublicTerminalEvidenceIssue,
+    LaunchReadinessPublicTerminalEvidenceReport, LaunchReadinessPublicTerminalEvidenceWaiver,
 };
 use crate::launch_stack::LaunchStackItemStatus;
 
@@ -106,6 +101,12 @@ fn evidence_index_markdown_renders_public_release_handoff() {
         extracted_block_count: 0,
     });
     launch.terminal_evidence.platforms = vec!["linux`runner".to_string()];
+    launch.terminal_evidence.reports = vec![LaunchReadinessPublicTerminalEvidenceReport {
+        platform: "linux`runner".to_string(),
+        status: LaunchJudgeTerminalEvidenceStatus::PassedWithWarnings,
+        environment: Some(LaunchJudgeTerminalEvidenceEnvironment::HostedCi),
+        collected_at: Some("2026-05-18".to_string()),
+    }];
     launch.terminal_evidence.issues =
         vec!["terminal evidence reports must include linux and windows".to_string()];
     launch.terminal_evidence_waiver = Some(LaunchReadinessPublicTerminalEvidenceWaiver {
@@ -130,6 +131,12 @@ fn evidence_index_markdown_renders_public_release_handoff() {
     );
     assert!(markdown.contains("| launch readiness | `conditional_go` |"));
     assert!(markdown.contains("- Platforms: `` linux`runner ``"));
+    assert!(markdown.contains("- Terminal evidence provenance:"));
+    assert!(
+        markdown.contains(
+            "  - `` linux`runner ``: status `passed_with_warnings`, environment `hosted_ci`, collectedAt `2026-05-18`"
+        )
+    );
     assert!(markdown.contains("- MCP review: `` passed`review `` gate `` pass`gate ``"));
     assert!(markdown.contains("Terminal evidence issue: #136"));
     assert!(markdown.contains("Terminal evidence waiver: issue #136"));
@@ -200,96 +207,4 @@ fn evidence_index_require_go_fails_conditional_results_only_when_requested() {
 fn evidence_index_no_go_always_fails() {
     assert!(enforce_evidence_index_result(&LaunchJudgeResult::NoGo, false).is_err());
     assert!(enforce_evidence_index_result(&LaunchJudgeResult::NoGo, true).is_err());
-}
-
-fn launch_summary(result: LaunchJudgeResult) -> LaunchReadinessPublicSummary {
-    LaunchReadinessPublicSummary {
-        schema_version: 1,
-        generated_at_unix_seconds: 1,
-        result: result.clone(),
-        repository: Some("example/repo".to_string()),
-        read_only: true,
-        launch_stack: LaunchReadinessPublicStack {
-            result,
-            from_pr: Some(198),
-            stopped_at_base: Some("main".to_string()),
-            pull_request_count: 2,
-            pull_request_order: vec![150, 198],
-            pull_request_status: LaunchReadinessPublicStatusCounts {
-                passed: 2,
-                waived: 0,
-                warning: 0,
-                failed: 0,
-            },
-            unresolved_review_thread_count: 0,
-            unresolved_review_threads: Vec::new(),
-            missing_required_check_count: 0,
-            missing_required_checks: Vec::new(),
-            blocker_issues: Vec::new(),
-        },
-        terminal_evidence: LaunchReadinessPublicTerminalEvidence {
-            issue: None,
-            report_count: 0,
-            platforms: Vec::new(),
-            issues: Vec::new(),
-        },
-        terminal_evidence_waiver: None,
-        findings: Vec::new(),
-        next_actions: vec!["collect final release evidence".to_string()],
-    }
-}
-
-fn governance_summary(status: GovernanceAuditStatus) -> GovernanceAuditPublicSummary {
-    let finding_severity = if status == GovernanceAuditStatus::Failed {
-        GovernanceFindingSeverity::Error
-    } else {
-        GovernanceFindingSeverity::Warning
-    };
-
-    GovernanceAuditPublicSummary {
-        schema_version: 1,
-        status,
-        read_only: true,
-        categories: vec![GovernanceAuditPublicCategory {
-            name: "release".to_string(),
-            status: GovernanceAuditStatus::PassedWithWarnings,
-            summary: "release evidence still needs maintainer review".to_string(),
-        }],
-        deterministic_gates: GovernanceAuditPublicGateSummary {
-            count: 2,
-            required_for_release_count: 1,
-            names: vec!["release gate".to_string(), "typecheck".to_string()],
-        },
-        smoke_evidence: GovernanceAuditPublicGateSummary {
-            count: 1,
-            required_for_release_count: 0,
-            names: vec!["tui live qa".to_string()],
-        },
-        memory: GovernanceAuditPublicMemorySummary {
-            proposal_count: 0,
-            safe_to_store_count: 0,
-            unsafe_proposal_count: 0,
-        },
-        mcp_review: Some(GovernanceAuditPublicMcpReview {
-            status: "passed".to_string(),
-            gate_status: Some("pass".to_string()),
-            files_reviewed: Some(42),
-            errors: Some(0),
-            warnings: Some(1),
-            violation_count: Some(0),
-        }),
-        finding_counts: GovernanceAuditPublicFindingCounts {
-            info: 0,
-            warnings: usize::from(finding_severity == GovernanceFindingSeverity::Warning),
-            errors: usize::from(finding_severity == GovernanceFindingSeverity::Error),
-        },
-        findings: vec![GovernanceAuditPublicFinding {
-            severity: finding_severity,
-            category: "release".to_string(),
-            code: "GOV_RELEASE_EVIDENCE".to_string(),
-            message: "release evidence needs maintainer review".to_string(),
-            next_action: "collect final release evidence".to_string(),
-        }],
-        next_actions: vec!["collect final release evidence".to_string()],
-    }
 }

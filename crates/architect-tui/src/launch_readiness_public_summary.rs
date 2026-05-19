@@ -2,7 +2,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
-use crate::launch_judge_report::LaunchJudgeResult;
+use crate::launch_judge_report::{
+    LaunchJudgeResult, LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
+};
 use crate::launch_readiness::{LaunchReadinessReport, LaunchReadinessTerminalEvidenceWaiver};
 use crate::launch_stack::{LaunchStackItemStatus, LaunchStackReport};
 use crate::launch_stack_github::public_text;
@@ -76,7 +78,17 @@ pub struct LaunchReadinessPublicTerminalEvidence {
     pub issue: Option<LaunchReadinessPublicTerminalEvidenceIssue>,
     pub report_count: usize,
     pub platforms: Vec<String>,
+    pub reports: Vec<LaunchReadinessPublicTerminalEvidenceReport>,
     pub issues: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchReadinessPublicTerminalEvidenceReport {
+    pub platform: String,
+    pub status: LaunchJudgeTerminalEvidenceStatus,
+    pub environment: Option<LaunchJudgeTerminalEvidenceEnvironment>,
+    pub collected_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -226,10 +238,25 @@ fn public_terminal_evidence(
             issue: None,
             report_count: 0,
             platforms: Vec::new(),
+            reports: Vec::new(),
             issues: Vec::new(),
         };
     };
 
+    let reports = evidence
+        .terminal_evidence
+        .reports
+        .iter()
+        .map(|evidence| LaunchReadinessPublicTerminalEvidenceReport {
+            platform: public_text(&evidence.platform, 80),
+            status: evidence.status.clone(),
+            environment: evidence.environment.clone(),
+            collected_at: evidence
+                .collected_at
+                .as_deref()
+                .map(|collected_at| public_text(collected_at, 80)),
+        })
+        .collect::<Vec<_>>();
     LaunchReadinessPublicTerminalEvidence {
         issue: Some(LaunchReadinessPublicTerminalEvidenceIssue {
             number: evidence.issue.number,
@@ -237,12 +264,11 @@ fn public_terminal_evidence(
             extracted_block_count: evidence.extracted_blocks.len(),
         }),
         report_count: evidence.terminal_evidence.reports.len(),
-        platforms: evidence
-            .terminal_evidence
-            .reports
+        platforms: reports
             .iter()
-            .map(|evidence| public_text(&evidence.platform, 80))
+            .map(|evidence| evidence.platform.clone())
             .collect(),
+        reports,
         issues: public_strings(&evidence.terminal_evidence.issues, 320),
     }
 }

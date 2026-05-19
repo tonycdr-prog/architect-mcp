@@ -1,6 +1,8 @@
 use crate::evidence_index_report::EvidenceIndexReport;
 use crate::governance_audit_report::GovernanceAuditStatus;
-use crate::launch_judge_report::LaunchJudgeResult;
+use crate::launch_judge_report::{
+    LaunchJudgeResult, LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
+};
 use crate::launch_stack::LaunchStackItemStatus;
 
 pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
@@ -26,62 +28,29 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
         ));
     }
 
+    let launch_stack = &report.launch_readiness.launch_stack;
+    let terminal_evidence = &report.launch_readiness.terminal_evidence;
+    let governance_audit = &report.governance_audit;
+
     out.push_str("\n## Launch Readiness\n\n");
     out.push_str(&format!(
         "- Pull requests: {}\n",
-        inline_code(report.launch_readiness.launch_stack.pull_request_count)
+        inline_code(launch_stack.pull_request_count)
     ));
+    let pr_status = &launch_stack.pull_request_status;
     out.push_str(&format!(
         "- PR status: {} passed, {} waived, {} warnings, {} failed\n",
-        inline_code(
-            report
-                .launch_readiness
-                .launch_stack
-                .pull_request_status
-                .passed
-        ),
-        inline_code(
-            report
-                .launch_readiness
-                .launch_stack
-                .pull_request_status
-                .waived
-        ),
-        inline_code(
-            report
-                .launch_readiness
-                .launch_stack
-                .pull_request_status
-                .warning
-        ),
-        inline_code(
-            report
-                .launch_readiness
-                .launch_stack
-                .pull_request_status
-                .failed
-        )
+        inline_code(pr_status.passed),
+        inline_code(pr_status.waived),
+        inline_code(pr_status.warning),
+        inline_code(pr_status.failed)
     ));
-    if report
-        .launch_readiness
-        .launch_stack
-        .unresolved_review_thread_count
-        > 0
-    {
+    if launch_stack.unresolved_review_thread_count > 0 {
         out.push_str(&format!(
             "- Unresolved review threads: {}\n",
-            inline_code(
-                report
-                    .launch_readiness
-                    .launch_stack
-                    .unresolved_review_thread_count
-            )
+            inline_code(launch_stack.unresolved_review_thread_count)
         ));
-        for entry in &report
-            .launch_readiness
-            .launch_stack
-            .unresolved_review_threads
-        {
+        for entry in &launch_stack.unresolved_review_threads {
             out.push_str(&format!(
                 "  - PR #{}: {}\n",
                 entry.pull_request,
@@ -89,22 +58,12 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
             ));
         }
     }
-    if report
-        .launch_readiness
-        .launch_stack
-        .missing_required_check_count
-        > 0
-    {
+    if launch_stack.missing_required_check_count > 0 {
         out.push_str(&format!(
             "- Missing required checks: {}\n",
-            inline_code(
-                report
-                    .launch_readiness
-                    .launch_stack
-                    .missing_required_check_count
-            )
+            inline_code(launch_stack.missing_required_check_count)
         ));
-        for missing in &report.launch_readiness.launch_stack.missing_required_checks {
+        for missing in &launch_stack.missing_required_checks {
             out.push_str(&format!(
                 "  - PR #{}: {}\n",
                 missing.pull_request,
@@ -114,9 +73,9 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
     }
     out.push_str(&format!(
         "- Blockers: {}\n",
-        inline_code(report.launch_readiness.launch_stack.blocker_issues.len())
+        inline_code(launch_stack.blocker_issues.len())
     ));
-    for blocker in &report.launch_readiness.launch_stack.blocker_issues {
+    for blocker in &launch_stack.blocker_issues {
         out.push_str(&format!(
             "  - #{}: {} state {} waived {}\n",
             blocker.number,
@@ -127,9 +86,9 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
     }
     out.push_str(&format!(
         "- Terminal evidence reports: {}\n",
-        inline_code(report.launch_readiness.terminal_evidence.report_count)
+        inline_code(terminal_evidence.report_count)
     ));
-    if let Some(issue) = &report.launch_readiness.terminal_evidence.issue {
+    if let Some(issue) = &terminal_evidence.issue {
         out.push_str(&format!(
             "- Terminal evidence issue: #{} {} with {} extracted blocks\n",
             issue.number,
@@ -137,16 +96,24 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
             inline_code(issue.extracted_block_count)
         ));
     }
-    if !report
-        .launch_readiness
-        .terminal_evidence
-        .platforms
-        .is_empty()
-    {
+    if !terminal_evidence.platforms.is_empty() {
         out.push_str(&format!(
             "- Platforms: {}\n",
-            inline_list(&report.launch_readiness.terminal_evidence.platforms)
+            inline_list(&terminal_evidence.platforms)
         ));
+    }
+    if !terminal_evidence.reports.is_empty() {
+        out.push_str("- Terminal evidence provenance:\n");
+        for evidence in &terminal_evidence.reports {
+            let collected_at = evidence.collected_at.as_deref().unwrap_or("missing");
+            out.push_str(&format!(
+                "  - {}: status {}, environment {}, collectedAt {}\n",
+                inline_code(&evidence.platform),
+                inline_code(terminal_status(&evidence.status)),
+                inline_code(terminal_environment(evidence.environment.as_ref())),
+                inline_code(collected_at)
+            ));
+        }
     }
     if let Some(waiver) = &report.launch_readiness.terminal_evidence_waiver {
         out.push_str(&format!(
@@ -160,32 +127,31 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
     out.push_str("\n## Governance Audit\n\n");
     out.push_str(&format!(
         "- Status: {}\n",
-        inline_code(governance_status(&report.governance_audit.status))
+        inline_code(governance_status(&governance_audit.status))
     ));
     out.push_str(&format!(
         "- Categories: {}\n",
-        inline_code(report.governance_audit.categories.len())
+        inline_code(governance_audit.categories.len())
     ));
     out.push_str(&format!(
         "- Deterministic gates: {} total, {} release-required\n",
-        inline_code(report.governance_audit.deterministic_gates.count),
+        inline_code(governance_audit.deterministic_gates.count),
         inline_code(
-            report
-                .governance_audit
+            governance_audit
                 .deterministic_gates
                 .required_for_release_count
         )
     ));
     out.push_str(&format!(
         "- Smoke evidence: {} entries\n",
-        inline_code(report.governance_audit.smoke_evidence.count)
+        inline_code(governance_audit.smoke_evidence.count)
     ));
     out.push_str(&format!(
         "- Memory proposals: {} safe, {} unsafe\n",
-        inline_code(report.governance_audit.memory.safe_to_store_count),
-        inline_code(report.governance_audit.memory.unsafe_proposal_count)
+        inline_code(governance_audit.memory.safe_to_store_count),
+        inline_code(governance_audit.memory.unsafe_proposal_count)
     ));
-    if let Some(review) = &report.governance_audit.mcp_review {
+    if let Some(review) = &governance_audit.mcp_review {
         out.push_str(&format!("- MCP review: {}", inline_code(&review.status)));
         if let Some(gate_status) = &review.gate_status {
             out.push_str(&format!(" gate {}", inline_code(gate_status)));
@@ -194,9 +160,9 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
     }
     out.push_str(&format!(
         "- Findings: {} errors, {} warnings, {} info\n",
-        inline_code(report.governance_audit.finding_counts.errors),
-        inline_code(report.governance_audit.finding_counts.warnings),
-        inline_code(report.governance_audit.finding_counts.info)
+        inline_code(governance_audit.finding_counts.errors),
+        inline_code(governance_audit.finding_counts.warnings),
+        inline_code(governance_audit.finding_counts.info)
     ));
 
     append_list(&mut out, "Findings", &report.findings);
@@ -286,5 +252,26 @@ fn launch_stack_status(status: &LaunchStackItemStatus) -> &'static str {
         LaunchStackItemStatus::Waived => "waived",
         LaunchStackItemStatus::Warning => "warning",
         LaunchStackItemStatus::Failed => "failed",
+    }
+}
+
+fn terminal_status(status: &LaunchJudgeTerminalEvidenceStatus) -> &'static str {
+    match status {
+        LaunchJudgeTerminalEvidenceStatus::Passed => "passed",
+        LaunchJudgeTerminalEvidenceStatus::PassedWithWarnings => "passed_with_warnings",
+        LaunchJudgeTerminalEvidenceStatus::Failed => "failed",
+    }
+}
+
+fn terminal_environment(
+    environment: Option<&LaunchJudgeTerminalEvidenceEnvironment>,
+) -> &'static str {
+    match environment {
+        Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal) => "local_terminal",
+        Some(LaunchJudgeTerminalEvidenceEnvironment::VmOrCloudTerminal) => "vm_or_cloud_terminal",
+        Some(LaunchJudgeTerminalEvidenceEnvironment::Container) => "container",
+        Some(LaunchJudgeTerminalEvidenceEnvironment::HostedCi) => "hosted_ci",
+        Some(LaunchJudgeTerminalEvidenceEnvironment::Unknown) => "unknown",
+        None => "missing",
     }
 }

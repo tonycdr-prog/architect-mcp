@@ -28,6 +28,8 @@ mod evidence_index_report;
 #[cfg(test)]
 mod evidence_index_required_checks_tests;
 #[cfg(test)]
+mod evidence_index_test_support;
+#[cfg(test)]
 mod evidence_index_tests;
 pub mod foundry;
 mod foundry_artifacts;
@@ -92,6 +94,8 @@ mod launch_judge_tests;
 pub mod launch_readiness;
 mod launch_readiness_output;
 mod launch_readiness_public_summary;
+#[cfg(test)]
+mod launch_readiness_public_summary_test_support;
 #[cfg(test)]
 mod launch_readiness_public_summary_tests;
 #[cfg(test)]
