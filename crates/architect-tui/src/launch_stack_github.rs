@@ -92,7 +92,7 @@ pub(crate) fn issue_from_value(fallback_number: u64, value: &Value) -> LaunchSta
         LaunchStackItemStatus::Failed
     };
     let next_action = match status {
-        LaunchStackItemStatus::Passed => None,
+        LaunchStackItemStatus::Passed | LaunchStackItemStatus::Waived => None,
         LaunchStackItemStatus::Warning => Some(format!(
             "resolve or explicitly waive blocker issue #{number} before final launch go"
         )),
@@ -109,6 +109,7 @@ pub(crate) fn issue_from_value(fallback_number: u64, value: &Value) -> LaunchSta
         url: public_text(value.get("url").and_then(Value::as_str).unwrap_or(""), 240),
         state: public_text(&state, 80),
         status,
+        waiver_reason: None,
         next_action,
     }
 }
@@ -229,7 +230,7 @@ fn pr_next_action(
     status: &LaunchStackItemStatus,
 ) -> Option<String> {
     match status {
-        LaunchStackItemStatus::Passed => None,
+        LaunchStackItemStatus::Passed | LaunchStackItemStatus::Waived => None,
         LaunchStackItemStatus::Failed if checks.failed > 0 => Some(format!(
             "fix failing checks on PR #{number} before launch stack can be go"
         )),

@@ -201,6 +201,7 @@ async fn main() -> Result<()> {
             repo,
             prs,
             blockers,
+            waived_blockers,
         }) => run_launch_stack(
             &workspace,
             LaunchStackOptions {
@@ -208,6 +209,7 @@ async fn main() -> Result<()> {
                 repo,
                 prs,
                 blockers,
+                waived_blockers,
             },
         )?,
         Some(Commands::CollectTerminalEvidence { json, repo, issue }) => {

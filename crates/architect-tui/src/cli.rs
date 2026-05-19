@@ -137,6 +137,8 @@ pub enum Commands {
         prs: Vec<u64>,
         #[arg(long = "blocker")]
         blockers: Vec<u64>,
+        #[arg(long = "waive-blocker", value_name = "ISSUE=REASON")]
+        waived_blockers: Vec<String>,
     },
     /// Collect public-safe terminal evidence JSON from a GitHub issue.
     CollectTerminalEvidence {

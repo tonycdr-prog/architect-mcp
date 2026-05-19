@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
@@ -12,6 +13,7 @@ pub struct LaunchStackOptions {
     pub repo: Option<String>,
     pub prs: Vec<u64>,
     pub blockers: Vec<u64>,
+    pub waived_blockers: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -30,6 +32,7 @@ pub struct LaunchStackReport {
 #[serde(rename_all = "snake_case")]
 pub enum LaunchStackItemStatus {
     Passed,
+    Waived,
     Warning,
     Failed,
 }
@@ -66,6 +69,8 @@ pub struct LaunchStackIssue {
     pub url: String,
     pub state: String,
     pub status: LaunchStackItemStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub waiver_reason: Option<String>,
     pub next_action: Option<String>,
 }
 
@@ -89,6 +94,8 @@ pub fn build_launch_stack_report(
     let mut prs = Vec::new();
     let mut blockers = Vec::new();
     let mut findings = Vec::new();
+    let (waivers, waiver_findings) = parse_waivers(&options.waived_blockers);
+    findings.extend(waiver_findings);
 
     if options.prs.is_empty() && options.blockers.is_empty() {
         findings.push("no PRs or blocker issues were supplied for launch-stack".to_string());
@@ -100,22 +107,49 @@ pub fn build_launch_stack_report(
             Err(error) => findings.push(error),
         }
     }
+    let mut blocker_numbers = HashSet::new();
     for number in &options.blockers {
+        blocker_numbers.insert(*number);
         match fetch_issue(workspace, options.repo.as_deref(), *number) {
             Ok(issue) => blockers.push(issue),
             Err(error) => findings.push(error),
         }
     }
+    for number in waivers.keys() {
+        if !blocker_numbers.contains(number) {
+            findings.push(format!(
+                "waiver supplied for issue #{number}, but that issue was not supplied as a blocker"
+            ));
+        }
+    }
 
-    build_report_from_items(options.repo.clone(), prs, blockers, findings)
+    build_report_from_items_with_waivers(options.repo.clone(), prs, blockers, findings, waivers)
 }
 
+#[cfg(test)]
 pub(crate) fn build_report_from_items(
     repository: Option<String>,
     pull_requests: Vec<LaunchStackPullRequest>,
     blocker_issues: Vec<LaunchStackIssue>,
     findings: Vec<String>,
 ) -> LaunchStackReport {
+    build_report_from_items_with_waivers(
+        repository,
+        pull_requests,
+        blocker_issues,
+        findings,
+        BTreeMap::new(),
+    )
+}
+
+pub(crate) fn build_report_from_items_with_waivers(
+    repository: Option<String>,
+    pull_requests: Vec<LaunchStackPullRequest>,
+    mut blocker_issues: Vec<LaunchStackIssue>,
+    findings: Vec<String>,
+    waivers: BTreeMap<u64, String>,
+) -> LaunchStackReport {
+    apply_waivers(&mut blocker_issues, &waivers);
     let mut next_actions: Vec<String> = Vec::new();
     for pr in &pull_requests {
         if let Some(action) = &pr.next_action {
@@ -154,7 +188,7 @@ pub(crate) fn build_report_from_items(
     };
 
     LaunchStackReport {
-        schema_version: 1,
+        schema_version: 2,
         result,
         repository: repository.map(|repo| public_text(&repo, 160)),
         pull_requests,
@@ -165,6 +199,55 @@ pub(crate) fn build_report_from_items(
             .collect(),
         next_actions,
     }
+}
+
+fn apply_waivers(blocker_issues: &mut [LaunchStackIssue], waivers: &BTreeMap<u64, String>) {
+    for issue in blocker_issues {
+        if issue.status == LaunchStackItemStatus::Warning
+            && issue.state == "OPEN"
+            && let Some(reason) = waivers.get(&issue.number)
+        {
+            issue.status = LaunchStackItemStatus::Waived;
+            issue.waiver_reason = Some(reason.clone());
+            issue.next_action = None;
+        }
+    }
+}
+
+pub(crate) fn parse_waivers(raw_waivers: &[String]) -> (BTreeMap<u64, String>, Vec<String>) {
+    let mut waivers = BTreeMap::new();
+    let mut findings = Vec::new();
+    for raw in raw_waivers {
+        match parse_waiver(raw) {
+            Ok((number, reason)) => {
+                if waivers.insert(number, reason).is_some() {
+                    findings.push(format!("duplicate waiver supplied for issue #{number}"));
+                }
+            }
+            Err(error) => findings.push(error),
+        }
+    }
+    (waivers, findings)
+}
+
+fn parse_waiver(raw: &str) -> Result<(u64, String), String> {
+    let Some((number, reason)) = raw.split_once('=').or_else(|| raw.split_once(':')) else {
+        return Err(
+            "blocker waiver must use ISSUE=reason or ISSUE:reason with a public reason".to_string(),
+        );
+    };
+    let number = number
+        .trim()
+        .trim_start_matches('#')
+        .parse::<u64>()
+        .map_err(|_| "blocker waiver issue number must be numeric".to_string())?;
+    let reason = public_text(reason, 240);
+    if reason.is_empty() {
+        return Err(format!(
+            "blocker waiver for issue #{number} needs a public reason"
+        ));
+    }
+    Ok((number, reason))
 }
 
 fn print_text_report(report: &LaunchStackReport) {
@@ -182,10 +265,14 @@ fn print_text_report(report: &LaunchStackReport) {
         );
     }
     for issue in &report.blocker_issues {
-        println!(
+        print!(
             "- issue #{}: {:?} state={}",
             issue.number, issue.status, issue.state
         );
+        if let Some(reason) = &issue.waiver_reason {
+            print!(" waiver=\"{reason}\"");
+        }
+        println!();
     }
     for finding in &report.findings {
         println!("- finding: {finding}");
