@@ -54,6 +54,7 @@ pub struct LaunchStackPullRequest {
     pub title: String,
     pub url: String,
     pub is_draft: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub review_decision: Option<String>,
     pub unresolved_review_threads: usize,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
