@@ -14,7 +14,7 @@ architect-mcp-tui terminal-evidence --markdown --issue-url https://github.com/to
 architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 ```
 
-It runs the smoke checks internally and writes a launch-judge-compatible summary. Use `--markdown` when pasting directly into a GitHub issue; it wraps the public-safe JSON in a fenced block that `collect-terminal-evidence` can read. Add `--issue-url` when you want the generated Markdown to name the exact GitHub issue to paste into; the command still does not post anything automatically and only accepts plain GitHub issue URLs. Use `--json` when saving a local file for `launch-judge --terminal-evidence`. Public reports should paste this summary, not the raw smoke JSON. The command auto-detects Linux and Windows; `--platform linux` or `--platform windows` can only confirm the current terminal OS and cannot relabel macOS, CI, or container output as launch evidence.
+It runs the smoke checks internally and writes a launch-judge-compatible summary. Use `--markdown` when pasting directly into a GitHub issue; it wraps the public-safe JSON in a fenced block that `collect-terminal-evidence` can read. Add `--issue-url` when you want the generated Markdown to name the exact GitHub issue to paste into; the command still does not post anything automatically and only accepts plain GitHub issue URLs. Use `--json` when saving a local file for `launch-judge --terminal-evidence`. Public reports should paste this summary, not the raw smoke JSON. The command auto-detects Linux and Windows; `--platform linux` or `--platform windows` can only confirm the current terminal OS and cannot relabel macOS, CI, or container output as launch evidence. `--skip-gate` is rejected for terminal evidence, and a failed smoke result exits non-zero after printing the public-safe report.
 
 Terminal evidence also records `environment`. Reports with `local_terminal` or `vm_or_cloud_terminal` can satisfy final manual terminal QA when the rest of the report is clean. Reports from `hosted_ci`, `container`, missing provenance, or `unknown` are still useful smoke evidence, but they remain `conditional_go` and do not replace manual Linux/Windows terminal QA. The command auto-detects hosted CI and common container markers when it can; pass `--environment vm-or-cloud-terminal` only when the run really happened in a VM or cloud dev box terminal.
 
@@ -97,8 +97,9 @@ node --version
 npm --version
 npm install -g @tonycdr-prog/architect-mcp
 architect-mcp-tui smoke --json > architect-mcp-tui-smoke.json
-architect-mcp-tui terminal-evidence --json > terminal-evidence.json
 if ($LASTEXITCODE -ne 0) { Write-Host "smoke exited with code $LASTEXITCODE" }
+architect-mcp-tui terminal-evidence --json > terminal-evidence.json
+if ($LASTEXITCODE -ne 0) { Write-Host "terminal-evidence exited with code $LASTEXITCODE" }
 ```
 
 Manual fallback commands:

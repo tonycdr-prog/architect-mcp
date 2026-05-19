@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::Result;
 
-use crate::terminal_evidence::sanitize_note;
+use crate::terminal_evidence_safety::sanitize_note;
 
 pub(crate) fn collected_at_value(value: Option<&str>) -> Result<String> {
     if let Some(value) = value

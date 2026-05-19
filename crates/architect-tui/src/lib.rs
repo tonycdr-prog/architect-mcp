@@ -163,6 +163,7 @@ mod terminal_evidence_environment_tests;
 #[cfg(test)]
 mod terminal_evidence_hardening_tests;
 mod terminal_evidence_issue_url;
+mod terminal_evidence_safety;
 #[cfg(test)]
 mod terminal_evidence_tests;
 pub mod ui;

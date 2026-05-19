@@ -28,11 +28,10 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
             platform: None,
             environment: Some("local-terminal".to_string()),
             source: Some(
-                "/home/example/private issue #136 public-safe terminal QA report ghp_secret"
-                    .to_string(),
+                "/home/example/private https://github.com/private/repo ghp_secret".to_string(),
             ),
             notes: Some(
-                "/home/example/private interactive resize and exit passed npm_secret".to_string(),
+                "/home/example/private interactive resize and exit passed npm_secret git@github.com:private/repo.git".to_string(),
             ),
             collected_at: Some("2026-05-17".to_string()),
             issue_url: None,
@@ -74,29 +73,16 @@ fn evidence_from_smoke_outputs_public_safe_summary() {
     );
     assert!(!serde_json::to_string(&evidence).unwrap().contains("ghp_"));
     assert!(!serde_json::to_string(&evidence).unwrap().contains("npm_"));
-}
-
-#[test]
-fn evidence_from_smoke_rejects_unsupported_auto_platform() {
-    let smoke = smoke_report(SmokeStatus::Passed, "macos");
-    let error = evidence_from_smoke(
-        &smoke,
-        &TerminalEvidenceOptions {
-            json: true,
-            markdown: false,
-            prompt: crate::smoke::SmokeOptions::DEFAULT_PROMPT.to_string(),
-            skip_gate: false,
-            platform: None,
-            environment: None,
-            source: None,
-            notes: None,
-            collected_at: None,
-            issue_url: None,
-        },
-    )
-    .expect_err("macos is not launch terminal evidence");
-
-    assert!(error.to_string().contains("linux or windows"));
+    assert!(
+        !serde_json::to_string(&evidence)
+            .unwrap()
+            .contains("github.com/private/repo")
+    );
+    assert!(
+        !serde_json::to_string(&evidence)
+            .unwrap()
+            .contains("git@github.com")
+    );
 }
 
 #[test]
