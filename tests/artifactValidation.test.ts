@@ -129,6 +129,40 @@ describe("artifact validation", () => {
     assert.equal(result.errors.some((error) => error.includes(".github/pull_request_template.md")), true);
   });
 
+  it("rejects otherwise valid PR templates missing repo style reconciliation", () => {
+    const artifacts = generateRepoArtifacts(generateContract(ARCHITECT_MCP_BRIEF, ["mcp-server"]));
+    const staleTemplate = artifacts.map((artifact) => artifact.path === ".github/pull_request_template.md"
+      ? {
+          ...artifact,
+          content: `## Summary
+- Placeholder summary
+
+## Verification
+- [ ] \`npm test\`
+
+## MCP Review
+- [ ] Ran architect-mcp against this repo or explained why it was not relevant
+- [ ] Addressed MCP findings or listed accepted residual risk
+
+## Handoff
+- Assumptions:
+- Not done:
+- Follow-up:
+`
+        }
+      : artifact);
+
+    const result = validateRepoArtifacts(staleTemplate);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.errors.some((error) =>
+      error.includes("reconcile repo PR templates with recent maintainer-authored PR style")
+    ), true);
+    assert.equal(result.errors.some((error) =>
+      error.includes("advisory architect-mcp attribution footer")
+    ), true);
+  });
+
   it("rejects pull_request_target labeler workflows that checkout untrusted code", () => {
     const artifacts = generateRepoArtifacts(generateContract(ARCHITECT_MCP_BRIEF, ["mcp-server"]));
     const unsafe = artifacts.map((artifact) => artifact.path === ".github/workflows/labeler.yml"
