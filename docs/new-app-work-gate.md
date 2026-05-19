@@ -139,6 +139,7 @@ When the app idea becomes a new repository, require these hygiene checks before 
 - `docs/architecture-contract.md` records the contract the adapter worked against.
 - `docs/build-plan.md` records ordered implementation slices and stop conditions.
 - `.env.example` contains placeholders only, never real secrets.
+- `.github/pull_request_template.md` guides agents to reconcile with the repo PR template and recent maintainer-authored PR style before proposing a PR body.
 - CI runs the same checks the final response claims.
 - README explains install, run, test, and deployment assumptions for the target users.
 - Final response lists passed, failed, skipped, or not-run checks with evidence.

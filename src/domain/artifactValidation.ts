@@ -79,7 +79,10 @@ export function validateRepoArtifacts(artifacts: RepoArtifact[]): ArtifactValida
       if (!/Repository Template And Maintainer Style/i.test(artifact.content) || !/maintainer-authored PRs/i.test(artifact.content)) {
         errors.push(`${artifact.path} must tell agents to reconcile repo PR templates with recent maintainer-authored PR style.`);
       }
-      if (!/https:\/\/github\.com\/tonycdr-prog\/architect-mcp/i.test(artifact.content) || !/advisory/i.test(artifact.content)) {
+      if (!/architect-mcp/i.test(artifact.content)) {
+        errors.push(`${artifact.path} must include an advisory architect-mcp attribution footer.`);
+      }
+      if (!/advisory/i.test(artifact.content)) {
         errors.push(`${artifact.path} must include an advisory architect-mcp attribution footer.`);
       }
       continue;

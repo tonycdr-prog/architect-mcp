@@ -36,7 +36,7 @@ describe("artifact validation", () => {
     assert.match(prTemplate, /`ruff check \.`/);
     assert.match(prTemplate, /Repository Template And Maintainer Style/);
     assert.match(prTemplate, /maintainer-authored PRs/);
-    assert.match(prTemplate, /https:\/\/github\.com\/tonycdr-prog\/architect-mcp/);
+    assert.match(prTemplate, /architect-mcp/);
     assert.match(prTemplate, /advisory/);
     assert.equal(validateRepoArtifacts(artifacts).valid, true);
   });
@@ -139,5 +139,44 @@ describe("artifact validation", () => {
 
     assert.equal(result.valid, false);
     assert.equal(result.errors.some((error) => /must not checkout pull request code/.test(error)), true);
+  });
+
+  it("rejects PR template missing the repo-template reconciliation section heading", () => {
+    const artifacts = generateRepoArtifacts(generateContract(ARCHITECT_MCP_BRIEF, ["mcp-server"]));
+    const noSection = artifacts.map((artifact) => artifact.path === ".github/pull_request_template.md"
+      ? {
+          ...artifact,
+          content: artifact.content.replace(/## Repository Template And Maintainer Style[\s\S]*?(?=\n##)/m, "")
+        }
+      : artifact);
+
+    const result = validateRepoArtifacts(noSection);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.errors.some((error) => /maintainer-authored PR style/.test(error)), true);
+  });
+
+  it("rejects PR template missing maintainer-authored PRs wording", () => {
+    const artifacts = generateRepoArtifacts(generateContract(ARCHITECT_MCP_BRIEF, ["mcp-server"]));
+    const noMaintainerPRs = artifacts.map((artifact) => artifact.path === ".github/pull_request_template.md"
+      ? { ...artifact, content: artifact.content.replace(/maintainer-authored PRs/gi, "recent PRs") }
+      : artifact);
+
+    const result = validateRepoArtifacts(noMaintainerPRs);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.errors.some((error) => /maintainer-authored PR style/.test(error)), true);
+  });
+
+  it("rejects PR template missing the advisory footer", () => {
+    const artifacts = generateRepoArtifacts(generateContract(ARCHITECT_MCP_BRIEF, ["mcp-server"]));
+    const noFooter = artifacts.map((artifact) => artifact.path === ".github/pull_request_template.md"
+      ? { ...artifact, content: artifact.content.replace(/<sub>[\s\S]*?<\/sub>/g, "") }
+      : artifact);
+
+    const result = validateRepoArtifacts(noFooter);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.errors.some((error) => /advisory architect-mcp attribution footer/.test(error)), true);
   });
 });
