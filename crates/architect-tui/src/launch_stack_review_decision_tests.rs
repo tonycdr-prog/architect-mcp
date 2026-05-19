@@ -88,7 +88,7 @@ fn launch_stack_review_decisions_affect_pr_readiness() {
 }
 
 #[test]
-fn launch_stack_review_decision_is_additive_schema_v1_field() {
+fn launch_stack_review_decision_is_additive_current_schema_field() {
     let approved = pr_from_value(
         12,
         &json!({
@@ -123,7 +123,7 @@ fn launch_stack_review_decision_is_additive_schema_v1_field() {
     assert!(!absent_json.contains("reviewDecision"));
 
     let report = build_report_from_items(None, vec![approved, absent], Vec::new(), Vec::new());
-    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.schema_version, 2);
     assert_eq!(report.result, LaunchJudgeResult::Go);
 }
 

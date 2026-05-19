@@ -94,7 +94,7 @@
 
 ### 11a. Verification Receipt Evidence Tiers
 - Inputs: issue #284, issue #246 receipt boundary, final/session review tools, direct-client evidence semantics
-- Outputs: explicit claimed/supplied/independent evidence tiers, freshness status per receipt, local/TUI/adapter/manual timestamp requirements, CI run-id handling, docs update, goal ledger update
+- Outputs: explicit claimed/supplied/unverifiable/independent evidence tiers, freshness status per receipt, local/TUI/adapter/manual timestamp requirements, CI run-id handling, docs update, goal ledger update
 - Allowed directories: src/domain, src/tools, tests, docs
 - Forbidden files: raw command logs, stdout/stderr payload storage, token-shaped fixtures, local-path fixtures outside redaction tests, CI replacement claims, terminal-QA replacement claims, release-gate replacement claims
 - Checks: node --import tsx --test tests/verificationReceipts.test.ts tests/finalResponseReview.test.ts tests/agentSessionReview.test.ts tests/schemaValidation.test.ts, npm run typecheck, npm test, npm run build, npm run docs:build, npm run release:check, git diff --check

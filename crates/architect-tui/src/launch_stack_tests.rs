@@ -1,33 +1,43 @@
 use serde_json::json;
 
 use crate::launch_judge_report::LaunchJudgeResult;
-use crate::launch_stack::{LaunchStackItemStatus, build_report_from_items};
+use crate::launch_stack::{
+    LaunchStackIssue, LaunchStackItemStatus, LaunchStackPullRequest, build_report_from_items,
+};
 use crate::launch_stack_github::{issue_from_value, pr_from_value, summarize_checks};
 
-#[test]
-fn launch_stack_go_requires_clean_non_draft_prs_and_closed_blockers() {
-    let pr = pr_from_value(
-        10,
+fn ready_pr(number: u64) -> LaunchStackPullRequest {
+    pr_from_value(
+        number,
         &json!({
-            "number": 10,
+            "number": number,
             "title": "ready slice",
-            "url": "https://github.com/example/repo/pull/10",
+            "url": format!("https://github.com/example/repo/pull/{number}"),
             "isDraft": false,
             "mergeStateStatus": "CLEAN",
             "statusCheckRollup": [
                 {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
             ]
         }),
-    );
-    let blocker = issue_from_value(
-        20,
+    )
+}
+
+fn blocker_issue(number: u64, state: &str) -> LaunchStackIssue {
+    issue_from_value(
+        number,
         &json!({
-            "number": 20,
+            "number": number,
             "title": "external terminal evidence",
-            "url": "https://github.com/example/repo/issues/20",
-            "state": "CLOSED"
+            "url": format!("https://github.com/example/repo/issues/{number}"),
+            "state": state
         }),
-    );
+    )
+}
+
+#[test]
+fn launch_stack_go_requires_clean_non_draft_prs_and_closed_blockers() {
+    let pr = ready_pr(10);
+    let blocker = blocker_issue(20, "CLOSED");
 
     let report = build_report_from_items(
         Some("example/repo".to_string()),
@@ -37,6 +47,7 @@ fn launch_stack_go_requires_clean_non_draft_prs_and_closed_blockers() {
     );
 
     assert_eq!(report.result, LaunchJudgeResult::Go);
+    assert_eq!(report.schema_version, 2);
     assert!(report.next_actions.is_empty());
 }
 

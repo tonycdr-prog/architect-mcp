@@ -50,6 +50,7 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.summary.matchedRequired, 1);
     assert.equal(report.summary.freshMatchedRequired, 1);
     assert.equal(report.summary.evidenceTiers.supplied, 2);
+    assert.equal(report.summary.evidenceTiers.unverifiable, 0);
     assert.equal(report.receipts[0].evidenceTier, "supplied");
     assert.equal(report.receipts[0].freshness.status, "fresh");
     assert.equal(report.claimedChecks[0].freshReceiptSupplied, true);
@@ -67,7 +68,8 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.summary.matchedRequired, 1);
     assert.equal(report.summary.freshMatchedRequired, 0);
     assert.equal(report.summary.missingFreshRequired, 1);
-    assert.equal(report.receipts[0].evidenceTier, "supplied");
+    assert.equal(report.summary.evidenceTiers.unverifiable, 1);
+    assert.equal(report.receipts[0].evidenceTier, "unverifiable");
     assert.equal(report.receipts[0].freshness.status, "missing");
     assert.equal(report.receipts[0].freshness.satisfied, false);
     assert.equal(report.claimedChecks[0].receiptSupplied, true);
@@ -85,7 +87,9 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.status, "warn");
     assert.equal(report.complete, false);
     assert.equal(report.summary.freshMatchedRequired, 0);
+    assert.equal(report.summary.evidenceTiers.unverifiable, 1);
     assert.equal(report.receipts[0].runIdPresent, true);
+    assert.equal(report.receipts[0].evidenceTier, "unverifiable");
     assert.equal(report.receipts[0].independentlyResolvable, false);
     assert.equal(report.receipts[0].freshness.status, "missing");
     assert.match(report.findings.find((finding) => finding.code === "VERIFY_RECEIPT004_FRESHNESS_UNKNOWN")?.message ?? "", /not independently resolvable/);
@@ -128,8 +132,9 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.status, "warn");
     assert.equal(report.complete, false);
     assert.equal(report.summary.evidenceTiers.independent, 0);
-    assert.equal(report.summary.evidenceTiers.supplied, 1);
-    assert.equal(report.receipts[0].evidenceTier, "supplied");
+    assert.equal(report.summary.evidenceTiers.supplied, 0);
+    assert.equal(report.summary.evidenceTiers.unverifiable, 1);
+    assert.equal(report.receipts[0].evidenceTier, "unverifiable");
     assert.equal(report.receipts[0].independentlyResolvable, false);
     assert.equal(report.receipts[0].freshness.status, "missing");
     assert.equal(report.claimedChecks[0].independentReceiptSupplied, false);
@@ -150,8 +155,9 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.status, "fail");
     assert.equal(report.complete, false);
     assert.equal(report.summary.evidenceTiers.independent, 0);
-    assert.equal(report.summary.evidenceTiers.supplied, 3);
-    assert.deepEqual(report.receipts.map((item) => item.evidenceTier), ["supplied", "supplied", "supplied"]);
+    assert.equal(report.summary.evidenceTiers.supplied, 0);
+    assert.equal(report.summary.evidenceTiers.unverifiable, 3);
+    assert.deepEqual(report.receipts.map((item) => item.evidenceTier), ["unverifiable", "unverifiable", "unverifiable"]);
     assert.deepEqual(report.receipts.map((item) => item.independentlyResolvable), [false, false, false]);
     assert.deepEqual(report.receipts.map((item) => item.freshness.status), ["invalid", "stale", "future"]);
     assert.equal(report.claimedChecks.some((item) => item.independentReceiptSupplied), false);
@@ -177,7 +183,8 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.summary.matchedRequired, 1);
     assert.equal(report.summary.freshMatchedRequired, 1);
     assert.equal(report.summary.missingFreshRequired, 0);
-    assert.equal(report.summary.evidenceTiers.supplied, 1);
+    assert.equal(report.summary.evidenceTiers.supplied, 0);
+    assert.equal(report.summary.evidenceTiers.unverifiable, 1);
     assert.equal(report.summary.evidenceTiers.independent, 1);
     assert.equal(report.claimedChecks[0].receiptSupplied, true);
     assert.equal(report.claimedChecks[0].freshReceiptSupplied, true);
@@ -185,6 +192,30 @@ describe("reviewVerificationReceipts", () => {
     assert.equal(report.receipts[0].freshness.status, "missing");
     assert.equal(report.receipts[1].freshness.status, "independent_run_id");
     assert.equal(report.findings.some((finding) => finding.code === "VERIFY_RECEIPT004_FRESHNESS_UNKNOWN"), false);
+  });
+
+  it("downgrades independently resolvable receipts when explicit freshness expires", () => {
+    const report = reviewVerificationReceipts({
+      requiredChecks: ["npm test"],
+      receipts: [receipt("npm test", {
+        source: "ci",
+        recordedAt: "2026-05-17T21:00:00.000Z",
+        runId: "ci-run-284",
+        summary: "CI job passed"
+      })],
+      now,
+      maxAgeSeconds: 60
+    });
+
+    assert.equal(report.status, "fail");
+    assert.equal(report.complete, false);
+    assert.equal(report.summary.evidenceTiers.independent, 0);
+    assert.equal(report.summary.evidenceTiers.unverifiable, 1);
+    assert.equal(report.receipts[0].independentlyResolvable, true);
+    assert.equal(report.receipts[0].evidenceTier, "unverifiable");
+    assert.equal(report.receipts[0].freshness.status, "stale");
+    assert.equal(report.claimedChecks[0].independentReceiptSupplied, false);
+    assert.equal(report.claimedChecks[0].freshReceiptSupplied, false);
   });
 
   it("redacts token-shaped values and local paths from public receipt summaries", () => {
