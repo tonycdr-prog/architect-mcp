@@ -9,7 +9,7 @@ use crate::launch_judge_report::LaunchJudgeResult;
 use crate::launch_readiness_public_summary::{
     LaunchReadinessPublicMissingRequiredCheck, LaunchReadinessPublicStack,
     LaunchReadinessPublicStatusCounts, LaunchReadinessPublicSummary,
-    LaunchReadinessPublicTerminalEvidence,
+    LaunchReadinessPublicTerminalEvidence, LaunchReadinessPublicUnresolvedReviewThreads,
 };
 
 #[test]
@@ -34,6 +34,27 @@ fn evidence_index_markdown_shows_missing_required_checks_without_raw_payloads() 
     assert!(!markdown.contains("npm_SECRET"));
 }
 
+#[test]
+fn evidence_index_markdown_shows_unresolved_review_threads_without_raw_text() {
+    let mut launch = launch_summary_with_missing_required_checks();
+    launch.launch_stack.unresolved_review_thread_count = 2;
+    launch.launch_stack.unresolved_review_threads =
+        vec![LaunchReadinessPublicUnresolvedReviewThreads {
+            pull_request: 198,
+            count: 2,
+        }];
+    let report =
+        build_evidence_index_report_from_public_summaries_at(launch, governance_summary(), 1);
+
+    let markdown = render_markdown(&report);
+
+    assert!(markdown.contains("- Unresolved review threads: `2`"));
+    assert!(markdown.contains("  - PR #198: `2`"));
+    assert!(!markdown.contains("reviewThreads"));
+    assert!(!markdown.contains("comments"));
+    assert!(!markdown.contains("body"));
+}
+
 fn launch_summary_with_missing_required_checks() -> LaunchReadinessPublicSummary {
     LaunchReadinessPublicSummary {
         schema_version: 1,
@@ -53,6 +74,8 @@ fn launch_summary_with_missing_required_checks() -> LaunchReadinessPublicSummary
                 warning: 0,
                 failed: 1,
             },
+            unresolved_review_thread_count: 0,
+            unresolved_review_threads: Vec::new(),
             missing_required_check_count: 2,
             missing_required_checks: vec![LaunchReadinessPublicMissingRequiredCheck {
                 pull_request: 198,

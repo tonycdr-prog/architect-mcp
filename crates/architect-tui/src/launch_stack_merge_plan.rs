@@ -44,13 +44,14 @@ pub(crate) fn render_launch_stack_merge_plan(report: &LaunchStackReport) -> Vec<
                 "hold"
             };
             lines.push(format!(
-                "{}. PR #{} [{}] {} ({:?}, review={}, merge={}, mergeable={}, checks {}/{}/{})",
+                "{}. PR #{} [{}] {} ({:?}, review={}, unresolved_threads={}, merge={}, mergeable={}, checks {}/{}/{})",
                 index + 1,
                 pr.number,
                 hold,
                 public_text(&pr.title, 120),
                 pr.status,
                 pr.review_decision.as_deref().unwrap_or("none"),
+                pr.unresolved_review_threads,
                 public_text(&pr.merge_state_status, 80),
                 pr.mergeable.as_deref().unwrap_or("unknown"),
                 pr.checks.passed,

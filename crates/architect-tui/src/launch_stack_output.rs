@@ -16,11 +16,12 @@ pub(crate) fn print_launch_stack_text_report(report: &LaunchStackReport) {
     }
     for pr in &report.pull_requests {
         println!(
-            "- PR #{}: {:?} draft={} review={} merge={} mergeable={} checks passed={} pending={} failed={} missing_required={}",
+            "- PR #{}: {:?} draft={} review={} unresolved_threads={} merge={} mergeable={} checks passed={} pending={} failed={} missing_required={}",
             pr.number,
             pr.status,
             pr.is_draft,
             pr.review_decision.as_deref().unwrap_or("none"),
+            pr.unresolved_review_threads,
             pr.merge_state_status,
             pr.mergeable.as_deref().unwrap_or("unknown"),
             pr.checks.passed,

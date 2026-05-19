@@ -196,8 +196,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /evidence-index --require-go/);
     assert.match(rustTui, /architect-mcp-tui collect-terminal-evidence --json/);
     assert.match(rustTui, /extracts fenced terminal-evidence JSON/);
-    assert.match(rustTui, /requested PR changes are `no_go`/);
-    assert.match(rustTui, /unstable merge states without explicit required-check evidence, and open blocker issues are `conditional_go`/);
+    assert.match(rustTui, /requested PR changes, or review-thread lookup failures are `no_go`/);
+    assert.match(rustTui, /unresolved review threads, pending checks, unstable merge states without explicit required-check evidence, and open blocker issues are `conditional_go`/);
+    assert.match(rustTui, /unresolved review-thread counts/);
     assert.match(rustTui, /mergeable=MERGEABLE/);
     assert.match(rustTui, /does not merge PRs, close issues, edit branches, tag releases, publish packages/);
     assert.match(rustTui, /architect-mcp-tui terminal-evidence --markdown/);
@@ -244,6 +245,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(docs, /launch-stack --json/);
     assert.match(docs, /--required-check <name>/);
     assert.match(docs, /missing required-check evidence/);
+    assert.match(docs, /unresolved review threads/);
     assert.match(docs, /launch-readiness --json/);
     assert.match(docs, /evidence-index --json/);
     assert.match(docs, /evidence-index --markdown/);
@@ -255,7 +257,7 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#255 - Point terminal-evidence Markdown at a target issue\]/);
+    assert.match(goal, /Active slice: \[#257 - Gate launch readiness on unresolved PR review threads\]/);
     assert.match(goal, /\[PR #213\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/213\)/);
     assert.match(goal, /\[PR #215\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/215\)/);
     assert.match(goal, /\[PR #217\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/217\)/);
@@ -284,6 +286,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /\[#247\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/247\)/);
     assert.match(goal, /\[#253\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/253\)/);
     assert.match(goal, /\[#255\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/255\)/);
+    assert.match(goal, /\[#257\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/257\)/);
     assert.match(goal, /fail-closed ACP session configuration/);
     assert.match(goal, /unknown session parameters/);
     assert.match(goal, /strict ACP session-method parameter validation/);
@@ -307,6 +310,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /direct-client work-gate sequence receipts/);
     assert.match(goal, /mergeable unstable launch-readiness handling/);
     assert.match(goal, /safer issue-targeted terminal-evidence Markdown/);
+    assert.match(goal, /unresolved review-thread launch-readiness gating/);
     assert.match(goal, /#228 in PR #229/);
     assert.match(goal, /#230 in PR #231/);
     assert.match(goal, /#232 in PR #233/);
@@ -320,7 +324,8 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /#246 in PR #251/);
     assert.match(goal, /#247 in PR #252/);
     assert.match(goal, /#253 in PR #254/);
-    assert.match(goal, /#255 in the current PR/);
+    assert.match(goal, /#255 in PR #256/);
+    assert.match(goal, /#257 in the current PR/);
     assert.match(goal, /#136 remains open and is still the evidence boundary/);
     assert.match(goal, /runtime `\/goal` remains active/);
     assert.match(goal, /npm run release:check/);

@@ -101,6 +101,7 @@ mod launch_stack_discovery;
 #[cfg(test)]
 mod launch_stack_discovery_tests;
 mod launch_stack_github;
+mod launch_stack_github_support;
 mod launch_stack_merge_plan;
 #[cfg(test)]
 mod launch_stack_merge_plan_tests;
@@ -115,6 +116,7 @@ mod launch_stack_required_checks;
 mod launch_stack_required_checks_tests;
 #[cfg(test)]
 mod launch_stack_review_decision_tests;
+mod launch_stack_review_threads;
 #[cfg(test)]
 mod launch_stack_tests;
 mod launch_stack_waivers;

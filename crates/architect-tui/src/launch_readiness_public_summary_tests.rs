@@ -143,6 +143,33 @@ fn readiness_public_summary_exposes_missing_required_checks_without_raw_rollups(
     assert!(!text.contains("npm_SECRET"));
 }
 
+#[test]
+fn readiness_public_summary_exposes_unresolved_review_threads_without_raw_text() {
+    let mut report = build_launch_readiness_report_from_reports_with_terminal_waiver(
+        Some("example/repo".to_string()),
+        stack_report(),
+        None,
+        None,
+        Vec::new(),
+    );
+    report.launch_stack.pull_requests[1].unresolved_review_threads = 3;
+    report.launch_stack.pull_requests[1].status = LaunchStackItemStatus::Warning;
+
+    let summary = build_public_summary_at(&report, 1);
+    let text = serde_json::to_string_pretty(&summary).expect("serialize public summary");
+
+    assert_eq!(summary.launch_stack.unresolved_review_thread_count, 3);
+    assert_eq!(summary.launch_stack.unresolved_review_threads.len(), 1);
+    assert_eq!(
+        summary.launch_stack.unresolved_review_threads[0].pull_request,
+        194
+    );
+    assert_eq!(summary.launch_stack.unresolved_review_threads[0].count, 3);
+    assert!(!text.contains("reviewThreads"));
+    assert!(!text.contains("comments"));
+    assert!(!text.contains("body"));
+}
+
 fn stack_report() -> LaunchStackReport {
     LaunchStackReport {
         schema_version: 1,
@@ -202,6 +229,7 @@ fn pr(number: u64, status: LaunchStackItemStatus) -> LaunchStackPullRequest {
         url: format!("https://github.com/example/repo/pull/{number}"),
         is_draft: false,
         review_decision: Some("APPROVED".to_string()),
+        unresolved_review_threads: 0,
         merge_state_status: "CLEAN".to_string(),
         mergeable: Some("MERGEABLE".to_string()),
         checks: LaunchStackCheckSummary {

@@ -65,6 +65,33 @@ pub(crate) fn render_markdown(report: &EvidenceIndexReport) -> String {
     if report
         .launch_readiness
         .launch_stack
+        .unresolved_review_thread_count
+        > 0
+    {
+        out.push_str(&format!(
+            "- Unresolved review threads: {}\n",
+            inline_code(
+                report
+                    .launch_readiness
+                    .launch_stack
+                    .unresolved_review_thread_count
+            )
+        ));
+        for entry in &report
+            .launch_readiness
+            .launch_stack
+            .unresolved_review_threads
+        {
+            out.push_str(&format!(
+                "  - PR #{}: {}\n",
+                entry.pull_request,
+                inline_code(entry.count)
+            ));
+        }
+    }
+    if report
+        .launch_readiness
+        .launch_stack
         .missing_required_check_count
         > 0
     {

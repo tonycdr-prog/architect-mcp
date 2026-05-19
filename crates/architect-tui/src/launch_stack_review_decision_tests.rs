@@ -112,3 +112,35 @@ fn launch_stack_unknown_review_decision_is_conditional() {
         Some("inspect PR #10 review decision before final launch go")
     );
 }
+
+#[test]
+fn launch_stack_unresolved_review_threads_block_final_go() {
+    let pr = pr_from_value(
+        10,
+        &json!({
+            "number": 10,
+            "title": "review comments still open",
+            "url": "https://github.com/example/repo/pull/10",
+            "isDraft": false,
+            "reviewDecision": "APPROVED",
+            "unresolvedReviewThreads": 2,
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "verify", "status": "COMPLETED", "conclusion": "SUCCESS"}
+            ]
+        }),
+    );
+
+    let report = build_report_from_items(None, vec![pr], Vec::new(), Vec::new());
+
+    assert_eq!(report.result, LaunchJudgeResult::ConditionalGo);
+    assert_eq!(
+        report.pull_requests[0].status,
+        LaunchStackItemStatus::Warning
+    );
+    assert_eq!(report.pull_requests[0].unresolved_review_threads, 2);
+    assert_eq!(
+        report.pull_requests[0].next_action.as_deref(),
+        Some("resolve 2 unresolved review thread(s) on PR #10 before final launch go")
+    );
+}

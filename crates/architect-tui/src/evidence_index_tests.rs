@@ -221,6 +221,8 @@ fn launch_summary(result: LaunchJudgeResult) -> LaunchReadinessPublicSummary {
                 warning: 0,
                 failed: 0,
             },
+            unresolved_review_thread_count: 0,
+            unresolved_review_threads: Vec::new(),
             missing_required_check_count: 0,
             missing_required_checks: Vec::new(),
             blocker_issues: Vec::new(),
