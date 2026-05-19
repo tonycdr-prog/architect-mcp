@@ -16,7 +16,8 @@ The human owns decisions. Agents propose and execute. architect-mcp governs.
 
 - Epic: [#142 - Evolve architect-mcp into an AI software delivery control plane](https://github.com/tonycdr-prog/architect-mcp/issues/142)
 - Active slice: [#311 - Expose large-repo audit coverage and total finding histograms](https://github.com/tonycdr-prog/architect-mcp/issues/311), implemented in PR #331 as a [#320](https://github.com/tonycdr-prog/architect-mcp/issues/320) Foundry prerequisite for honest read-only repo audit evidence.
-- Runtime goal: Codex CLI `/goal`, backed by this document and the GitHub epic.
+- Foundry Mode V1 track: [#320 - Foundry Mode V1: repo-native actionability control plane](https://github.com/tonycdr-prog/architect-mcp/issues/320), backed by slice issues [#321](https://github.com/tonycdr-prog/architect-mcp/issues/321) through [#328](https://github.com/tonycdr-prog/architect-mcp/issues/328).
+- Runtime goal: Codex CLI `/goal`, backed by this document, [#142](https://github.com/tonycdr-prog/architect-mcp/issues/142), and [#320](https://github.com/tonycdr-prog/architect-mcp/issues/320).
 
 Every implementation slice should have its own issue and PR. Every PR should link to the epic, list verification, record the judge result, and state remaining gaps.
 
@@ -30,8 +31,28 @@ Every implementation slice should have its own issue and PR. Every PR should lin
 | MCP catalog and install-plan flow | [#146](https://github.com/tonycdr-prog/architect-mcp/issues/146) | Active | Recommendations require clarified need, dry-run install plans, security review, and approval before config writes. |
 | New app to private repo foundry path | [#147](https://github.com/tonycdr-prog/architect-mcp/issues/147) | Active | A clarified app idea can become a private repo with CI, docs, agent instructions, env template, and first PR evidence. |
 | Governance audit and drift evidence loop | [#148](https://github.com/tonycdr-prog/architect-mcp/issues/148) | Active | Maintained repos can be audited read-only for drift, stale docs, weak tests, unsafe config, and memory safety. |
+| Foundry Mode V1 actionability control plane | [#320](https://github.com/tonycdr-prog/architect-mcp/issues/320) | Planned | Read-only repo audits can produce repo-constitution summaries, normalized evidence, actionability decisions, PR/issue previews, and public-safe ledger entries without unapproved mutation. |
 
 Future hosted and team mode should stay behind the local-first proof. Hosted work is not launch-blocking for the local operator path, and hosted mode must keep local-only tools excluded.
+
+## Foundry Mode V1
+
+Foundry Mode V1 extends the existing work gate and governance audit into a repo-native actionability loop. The MCP should not merely report findings; it should decide whether each finding deserves a PR preview, an architect-mcp issue proposal, an exception, a no-op, or a human question.
+
+The first implementation pass should build on existing audit-quality debt before trusting actionability scores. The prerequisite issues are [#310](https://github.com/tonycdr-prog/architect-mcp/issues/310), [#311](https://github.com/tonycdr-prog/architect-mcp/issues/311), [#312](https://github.com/tonycdr-prog/architect-mcp/issues/312), [#313](https://github.com/tonycdr-prog/architect-mcp/issues/313), [#314](https://github.com/tonycdr-prog/architect-mcp/issues/314), [#315](https://github.com/tonycdr-prog/architect-mcp/issues/315), [#316](https://github.com/tonycdr-prog/architect-mcp/issues/316), [#317](https://github.com/tonycdr-prog/architect-mcp/issues/317), [#318](https://github.com/tonycdr-prog/architect-mcp/issues/318), and [#319](https://github.com/tonycdr-prog/architect-mcp/issues/319). PR [#309](https://github.com/tonycdr-prog/architect-mcp/pull/309) is the first Foundry prerequisite because it covers repository PR-template and recent maintainer PR style discovery.
+
+| Slice | Issue | Purpose |
+| --- | --- | --- |
+| Actionability assay | [#321](https://github.com/tonycdr-prog/architect-mcp/issues/321) | Score evidence, confidence, blast radius, patch size, maintainer fit, duplicate risk, release impact, verification path, and public-safety risk. |
+| Decision ledger | [#322](https://github.com/tonycdr-prog/architect-mcp/issues/322) | Route findings to PR preview, architect issue, exception, no-op, or ask-human decisions and record public-safe ledger entries. |
+| Repo constitution | [#323](https://github.com/tonycdr-prog/architect-mcp/issues/323) | Derive repo instructions, templates, CI, release policy, labels, package metadata, recent accepted PR style, and maintainer constraints with provenance. |
+| Evidence normalization | [#324](https://github.com/tonycdr-prog/architect-mcp/issues/324) | Normalize MCP/tool findings, metadata, verification, and suppressions into a public-safe evidence inventory. |
+| TUI audit view | [#325](https://github.com/tonycdr-prog/architect-mcp/issues/325) | Expose read-only Foundry audits and ledger decisions through the operator TUI. |
+| PR/issue forge previews | [#326](https://github.com/tonycdr-prog/architect-mcp/issues/326) | Generate maintainer-native PR and issue previews without writing to GitHub unless explicitly approved. |
+| Eval corpus | [#327](https://github.com/tonycdr-prog/architect-mcp/issues/327) | Prove signal quality against large/small repo fixtures and optional live read-only samples. |
+| Operating contract docs | [#328](https://github.com/tonycdr-prog/architect-mcp/issues/328) | Document Foundry behavior, non-goals, approval gates, and release evidence. |
+
+V1 non-goals: hosted persistence of raw repo snapshots, autonomous external PR or issue creation, billing-gated local MCP behavior, remote policy overriding local repo instructions, and public disclosure of raw security findings, raw MCP payloads, private repo code, command logs, or local paths.
 
 ## Operating Loop
 
@@ -81,6 +102,7 @@ A slice is `no-go` when:
 
 | Date | Evidence | Result |
 | --- | --- | --- |
+| 2026-05-19 | Foundry Mode V1 planning gate: created the long-running Codex goal for repo-native actionability, opened Foundry epic [#320](https://github.com/tonycdr-prog/architect-mcp/issues/320), created slice issues [#321](https://github.com/tonycdr-prog/architect-mcp/issues/321)-[#328](https://github.com/tonycdr-prog/architect-mcp/issues/328), and recorded existing audit-signal prerequisites [#310](https://github.com/tonycdr-prog/architect-mcp/issues/310)-[#319](https://github.com/tonycdr-prog/architect-mcp/issues/319). The planning gate was run through the MCP: initial `grill_me`, repo-quality, file-plan, and hosted-boundary checks rejected vague storage/enforcement, missing data ownership, missing harness artifacts, raw snapshot storage, remote-policy override, and billing/local-MCP coupling. The narrowed V1 plan then passed `grill_me`, `review_proposed_file_plan`, `review_build_plan`, and hosted-boundary validation when scoped to local public-safe receipts, explicit approval gates, and no billing gate on local MCP behavior. | `conditional go`: the roadmap and issue graph are now explicit, PR [#309](https://github.com/tonycdr-prog/architect-mcp/pull/309) is the first Foundry prerequisite for PR-template/recent-maintainer-style discovery, and implementation should start by landing prerequisite signal-quality issues before relying on actionability scoring. |
 | 2026-05-19 | [#311](https://github.com/tonycdr-prog/architect-mcp/issues/311) audit coverage histogram slice in [PR #331](https://github.com/tonycdr-prog/architect-mcp/pull/331): review reports now expose `report.coverage` with total finding histograms by code/severity before detailed-output suppression, scan truncation caveats, detailed-finding cap caveats, files reviewed, max file cap, and top scanned directories. Live MCP smoke against fresh public clones showed `vercel/next.js` reporting a 5,000-file scan cap plus capped detailed findings, while `pallets/flask` reported full non-truncated coverage with zero findings. Verification: focused review/tool tests, typecheck, full npm test, build, docs build, release-check, and live read-only MCP smoke. | `conditional go`: large-repo audit evidence is more honest and public-doc source is updated; this does not yet implement Foundry actionability scoring, routing, or forge previews. |
 | 2026-05-16 | [#141](https://github.com/tonycdr-prog/architect-mcp/pull/141) merged terminal QA smoke workflow after green CI, install-smoke, and live-QA workflows. | `go` as baseline terminal QA evidence. |
 | 2026-05-16 | Codex CLI `/goal` accepted the concise evolved objective. | Runtime goal created; detailed spec lives in this document. |
