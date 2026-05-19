@@ -171,5 +171,5 @@ function sanitizePublicSummary(value: string | undefined): { value: string | und
 }
 
 function containsRawOutput(value: string): boolean {
-  return /```[\s\S]*?```/.test(value) || /\b(?:stdout|stderr|payload)\s*:/.test(value);
+  return /```[\s\S]*?```/.test(value);
 }
