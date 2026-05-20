@@ -218,6 +218,7 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "audit_generated_repo_quality"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "suggest_quality_followup_questions"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "run_repo_quality_eval_scenarios"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "normalize_foundry_evidence"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "derive_repo_constitution"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "derive_local_repo_constitution"), true);
 
@@ -769,6 +770,7 @@ describe("MCP tool responses", () => {
     try {
       const tools = await client.listTools();
       assert.equal(tools.tools.some((tool) => tool.name === "review_local_workspace"), false);
+      assert.equal(tools.tools.some((tool) => tool.name === "normalize_foundry_evidence"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "derive_local_repo_constitution"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "scan_mcp_config_files"), false);
       assert.equal(tools.tools.some((tool) => tool.name === "promote_stack_pack_to_files"), false);

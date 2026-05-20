@@ -8,6 +8,42 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createArchitectServer } from "../src/server/createArchitectServer.js";
 
 describe("Foundry MCP tools", () => {
+  it("normalizes supplied evidence through the MCP surface", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const normalized = await callJson(client, "normalize_foundry_evidence", {
+        findings: [
+          {
+            code: "ARCH001_OVERSIZED_FILE",
+            confidence: "medium",
+            severity: "warning",
+            path: "vendor/generated-client.ts",
+            message: "File has 1300 lines and may be too large.",
+            recommendation: "Check whether this generated vendor file should be suppressed."
+          }
+        ],
+        externalFindings: [
+          {
+            toolName: "scanner",
+            message: "Raw payload included stdout=/tmp/private/log.txt",
+            rawPayload: { stdout: "private" }
+          }
+        ],
+        verification: [
+          { check: "npm test", status: "passed", summary: "passed" }
+        ]
+      });
+
+      assert.equal(normalized.inventory.schemaVersion, 1);
+      assert.equal(normalized.inventory.publicSafety.rawPayloadsIncluded, false);
+      assert.equal(normalized.inventory.summary.omittedRawPayloads, 1);
+      assert.equal(normalized.inventory.evidence.some((item: { suppressionCandidate?: { category: string } }) => item.suppressionCandidate?.category === "vendored_code"), true);
+      assert.equal(JSON.stringify(normalized.inventory).includes("private"), false);
+    } finally {
+      await close();
+    }
+  });
+
   it("derives repo constitution from supplied and local evidence", async () => {
     const { client, close } = await connectTestClient();
     const root = mkdtempSync(join(tmpdir(), "architect-mcp-constitution-"));

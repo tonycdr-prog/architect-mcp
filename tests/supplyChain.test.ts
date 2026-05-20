@@ -291,14 +291,19 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#323 - Derive repo constitutions for Foundry audits\]/);
-    assert.match(goal, /#311 audit-coverage prerequisite landed in PR #331/);
+    assert.match(goal, /Active slice: \[#324 - Normalize Foundry audit evidence across MCP and tool signals\]/);
+    assert.match(goal, /#323 repo-constitution slice landed in PR #332/);
     assert.match(goal, /#320.*Foundry slice/);
-    assert.match(goal, /repo constitutions for Foundry audits/);
-    assert.match(goal, /recent merged PR bodies are advisory fallback evidence/);
+    assert.match(goal, /normalized evidence inventory/);
+    assert.match(goal, /normalize_foundry_evidence/);
+    assert.match(goal, /stable `fev-\*` evidence IDs/);
+    assert.match(goal, /suppression prerequisite categories/);
+    assert.match(goal, /repo-constitution slice/);
+    assert.match(goal, /advisory recent merged PR style/);
     assert.match(goal, /\[#323\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/323\) repo constitution slice/);
     assert.match(goal, /derive_local_repo_constitution/);
     assert.match(goal, /fresh sparse checkout of `pallets\/flask`/);
+    assert.match(goal, /\[#324\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/324\) normalized evidence inventory slice/);
     assert.match(goal, /\[#311\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/311\) audit coverage histogram slice/);
     assert.match(goal, /\[PR #331\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/331\)/);
     assert.match(goal, /report\.coverage/);

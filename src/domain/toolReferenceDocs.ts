@@ -27,6 +27,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   create_mcp_install_plan: "Create a dry-run MCP client configuration plan.",
   review_mcp_install_plan: "Review an MCP install plan for unsafe config, secrets, and unpinned packages.",
   apply_mcp_install_plan: "Local-only dry-run/apply tool for project-local MCP client config.",
+  normalize_foundry_evidence: "Normalize findings, verification, repo constitution, coverage, and suppression candidates into public-safe Foundry evidence.",
   derive_repo_constitution: "Derive repo instructions, PR templates, CI, release, package, and recent-PR style signals from supplied evidence.",
   derive_local_repo_constitution: "Local-only scan that derives a public-safe repo constitution without mutating files."
 };
@@ -74,6 +75,7 @@ const TOOL_REFERENCE_GROUPS: ToolReferenceGroup[] = [
       "list_repo_profiles",
       "get_repo_profile",
       "infer_repo_layout",
+      "normalize_foundry_evidence",
       "derive_repo_constitution",
       "derive_local_repo_constitution",
       "start_project_intake",

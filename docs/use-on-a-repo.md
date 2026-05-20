@@ -9,25 +9,31 @@ The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_con
 3. Generate repo artifacts with `generate_repo_artifacts`.
 4. Derive repo expectations with `derive_local_repo_constitution`, or use `derive_repo_constitution` when the client supplies file summaries, artifacts, and recent merged PR bodies.
 5. Scan the workspace with `review_local_workspace` or provide file summaries to `review_repo_structure`.
-6. Run `scan_mcp_config_files` to check `.mcp.json`, Cursor, Claude Desktop, and Codex MCP configs.
-7. Use `review_build_plan` before implementation slices.
-8. Use `review_agent_session` before final output when a client has intent, contract, changed files, verification, memory, and response data.
-9. Use `review_agent_final_response` before sending a final reply.
+6. Normalize review findings, external tool findings, verification summaries, coverage, and repo constitution output with `normalize_foundry_evidence` before scoring or routing.
+7. Run `scan_mcp_config_files` to check `.mcp.json`, Cursor, Claude Desktop, and Codex MCP configs.
+8. Use `review_build_plan` before implementation slices.
+9. Use `review_agent_session` before final output when a client has intent, contract, changed files, verification, memory, and response data.
+10. Use `review_agent_final_response` before sending a final reply.
 
 ## Hosted-Safe Flow
 
 1. Do not use local file paths.
 2. Send explicit file summaries to `review_repo_structure`.
 3. Send repo constitution artifacts and recent merged PR summaries to `derive_repo_constitution`.
-4. Send parsed MCP config objects to `review_mcp_config_security`.
-5. Use `audit_hosted_tool_policy` to confirm local-only tools are not exposed.
-6. Keep memory tools stateless unless a future adapter is explicitly configured.
+4. Send supplied review reports, external finding summaries, verification summaries, and constitution output to `normalize_foundry_evidence`.
+5. Send parsed MCP config objects to `review_mcp_config_security`.
+6. Use `audit_hosted_tool_policy` to confirm local-only tools are not exposed.
+7. Keep memory tools stateless unless a future adapter is explicitly configured.
 
 ## Repo Constitution Flow
 
 Use repo constitution output before drafting issues, PR previews, or mutation plans. The output is public-safe by design: it reports paths, counts, headings, package metadata, workflows, release signals, findings, and source provenance, but it does not return raw artifact bodies and it does not mutate files.
 
 PR templates are hard repository signals. Recent merged PR bodies are advisory style evidence only: they can fill gaps when templates are missing, hidden-comment-only, too sparse, or possibly stale because accepted PR headings do not overlap the template. Recent PR style does not override explicit repo instructions, security policy, or template requirements. Bot-only PR bodies are ignored by default so dependency automation does not redefine accepted contribution style for normal PRs.
+
+## Foundry Evidence Flow
+
+Use `normalize_foundry_evidence` after repo constitution derivation and read-only audits, before actionability scoring or decision routing. The inventory assigns stable evidence IDs, source refs, confidence, public-safety class, redaction state, suppression candidates, merged coverage caveats, and finding histograms. It omits raw external payloads and raw repo content, redacts local paths and token-shaped values, and keeps mutation disabled.
 
 ## Baseline Flow
 

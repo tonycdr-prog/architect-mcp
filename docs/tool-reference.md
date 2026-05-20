@@ -66,6 +66,7 @@ Repo profile selection, intake, artifact generation, scaffold planning, and repo
 | `list_repo_profiles` | List Repo Profiles. |
 | `get_repo_profile` | Get Repo Profile. |
 | `infer_repo_layout` | Infer Repo Layout. |
+| `normalize_foundry_evidence` | Normalize findings, verification, repo constitution, coverage, and suppression candidates into public-safe Foundry evidence. |
 | `derive_repo_constitution` | Derive repo instructions, PR templates, CI, release, package, and recent-PR style signals from supplied evidence. |
 | `derive_local_repo_constitution` | Local-only scan that derives a public-safe repo constitution without mutating files. |
 | `start_project_intake` | Start Project Intake. |

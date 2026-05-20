@@ -5,6 +5,7 @@ import {
   type RepoConstitutionArtifact,
   type RepoConstitutionPullRequest
 } from "../domain/repoConstitution.js";
+import { normalizeFoundryEvidence, type FoundryEvidenceInventoryInput } from "../domain/foundryEvidence.js";
 import { deriveLocalRepoConstitution } from "../infrastructure/repoConstitutionWorkspace.js";
 import { safeJsonResponse } from "./responses.js";
 import { fileSummarySchema, genericObjectOutputSchema } from "./schemas.js";
@@ -23,7 +24,81 @@ const recentPullRequestSchema = z.object({
   body: z.string().optional()
 }).strict();
 
+const reviewFindingSchema = z.object({
+  code: z.string(),
+  confidence: z.enum(["high", "medium", "low"]),
+  severity: z.enum(["error", "warning"]),
+  path: z.string().optional(),
+  message: z.string(),
+  recommendation: z.string()
+}).strict();
+
+const reviewReportSchema = z.object({
+  priorityFindings: z.array(reviewFindingSchema).optional(),
+  violations: z.array(reviewFindingSchema).optional(),
+  coverage: z.object({
+    scanTruncated: z.boolean().optional(),
+    detailedFindingsTruncated: z.boolean().optional(),
+    filesReviewed: z.number().int().nonnegative().optional(),
+    maxFiles: z.number().int().nonnegative().optional(),
+    topScannedDirectories: z.array(z.object({
+      directory: z.string(),
+      files: z.number().int().nonnegative()
+    }).strict()).optional(),
+    findingHistogram: z.array(z.object({
+      code: z.string(),
+      severity: z.string(),
+      count: z.number().int().nonnegative()
+    }).strict()).optional(),
+    caveats: z.array(z.string()).optional()
+  }).passthrough().optional()
+}).passthrough();
+
+const externalFindingSchema = z.object({
+  toolName: z.string(),
+  ruleId: z.string().optional(),
+  severity: z.enum(["error", "warning", "info"]).optional(),
+  confidence: z.enum(["high", "medium", "low"]).optional(),
+  path: z.string().optional(),
+  message: z.string(),
+  recommendation: z.string().optional(),
+  rawPayload: z.unknown().optional(),
+  securitySensitive: z.boolean().optional()
+}).strict();
+
+const verificationEvidenceSchema = z.object({
+  check: z.string(),
+  status: z.enum(["passed", "failed", "skipped", "not_run", "unknown"]),
+  summary: z.string().optional(),
+  recordedAt: z.string().optional()
+}).strict();
+
 export function registerFoundryTools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
+  server.registerTool(
+    "normalize_foundry_evidence",
+    {
+      title: "Normalize Foundry Evidence",
+      description: "Normalize review findings, external tool findings, verification, repo constitution, coverage, and suppression candidates into a public-safe evidence inventory.",
+      inputSchema: {
+        findings: z.array(reviewFindingSchema).optional(),
+        reviewReports: z.array(reviewReportSchema).optional(),
+        externalFindings: z.array(externalFindingSchema).optional(),
+        verification: z.array(verificationEvidenceSchema).optional(),
+        repoConstitution: z.object({}).passthrough().optional()
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ findings, reviewReports, externalFindings, verification, repoConstitution }) => safeJsonResponse(() => ({
+      inventory: normalizeFoundryEvidence({
+        findings,
+        reviewReports,
+        externalFindings,
+        verification,
+        repoConstitution
+      } as FoundryEvidenceInventoryInput)
+    }))
+  );
+
   server.registerTool(
     "derive_repo_constitution",
     {
