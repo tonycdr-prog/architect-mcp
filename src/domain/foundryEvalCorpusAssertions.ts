@@ -83,8 +83,8 @@ function hasConstitutionFinding(context: FoundryEvalRegressionContext, code: "MI
 }
 
 function hasLanguageProfileContext(context: FoundryEvalRegressionContext): boolean {
-  return context.item.repo.type === "python_framework" ||
-    context.item.repo.type === "rust_cli" ||
-    context.constitution.summary.primaryLanguages.includes("Python") ||
-    context.constitution.summary.primaryLanguages.includes("Rust");
+  return context.constitution.summary.primaryLanguages.includes("Python") ||
+    context.constitution.summary.primaryLanguages.includes("Rust") ||
+    context.constitution.summary.packageManagers.includes("python") ||
+    context.constitution.summary.packageManagers.includes("cargo");
 }
