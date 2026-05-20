@@ -1,4 +1,5 @@
-import { publicSafeSummary, publicSafeText } from "./publicSafetyText.js";
+import { publicSafeSummary } from "./publicSafetyText.js";
+import { isFoundryEvidenceInventory } from "./foundryActionabilityInput.js";
 import { safeAssessmentIdentity } from "./foundryActionabilitySafety.js";
 import type {
   FoundryActionabilityAssessment,
@@ -239,13 +240,6 @@ function clamp(score: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function isFoundryEvidenceInventory(value: unknown): value is FoundryEvidenceInventory {
-  return isRecord(value) && value.schemaVersion === 1 && Array.isArray(value.evidence) && isRecord(value.coverage);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function emptyInventory(): FoundryEvidenceInventory {
   return {

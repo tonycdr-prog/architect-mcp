@@ -156,4 +156,52 @@ describe("scoreFoundryActionability", () => {
     assert.equal(report.assessments[0].decision, "ask_human");
     assert.equal(report.assessments[0].blockers.some((item) => item.includes("file scan was truncated")), true);
   });
+
+  it("falls back to an empty report for shallow malformed inventories", () => {
+    const report = scoreFoundryActionability({
+      inventory: {
+        schemaVersion: 1,
+        evidence: [null],
+        coverage: {}
+      } as any
+    });
+
+    assert.equal(report.summary.totalFindings, 0);
+    assert.deepEqual(report.assessments, []);
+  });
+
+  it("redacts raw-output-shaped caller identity fields before returning assessments", () => {
+    const report = scoreFoundryActionability({
+      inventory: {
+        schemaVersion: 1,
+        summary: { totalEvidence: 1, bySourceType: {}, byConfidence: {}, byPublicSafetyClass: {}, redacted: 0, omittedRawPayloads: 0, suppressionCandidates: 0, coverageCaveats: 0 },
+        evidence: [{
+          id: "stdout: private evidence id",
+          kind: "finding",
+          sourceType: "external_tool",
+          sourceRef: {
+            sourceType: "external_tool",
+            sourceId: "stderr: private source id",
+            path: "payload: private source path"
+          },
+          confidence: "high",
+          severity: "error",
+          code: "payload: private code",
+          path: "stderr: private path",
+          publicSummary: "Caller supplied identity fields were not normalized.",
+          publicSafetyClass: "public",
+          redactionStatus: "none"
+        }],
+        coverage: { scanTruncated: false, detailedFindingsTruncated: false, topScannedDirectories: [], findingHistogram: [], caveats: [] },
+        suppressionPrerequisites: [],
+        publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+      } as any
+    });
+    const serialized = JSON.stringify(report);
+
+    assert.equal(report.assessments[0].decision, "ask_human");
+    assert.equal(report.assessments[0].evidenceId, "[redacted-raw-output]");
+    assert.equal(report.assessments[0].blockers.some((item) => item.includes("identity fields needed redaction")), true);
+    assert.equal(serialized.includes("private"), false);
+  });
 });

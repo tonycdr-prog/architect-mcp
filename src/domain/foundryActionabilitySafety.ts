@@ -1,4 +1,4 @@
-import { publicSafeText } from "./publicSafetyText.js";
+import { publicSafeSummary } from "./publicSafetyText.js";
 import type { FoundryEvidenceItem } from "./foundryEvidenceTypes.js";
 
 export type SafeAssessmentIdentity = {
@@ -33,13 +33,13 @@ export function safeAssessmentIdentity(item: FoundryEvidenceItem): SafeAssessmen
 }
 
 function safeRequiredText(value: unknown, fallback: string): { value: string; redacted: boolean } {
-  const safe = typeof value === "string" ? publicSafeText(value) : { value: fallback, redacted: false };
+  const safe = typeof value === "string" ? publicSafeSummary(value) : { value: fallback, redacted: false };
   return { value: safe.value.length > 0 ? safe.value : fallback, redacted: safe.redacted };
 }
 
 function safeOptionalText(value: unknown): { value?: string; redacted: boolean } {
   if (typeof value !== "string") return { value: undefined, redacted: false };
-  const safe = publicSafeText(value);
+  const safe = publicSafeSummary(value);
   return { value: safe.value.length > 0 ? safe.value : undefined, redacted: safe.redacted };
 }
 

@@ -85,7 +85,7 @@ describe("Foundry MCP tools", () => {
           evidence: [{
             id: "/Users/alice/project/npm_abcdefghijklmnopqrstuvwxyz1234567890",
             kind: "finding",
-            sourceType: "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+            sourceType: "external_tool",
             sourceRef: {
               sourceType: "external_tool",
               sourceId: "npm_abcdefghijklmnopqrstuvwxyz1234567890",
@@ -111,7 +111,6 @@ describe("Foundry MCP tools", () => {
       assert.equal(scored.actionability.assessments[0].blockers.some((item: string) => item.includes("identity fields needed redaction")), true);
       assert.equal(serialized.includes("/Users/alice"), false);
       assert.equal(serialized.includes("npm_abcdefghijklmnopqrstuvwxyz1234567890"), false);
-      assert.equal(serialized.includes("ghp_abcdefghijklmnopqrstuvwxyz1234567890"), false);
     } finally {
       await close();
     }
