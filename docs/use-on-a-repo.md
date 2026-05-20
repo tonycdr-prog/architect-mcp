@@ -11,10 +11,11 @@ The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_con
 5. Scan the workspace with `review_local_workspace` or provide file summaries to `review_repo_structure`.
 6. Normalize review findings, external tool findings, verification summaries, coverage, and repo constitution output with `normalize_foundry_evidence` before scoring or routing.
 7. Score normalized evidence with `score_foundry_actionability` before generating PR previews, issue previews, exceptions, or human questions.
-8. Run `scan_mcp_config_files` to check `.mcp.json`, Cursor, Claude Desktop, and Codex MCP configs.
-9. Use `review_build_plan` before implementation slices.
-10. Use `review_agent_session` before final output when a client has intent, contract, changed files, verification, memory, and response data.
-11. Use `review_agent_final_response` before sending a final reply.
+8. Route scored decisions with `route_foundry_decisions` so each finding has an explicit public-safe ledger route before any PR, issue, exception, no-op, or human-question workflow.
+9. Run `scan_mcp_config_files` to check `.mcp.json`, Cursor, Claude Desktop, and Codex MCP configs.
+10. Use `review_build_plan` before implementation slices.
+11. Use `review_agent_session` before final output when a client has intent, contract, changed files, verification, memory, and response data.
+12. Use `review_agent_final_response` before sending a final reply.
 
 ## Hosted-Safe Flow
 
@@ -23,9 +24,10 @@ The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_con
 3. Send repo constitution artifacts and recent merged PR summaries to `derive_repo_constitution`.
 4. Send supplied review reports, external finding summaries, verification summaries, and constitution output to `normalize_foundry_evidence`.
 5. Send normalized evidence to `score_foundry_actionability`; treat the result as advisory until the decision-ledger routing step records an explicit route.
-6. Send parsed MCP config objects to `review_mcp_config_security`.
-7. Use `audit_hosted_tool_policy` to confirm local-only tools are not exposed.
-8. Keep memory tools stateless unless a future adapter is explicitly configured.
+6. Send scored actionability output to `route_foundry_decisions`; use the emitted ledger routes as public-safe previews, not as mutation permission.
+7. Send parsed MCP config objects to `review_mcp_config_security`.
+8. Use `audit_hosted_tool_policy` to confirm local-only tools are not exposed.
+9. Keep memory tools stateless unless a future adapter is explicitly configured.
 
 ## Repo Constitution Flow
 
@@ -38,6 +40,8 @@ PR templates are hard repository signals. Recent merged PR bodies are advisory s
 Use `normalize_foundry_evidence` after repo constitution derivation and read-only audits, before actionability scoring or decision routing. The inventory assigns stable evidence IDs, source refs, confidence, public-safety class, redaction state, suppression candidates, merged coverage caveats, and finding histograms. It omits raw external payloads and raw repo content, redacts local paths and token-shaped values, and keeps mutation disabled.
 
 Use `score_foundry_actionability` on that inventory before proposing maintainer work. The score is deterministic and advisory: it labels findings as `pr_preview_candidate`, `ask_human`, `exception_candidate`, or `no_op_candidate` and explains evidence strength, confidence, blast radius, patch-size confidence, maintainer fit, duplicate risk, release impact, verification path, public-safety risk, and expected maintainer value. The scorer does not mutate repositories and does not create issues or PRs; later routing and forge steps must still record an explicit decision.
+
+Use `route_foundry_decisions` after scoring to record the next explicit route for each finding: `pr_preview`, `architect_issue`, `exception`, `no_op`, or `ask_human`. The ledger includes evidence IDs, decision reasons, redaction state, verification requirements, approval state, and next action while reporting zero server writes. Direct MCP clients must treat `pr_preview`, `architect_issue`, and `exception` as approval-required previews only; the tool does not write files, create GitHub issues, open pull requests, or persist raw MCP payloads.
 
 ## Baseline Flow
 
