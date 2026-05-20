@@ -147,7 +147,7 @@ function publicSafeLedgerSummary(value: string): string {
 
 function hasRawRepoContent(value: string): boolean {
   const codeLines = value.split("\n").filter((line) =>
-    /^\s*(?:import|export|const|let|var|function|class|interface|type|if|for|while|return|await|\{|\})\b/.test(line)
+    /^\s*(?:(?:import|export|const|let|var|function|class|interface|type|if|for|while|return|await)\b|[{}]\s*$)/.test(line)
   );
   return codeLines.length >= 2 ||
     /\b(?:import\s+[^;]+?\s+from\s+["']|export\s+(?:const|function|class|type|interface)|(?:const|let|var)\s+\w+\s*=|function\s+\w+\s*\(|class\s+\w+\s*\{|interface\s+\w+\s*\{|type\s+\w+\s*=|process\.env\.)/.test(value);

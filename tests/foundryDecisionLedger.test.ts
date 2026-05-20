@@ -124,10 +124,12 @@ describe("routeFoundryDecisions", () => {
             "Raw source context: export const privateSetting = process.env.PRIVATE_VALUE;"
           ],
           requiredVerification: [
-            "Inspect function leakSecret() { return privateSetting; } before merge."
+            "Inspect function leakSecret() { return privateSetting; } before merge.",
+            "Review brace-heavy snippet:\n{\n  privateToken\n}"
           ],
           blockers: [
-            "Caller supplied raw source: const privateToken = getSecret();"
+            "Caller supplied raw source: const privateToken = getSecret();",
+            "Brace-only raw source:\n{\n  privateBranch\n}"
           ]
         }],
         publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
@@ -139,6 +141,7 @@ describe("routeFoundryDecisions", () => {
     assert.equal(ledger.entries[0].redactionState, "redacted");
     assert.equal(serialized.includes("privateSetting"), false);
     assert.equal(serialized.includes("privateToken"), false);
+    assert.equal(serialized.includes("privateBranch"), false);
     assert.equal(serialized.includes("leakSecret"), false);
     assert.equal(serialized.includes("[redacted-raw-repo-content]"), true);
   });
