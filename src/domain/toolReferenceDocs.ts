@@ -27,6 +27,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   create_mcp_install_plan: "Create a dry-run MCP client configuration plan.",
   review_mcp_install_plan: "Review an MCP install plan for unsafe config, secrets, and unpinned packages.",
   apply_mcp_install_plan: "Local-only dry-run/apply tool for project-local MCP client config.",
+  run_foundry_eval_corpus: "Run deterministic offline Foundry eval scenarios over large and small repo summaries without network access or mutation.",
   forge_foundry_previews: "Generate preview-only PR, issue, exception, no-op, and human-question artifacts from public-safe Foundry decisions without mutating repositories.",
   route_foundry_decisions: "Route scored Foundry assessments into public-safe ledger entries without mutating repositories.",
   score_foundry_actionability: "Score normalized Foundry evidence for PR-preview suitability, human review, exceptions, and no-op candidates.",
@@ -160,7 +161,8 @@ const TOOL_REFERENCE_GROUPS: ToolReferenceGroup[] = [
       "evaluate_repo_plan_quality",
       "audit_generated_repo_quality",
       "suggest_quality_followup_questions",
-      "run_repo_quality_eval_scenarios"
+      "run_repo_quality_eval_scenarios",
+      "run_foundry_eval_corpus"
     ]
   },
   {

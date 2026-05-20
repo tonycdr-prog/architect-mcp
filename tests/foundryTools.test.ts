@@ -8,6 +8,29 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createArchitectServer } from "../src/server/createArchitectServer.js";
 
 describe("Foundry MCP tools", () => {
+  it("runs the offline Foundry eval corpus through the MCP surface", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const tools = await client.listTools();
+      assert.equal(tools.tools.some((tool) => tool.name === "run_foundry_eval_corpus"), true);
+
+      const report = await callJson(client, "run_foundry_eval_corpus", {});
+
+      assert.equal(report.status, "pass");
+      assert.equal(report.summary.offlineNetworkRequired, false);
+      assert.equal(report.summary.serverWritesPerformed, 0);
+      assert.equal(report.requirements.routeCoverage.pr_preview, true);
+      assert.equal(report.requirements.routeCoverage.architect_issue, true);
+      assert.equal(report.requirements.routeCoverage.exception, true);
+      assert.equal(report.requirements.routeCoverage.no_op, true);
+      assert.equal(report.requirements.publicSafety, true);
+      assert.equal(JSON.stringify(report).includes("/Users/"), false);
+      assert.equal(JSON.stringify(report).includes("RAW_PRIVATE_PAYLOAD"), false);
+    } finally {
+      await close();
+    }
+  });
+
   it("normalizes supplied evidence through the MCP surface", async () => {
     const { client, close } = await connectTestClient();
     try {

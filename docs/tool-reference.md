@@ -152,6 +152,7 @@ Deterministic evals, generated repo quality checks, and regression coverage anal
 | `audit_generated_repo_quality` | Audit Generated Repo Quality. |
 | `suggest_quality_followup_questions` | Suggest Quality Followup Questions. |
 | `run_repo_quality_eval_scenarios` | Run Repo Quality Eval Scenarios. |
+| `run_foundry_eval_corpus` | Run deterministic offline Foundry eval scenarios over large and small repo summaries without network access or mutation. |
 
 ## Governance And Operating Model
 

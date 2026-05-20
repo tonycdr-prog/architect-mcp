@@ -9,6 +9,7 @@ import { normalizeFoundryEvidence, type FoundryEvidenceInventoryInput } from "..
 import { scoreFoundryActionability, type FoundryActionabilityInput } from "../domain/foundryActionability.js";
 import { routeFoundryDecisions, type FoundryDecisionLedgerInput } from "../domain/foundryDecisionLedger.js";
 import { forgeFoundryPreviews, type FoundryForgePreviewInput } from "../domain/foundryForge.js";
+import { runFoundryEvalCorpus, type FoundryEvalCorpusInput } from "../domain/foundryEvalCorpus.js";
 import { deriveLocalRepoConstitution } from "../infrastructure/repoConstitutionWorkspace.js";
 import { safeJsonResponse } from "./responses.js";
 import { fileSummarySchema, genericObjectOutputSchema } from "./schemas.js";
@@ -102,6 +103,23 @@ const repoConstitutionSchema = z.object({
 }).passthrough();
 
 export function registerFoundryTools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
+  server.registerTool(
+    "run_foundry_eval_corpus",
+    {
+      title: "Run Foundry Eval Corpus",
+      description: "Run the deterministic offline Foundry eval corpus across large and small repo summaries without network access or repository mutation.",
+      inputSchema: {
+        caseIds: z.array(z.string()).optional(),
+        includePreviews: z.boolean().default(true)
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ caseIds, includePreviews }) => safeJsonResponse(() => runFoundryEvalCorpus({
+      caseIds,
+      includePreviews
+    } as FoundryEvalCorpusInput))
+  );
+
   server.registerTool(
     "forge_foundry_previews",
     {
