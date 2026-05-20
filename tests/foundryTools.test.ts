@@ -8,6 +8,101 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createArchitectServer } from "../src/server/createArchitectServer.js";
 
 describe("Foundry MCP tools", () => {
+  it("normalizes supplied evidence through the MCP surface", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const normalized = await callJson(client, "normalize_foundry_evidence", {
+        findings: [
+          {
+            code: "ARCH001_OVERSIZED_FILE",
+            confidence: "medium",
+            severity: "warning",
+            path: "vendor/generated-client.ts",
+            message: "File has 1300 lines and may be too large.",
+            recommendation: "Check whether this generated vendor file should be suppressed."
+          }
+        ],
+        externalFindings: [
+          {
+            toolName: "scanner",
+            message: "Raw payload included stdout=/tmp/private/log.txt",
+            rawPayload: { stdout: "private" }
+          }
+        ],
+        verification: [
+          { check: "npm test", status: "passed", summary: "passed" }
+        ]
+      });
+
+      assert.equal(normalized.inventory.schemaVersion, 1);
+      assert.equal(normalized.inventory.publicSafety.rawPayloadsIncluded, false);
+      assert.equal(normalized.inventory.summary.omittedRawPayloads, 1);
+      assert.equal(normalized.inventory.evidence.some((item: { suppressionCandidate?: { category: string } }) => item.suppressionCandidate?.category === "vendored_code"), true);
+      assert.equal(JSON.stringify(normalized.inventory).includes("private"), false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("rejects malformed repo constitution inputs before normalization", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const result = await callToolRaw(client, "normalize_foundry_evidence", {
+        repoConstitution: {}
+      });
+
+      assert.equal(result.isError, true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("accepts partially shaped review-report coverage payloads while rejecting unknown external/verification fields", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const acceptsCoverage = await callJson(client, "normalize_foundry_evidence", {
+        reviewReports: [
+          {
+            coverage: {
+              filesReviewed: 2,
+              maxFiles: 5,
+              topScannedDirectories: [{ directory: "src", files: 2 }],
+              findingHistogram: [{ code: "ARCH001_OVERSIZED_FILE", severity: "warning", count: 1 }],
+              caveats: ["coverage payload supplied by caller"],
+              callerSpecificMetadata: { source: "integration" }
+            }
+          }
+        ]
+      });
+      assert.equal(acceptsCoverage.inventory.coverage.filesReviewed, 2);
+      assert.equal(acceptsCoverage.inventory.coverage.caveats.includes("coverage payload supplied by caller"), true);
+
+      const rejectExternalUnknownField = await callToolRaw(client, "normalize_foundry_evidence", {
+        externalFindings: [
+          {
+            toolName: "scanner",
+            message: "unexpected key",
+            unexpected: "nope"
+          }
+        ]
+      });
+      assert.equal(rejectExternalUnknownField.isError, true);
+
+      const rejectVerificationUnknownField = await callToolRaw(client, "normalize_foundry_evidence", {
+        verification: [
+          {
+            check: "npm test",
+            status: "passed",
+            extra: "nope"
+          }
+        ]
+      });
+      assert.equal(rejectVerificationUnknownField.isError, true);
+    } finally {
+      await close();
+    }
+  });
+
   it("derives repo constitution from supplied and local evidence", async () => {
     const { client, close } = await connectTestClient();
     const root = mkdtempSync(join(tmpdir(), "architect-mcp-constitution-"));
@@ -78,8 +173,12 @@ async function connectTestClient() {
 }
 
 async function callJson(client: Client, name: string, args: Record<string, unknown>) {
-  const result = await client.callTool({ name, arguments: args });
+  const result = await callToolRaw(client, name, args);
   const text = result.content.find((content) => content.type === "text")?.text;
   assert.equal(typeof text, "string");
   return JSON.parse(text as string);
+}
+
+async function callToolRaw(client: Client, name: string, args: Record<string, unknown>) {
+  return client.callTool({ name, arguments: args });
 }
