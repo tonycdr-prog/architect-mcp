@@ -139,7 +139,7 @@ export const foundryEvalCorpusFixtureCases: FoundryEvalCorpusCase[] = [
           severity: "error",
           confidence: "high",
           path: "/Users/example/private/chalk/.env",
-          message: "Security-sensitive evidence includes token ghp_secretcorp123456 and a secret internal path.",
+          message: "Security-sensitive evidence includes token ghp_secretcorp1234567890 and a secret internal path.",
           recommendation: "Ask a human maintainer to decide safe disclosure boundaries before any public preview.",
           rawPayload: { marker: "RAW_PRIVATE_PAYLOAD", detail: "private stack trace with sk-secretcorpus123456" },
           securitySensitive: true

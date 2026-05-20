@@ -36,10 +36,12 @@ describe("Foundry eval corpus", () => {
 
     assert.equal(report.publicSafety.passed, true);
     assert.doesNotMatch(serialized, /\/Users\//);
-    assert.doesNotMatch(serialized, /ghp_secretcorp123456/);
+    assert.doesNotMatch(serialized, /\/home\/|\/tmp\/|\/var\/folders\/|\/Volumes\//);
+    assert.doesNotMatch(serialized, /ghp_secretcorp1234567890/);
     assert.doesNotMatch(serialized, /sk-secretcorpus123456/);
     assert.doesNotMatch(serialized, /RAW_PRIVATE_PAYLOAD/);
     assert.doesNotMatch(serialized, /private stack trace/);
+    assert.doesNotMatch(serialized, /secret internal path/);
     assert.equal(report.results.find((result) => result.id === "tiny-package-noop-and-human")?.publicSafety.passed, true);
   });
 

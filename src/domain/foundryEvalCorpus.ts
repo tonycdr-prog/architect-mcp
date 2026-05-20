@@ -207,7 +207,7 @@ function summarizePublicSafety(results: FoundryEvalCorpusResult[]): FoundryEvalP
 
 function publicSafetyLeaks(text: string): string[] {
   const leaks: string[] = [];
-  if (/\/Users\/|C:\\\\Users\\\\|\/private\/tmp\//i.test(text)) leaks.push("local_path");
+  if (/(?:\/Users|\/home|\/private\/tmp|\/tmp|\/var\/folders|\/Volumes)\/|[A-Za-z]:\\/i.test(text)) leaks.push("local_path");
   if (/\b(?:ghp_|sk-|xoxb-|AKIA)[A-Za-z0-9_-]{8,}\b/i.test(text)) leaks.push("token_value");
   if (/RAW_PRIVATE_PAYLOAD|private stack trace|secret internal path/i.test(text)) leaks.push("raw_payload");
   return leaks;
