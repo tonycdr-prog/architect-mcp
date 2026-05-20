@@ -87,19 +87,7 @@ describe("forgeFoundryPreviews", () => {
             contentProvided: true,
             headings: ["Summary", "Verification"],
             checklistItems: 0
-          }],
-          recentStyle: {
-            advisory: true,
-            sampleSize: 0,
-            acceptedSamples: 0,
-            maintainerAuthoredSamples: 0,
-            botSamplesIgnored: 0,
-            nonMergedOrUnknownSamplesIgnored: 0,
-            commonHeadings: [],
-            checklistObserved: false,
-            releaseNoteObserved: false,
-            linkedIssueObserved: false
-          }
+          }]
         },
         findings: []
       }

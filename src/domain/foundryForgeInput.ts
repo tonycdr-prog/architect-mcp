@@ -24,7 +24,6 @@ export function normalizeForgeRepoConstitution(value: unknown): RepoConstitution
   if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.pullRequests)) return undefined;
   const pullRequests = value.pullRequests;
   if (!Array.isArray(pullRequests.templates) ||
-    !isRecentStyleSummary(pullRequests.recentStyle) ||
     !Array.isArray(value.findings) ||
     !value.findings.every(isRepoConstitutionFinding)) {
     return undefined;
@@ -33,6 +32,9 @@ export function normalizeForgeRepoConstitution(value: unknown): RepoConstitution
   const templates = pullRequests.templates.map(normalizeTemplateSummary);
   if (templates.some((template) => template === undefined)) return undefined;
   const ci = normalizeCi(value.ci);
+  const recentStyle = isRecentStyleSummary(pullRequests.recentStyle)
+    ? pullRequests.recentStyle as RecentPullRequestStyleSummary
+    : emptyRecentStyle();
 
   return {
     ...(value as RepoConstitution),
@@ -40,7 +42,7 @@ export function normalizeForgeRepoConstitution(value: unknown): RepoConstitution
     pullRequests: {
       ...(pullRequests as RepoConstitution["pullRequests"]),
       templates: templates as PullRequestTemplateSummary[],
-      recentStyle: pullRequests.recentStyle as RecentPullRequestStyleSummary,
+      recentStyle,
       precedence: stringArrayOrEmpty(pullRequests.precedence)
     },
     ci,
@@ -100,6 +102,21 @@ function isRecentStyleSummary(value: unknown): boolean {
       typeof item.heading === "string" &&
       typeof item.count === "number"
     );
+}
+
+function emptyRecentStyle(): RecentPullRequestStyleSummary {
+  return {
+    advisory: true,
+    sampleSize: 0,
+    acceptedSamples: 0,
+    maintainerAuthoredSamples: 0,
+    botSamplesIgnored: 0,
+    nonMergedOrUnknownSamplesIgnored: 0,
+    commonHeadings: [],
+    checklistObserved: false,
+    releaseNoteObserved: false,
+    linkedIssueObserved: false
+  };
 }
 
 function isRepoConstitutionFinding(value: unknown): value is RepoConstitutionFinding {
