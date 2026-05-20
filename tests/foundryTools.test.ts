@@ -57,6 +57,52 @@ describe("Foundry MCP tools", () => {
     }
   });
 
+  it("accepts partially shaped review-report coverage payloads while rejecting unknown external/verification fields", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const acceptsCoverage = await callJson(client, "normalize_foundry_evidence", {
+        reviewReports: [
+          {
+            coverage: {
+              filesReviewed: 2,
+              maxFiles: 5,
+              topScannedDirectories: [{ directory: "src", files: 2 }],
+              findingHistogram: [{ code: "ARCH001_OVERSIZED_FILE", severity: "warning", count: 1 }],
+              caveats: ["coverage payload supplied by caller"],
+              callerSpecificMetadata: { source: "integration" }
+            }
+          }
+        ]
+      });
+      assert.equal(acceptsCoverage.inventory.coverage.filesReviewed, 2);
+      assert.equal(acceptsCoverage.inventory.coverage.caveats.includes("coverage payload supplied by caller"), true);
+
+      const rejectExternalUnknownField = await callToolRaw(client, "normalize_foundry_evidence", {
+        externalFindings: [
+          {
+            toolName: "scanner",
+            message: "unexpected key",
+            unexpected: "nope"
+          }
+        ]
+      });
+      assert.equal(rejectExternalUnknownField.isError, true);
+
+      const rejectVerificationUnknownField = await callToolRaw(client, "normalize_foundry_evidence", {
+        verification: [
+          {
+            check: "npm test",
+            status: "passed",
+            extra: "nope"
+          }
+        ]
+      });
+      assert.equal(rejectVerificationUnknownField.isError, true);
+    } finally {
+      await close();
+    }
+  });
+
   it("derives repo constitution from supplied and local evidence", async () => {
     const { client, close } = await connectTestClient();
     const root = mkdtempSync(join(tmpdir(), "architect-mcp-constitution-"));

@@ -108,12 +108,12 @@ export function registerFoundryTools(server: McpServer, options: { enableLocalWo
     },
     async ({ findings, reviewReports, externalFindings, verification, repoConstitution }) => safeJsonResponse(() => ({
       inventory: normalizeFoundryEvidence({
-        findings,
-        reviewReports,
+        findings: findings as FoundryEvidenceInventoryInput["findings"],
+        reviewReports: reviewReports as FoundryEvidenceInventoryInput["reviewReports"],
         externalFindings,
         verification,
         repoConstitution
-      } as FoundryEvidenceInventoryInput)
+      })
     }))
   );
 

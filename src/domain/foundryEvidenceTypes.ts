@@ -55,7 +55,7 @@ export type FoundryEvidenceInventoryInput = {
   reviewReports?: ReviewReport[];
   externalFindings?: FoundryExternalFinding[];
   verification?: FoundryVerificationEvidence[];
-  repoConstitution?: RepoConstitution;
+  repoConstitution?: RepoConstitution | Record<string, unknown>;
 };
 
 export type FoundryEvidenceSourceRef = {

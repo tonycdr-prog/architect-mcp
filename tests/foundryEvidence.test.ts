@@ -97,11 +97,20 @@ describe("normalizeFoundryEvidence", () => {
           coverage: {
             scanTruncated: false,
             detailedFindingsTruncated: false,
-            filesReviewed: 1,
-            maxFiles: 1,
-            topScannedDirectories: [{ directory: "/Users/alice/project/npm_abcdefghijklmnopqrstuvwxyz1234567890", files: 1 }],
-            findingHistogram: [{ code: "/Users/alice/rule/npm_abcdefghijklmnopqrstuvwxyz1234567890", severity: "warning", count: 1 }],
-            caveats: ["coverage caveat from /Users/alice/project with npm_abcdefghijklmnopqrstuvwxyz1234567890"]
+            filesReviewed: 2,
+            maxFiles: 2,
+            topScannedDirectories: [
+              { directory: "/Users/alice/project/npm_abcdefghijklmnopqrstuvwxyz1234567890", files: 1 },
+              { directory: "/Users/bob/project/npm_abcdefghijklmnopqrstuvwxyz1234567890", files: 1 }
+            ],
+            findingHistogram: [
+              { code: "/Users/alice/rule/npm_abcdefghijklmnopqrstuvwxyz1234567890", severity: "warning", count: 1 },
+              { code: "/Users/bob/rule/npm_abcdefghijklmnopqrstuvwxyz1234567890", severity: "warning", count: 1 }
+            ],
+            caveats: [
+              "coverage caveat from /Users/alice/project with npm_abcdefghijklmnopqrstuvwxyz1234567890",
+              "coverage caveat from /Users/bob/project with npm_abcdefghijklmnopqrstuvwxyz1234567890"
+            ]
           }
         } as any
       ],
@@ -130,6 +139,41 @@ describe("normalizeFoundryEvidence", () => {
     assert.equal(inventory.summary.omittedRawPayloads, 1);
     assert.equal(inventory.evidence.some((item) => item.sourceRef.sourceId.includes("[redacted")), true);
     assert.equal(inventory.evidence.some((item) => item.code?.includes("[redacted")), true);
+    assert.equal(inventory.coverage.caveats.includes("Some redacted top-scanned directory entries were merged to preserve public safety."), true);
+    assert.equal(inventory.coverage.caveats.includes("Some redacted finding-histogram buckets were merged to preserve public safety."), true);
+    assert.equal(inventory.coverage.caveats.includes("Some redacted coverage caveats were merged to preserve public safety."), true);
+  });
+
+  it("dedupes duplicated review findings across priorityFindings and violations", () => {
+    const inventory = normalizeFoundryEvidence({
+      reviewReports: [
+        {
+          priorityFindings: [
+            {
+              code: "ARCH001_OVERSIZED_FILE",
+              confidence: "medium",
+              severity: "warning",
+              path: "src/index.ts",
+              message: "Duplicate finding",
+              recommendation: "Review."
+            }
+          ],
+          violations: [
+            {
+              code: "ARCH001_OVERSIZED_FILE",
+              confidence: "medium",
+              severity: "warning",
+              path: "src/index.ts",
+              message: "Duplicate finding",
+              recommendation: "Review."
+            }
+          ]
+        } as any
+      ]
+    });
+
+    assert.equal(inventory.evidence.filter((item) => item.code === "ARCH001_OVERSIZED_FILE").length, 1);
+    assert.equal(inventory.summary.bySourceType.architect_review, 1);
   });
 
   it("ignores malformed repo constitution objects instead of throwing", () => {
