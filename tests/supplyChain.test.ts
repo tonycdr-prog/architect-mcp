@@ -292,11 +292,13 @@ describe("supply-chain and release hygiene", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
     assert.match(goal, /Active slice: \[#322 - Route Foundry decisions and record public-safe ledger entries\]/);
+    assert.match(goal, /comprehensive, PR-specific `@copilot` review/);
     assert.match(goal, /#321 actionability-scoring slice landed in PR #334/);
     assert.match(goal, /#324 evidence-normalization slice landed in \[PR #333\]/);
     assert.match(goal, /#320.*Foundry slice/);
     assert.match(goal, /route_foundry_decisions/);
     assert.match(goal, /decision-ledger routing slice/);
+    assert.match(goal, /ledger-local evidence aliases/);
     assert.match(goal, /score_foundry_actionability/);
     assert.match(goal, /actionability-scoring slice/);
     assert.match(goal, /normalized evidence inventory/);
