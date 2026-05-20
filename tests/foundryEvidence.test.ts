@@ -70,6 +70,10 @@ describe("normalizeFoundryEvidence", () => {
 
     assert.equal(inventory.schemaVersion, 1);
     assert.equal(inventory.publicSafety.rawPayloadsIncluded, false);
+    assert.equal(inventory.publicSafety.rawRepoContentIncluded, false);
+    assert.equal(inventory.publicSafety.localPathsIncluded, false);
+    assert.equal(inventory.publicSafety.tokenValuesIncluded, false);
+    assert.equal(inventory.publicSafety.mutationAllowed, false);
     assert.equal(JSON.stringify(inventory).includes("do-not-return-this"), false);
     assert.equal(inventory.evidence[0].id, "fev-0001");
     assert.equal(inventory.coverage.scanTruncated, true);

@@ -107,7 +107,14 @@ describe("Foundry decision ledger MCP tool", () => {
             publicSafetyHolds: 0
           },
           assessments,
-          publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+          publicSafety: {
+            rawPayloadsIncluded: false,
+            rawRepoContentIncluded: false,
+            localPathsIncluded: false,
+            tokenValuesIncluded: false,
+            mutationAllowed: false,
+            publicRecommendationsOnly: true
+          }
         }
       });
       const serialized = JSON.stringify(routed.ledger);

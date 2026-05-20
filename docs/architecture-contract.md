@@ -44,6 +44,7 @@
 - Terminal evidence must record provenance; hosted CI, container, unknown, or missing provenance cannot satisfy final manual Linux/Windows terminal QA.
 - Repo-foundry public summaries must omit local workspace paths, staged repo paths, private proof-repo names/URLs, raw command strings, command transcripts, stdout/stderr tails, raw MCP payloads, and token-shaped values.
 - Repo-foundry retention decisions must be explicit public-safe evidence only; they must not imply repository deletion occurred unless a separate approved cleanup action actually performed it.
+- Foundry audit summaries must be read-only evidence. They may expose decision routes, scores, evidence counts, redaction risk, approval state, next action, and preview counts, but must omit local paths, raw command output markers, raw MCP payloads, raw repo content, token-shaped values, and private diagnostics.
 
 ## Baseline Lifecycle
 - New findings must be fixed or deliberately accepted with a reason.

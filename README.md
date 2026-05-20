@@ -104,6 +104,7 @@ The package also exposes `architect-mcp-tui`, a Ratatui client for local work-ga
 architect-mcp-tui
 architect-mcp-tui smoke --json
 architect-mcp-tui governance-audit --json
+architect-mcp-tui foundry-audit --public-summary
 architect-mcp-tui foundry-smoke --owner <github-owner> --json
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl
 architect-mcp-tui run --prompt "Build an offline recipe planner" --adapter codex --jsonl --execute

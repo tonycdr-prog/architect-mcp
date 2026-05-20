@@ -179,6 +179,13 @@ function emptyActionability(): FoundryActionabilityReport {
     schemaVersion: 1,
     summary: { totalFindings: 0, byDecision: {}, prPreviewCandidates: 0, askHuman: 0, exceptionCandidates: 0, noOpCandidates: 0, publicSafetyHolds: 0 },
     assessments: [],
-    publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+    publicSafety: {
+      rawPayloadsIncluded: false,
+      rawRepoContentIncluded: false,
+      localPathsIncluded: false,
+      tokenValuesIncluded: false,
+      mutationAllowed: false,
+      publicRecommendationsOnly: true
+    }
   };
 }

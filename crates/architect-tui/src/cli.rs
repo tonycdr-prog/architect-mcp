@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
+use crate::cli_foundry::{FoundryAuditCliOptions, FoundrySmokeCliOptions};
 use crate::config::ConfigCommand;
-use crate::foundry_smoke::FoundrySmokeOptions;
-use crate::foundry_smoke_retention::FoundrySmokeRetentionDecision;
 use crate::smoke::SmokeOptions;
 
 #[derive(Debug, Parser)]
@@ -101,6 +100,11 @@ pub enum Commands {
     FoundrySmoke {
         #[command(flatten)]
         options: FoundrySmokeCliOptions,
+    },
+    /// Run a read-only Foundry audit and ledger preview for a workspace.
+    FoundryAudit {
+        #[command(flatten)]
+        options: FoundryAuditCliOptions,
     },
     /// Run a read-only governance and drift audit for the current workspace.
     GovernanceAudit {
@@ -216,7 +220,7 @@ pub enum Commands {
     },
 }
 
-fn parse_max_files(value: &str) -> Result<usize, String> {
+pub(crate) fn parse_max_files(value: &str) -> Result<usize, String> {
     let parsed = value
         .parse::<usize>()
         .map_err(|_| "max-files must be an integer from 1 to 5000".to_string())?;
@@ -255,43 +259,5 @@ mod tests {
             ])
             .is_ok()
         );
-    }
-}
-
-#[derive(Debug, Args)]
-pub struct FoundrySmokeCliOptions {
-    #[arg(long)]
-    pub json: bool,
-    #[arg(long)]
-    pub public_summary: bool,
-    #[arg(long)]
-    pub owner: String,
-    #[arg(long)]
-    pub repo: Option<String>,
-    #[arg(long)]
-    pub execute: bool,
-    #[arg(long)]
-    pub confirm_private_repo_mutation: bool,
-    #[arg(long)]
-    pub keep_workspace: bool,
-    #[arg(long, value_enum)]
-    pub retention_decision: Option<FoundrySmokeRetentionDecision>,
-    #[arg(long)]
-    pub retention_reason: Option<String>,
-}
-
-impl From<FoundrySmokeCliOptions> for FoundrySmokeOptions {
-    fn from(options: FoundrySmokeCliOptions) -> Self {
-        Self {
-            json: options.json,
-            public_summary: options.public_summary,
-            owner: options.owner,
-            repo: options.repo,
-            execute: options.execute,
-            confirm_private_repo_mutation: options.confirm_private_repo_mutation,
-            keep_workspace: options.keep_workspace,
-            retention_decision: options.retention_decision,
-            retention_reason: options.retention_reason,
-        }
     }
 }

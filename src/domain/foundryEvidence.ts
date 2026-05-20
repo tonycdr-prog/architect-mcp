@@ -44,7 +44,13 @@ export function normalizeFoundryEvidence(input: FoundryEvidenceInventoryInput = 
     evidence: items.map((item, index) => ({ ...item, id: `fev-${String(index + 1).padStart(4, "0")}` })),
     coverage: summarizeFoundryEvidenceCoverage(input.reviewReports ?? []),
     suppressionPrerequisites: foundrySuppressionPrerequisites(),
-    publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+    publicSafety: {
+      rawPayloadsIncluded: false,
+      rawRepoContentIncluded: false,
+      localPathsIncluded: false,
+      tokenValuesIncluded: false,
+      mutationAllowed: false
+    }
   };
 }
 
