@@ -67,6 +67,7 @@ architect-mcp
 - [Core Work Gate](/core-work-gate)
 - [New App Work Gate](/new-app-work-gate)
 - [Prompt Injection Threat Model](/prompt-injection-threat-model)
+- [Foundry Mode](/foundry-mode)
 - [Hosted Mode](/hosted-mode)
 - [MCP Integrations](/mcp-integrations)
 - [Rust TUI](/rust-tui)

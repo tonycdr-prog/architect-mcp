@@ -121,6 +121,7 @@ See [Rust TUI](https://tonycdr-prog.github.io/architect-mcp/rust-tui) for config
 - [New App Work Gate](https://tonycdr-prog.github.io/architect-mcp/new-app-work-gate)
 - [Prompt Injection And Gate Bypass Threat Model](https://tonycdr-prog.github.io/architect-mcp/prompt-injection-threat-model)
 - [AI Software Foundry Goal](https://tonycdr-prog.github.io/architect-mcp/goal-ai-software-foundry)
+- [Foundry Mode](https://tonycdr-prog.github.io/architect-mcp/foundry-mode)
 - [Tool Reference](https://tonycdr-prog.github.io/architect-mcp/tool-reference)
 - [Hosted Mode](https://tonycdr-prog.github.io/architect-mcp/hosted-mode)
 - [MCP Integrations](https://tonycdr-prog.github.io/architect-mcp/mcp-integrations)
