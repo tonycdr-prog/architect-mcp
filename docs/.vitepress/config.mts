@@ -23,6 +23,7 @@ export default defineConfig({
           { text: "Core Work Gate", link: "/core-work-gate" },
           { text: "New App Work Gate", link: "/new-app-work-gate" },
           { text: "Prompt Injection Threat Model", link: "/prompt-injection-threat-model" },
+          { text: "Foundry Mode", link: "/foundry-mode" },
           { text: "AI Software Foundry Goal", link: "/goal-ai-software-foundry" }
         ]
       },

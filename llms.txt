@@ -25,6 +25,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - [Core Work Gate](docs/core-work-gate.md): default agent work-gate flow from `grill_me` through final/session review.
 - [New App Work Gate](docs/new-app-work-gate.md): concrete app-building flow through intake, contract, plan, file review, adapter evidence, approval, and promotion.
 - [Prompt Injection Threat Model](docs/prompt-injection-threat-model.md): untrusted input handling, advisory versus enforced gate boundaries, and public-safe bypass cases.
+- [Foundry Mode](docs/foundry-mode.md): current versus future Foundry behavior, approval gates, public-safety rules, PR and issue preview contract, and signal-quality issue map.
 - [Tool Reference](docs/tool-reference.md): full tool-name reference for the default and advanced surfaces.
 - [Hosted Mode](docs/hosted-mode.md): stateless HTTP mode, local-only exclusions, file summaries, and review modes.
 - [MCP Integrations](docs/mcp-integrations.md): guarded MCP server recommendations, install plans, and local-only apply policy.
