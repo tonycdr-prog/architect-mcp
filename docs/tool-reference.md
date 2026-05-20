@@ -66,6 +66,8 @@ Repo profile selection, intake, artifact generation, scaffold planning, and repo
 | `list_repo_profiles` | List Repo Profiles. |
 | `get_repo_profile` | Get Repo Profile. |
 | `infer_repo_layout` | Infer Repo Layout. |
+| `derive_repo_constitution` | Derive repo instructions, PR templates, CI, release, package, and recent-PR style signals from supplied evidence. |
+| `derive_local_repo_constitution` | Local-only scan that derives a public-safe repo constitution without mutating files. |
 | `start_project_intake` | Start Project Intake. |
 | `grill_project_brief` | Grill Project Brief. |
 | `continue_grill_me` | Continue Grill Me. |
@@ -188,6 +190,7 @@ Local-only tools:
 
 - `promote_stack_pack_to_files`
 - `review_local_workspace`
+- `derive_local_repo_constitution`
 - `scan_mcp_config_files`
 - `apply_mcp_install_plan`
 

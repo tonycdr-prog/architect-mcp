@@ -15,6 +15,7 @@ export const CORE_ARCHITECTURE_TOOL_NAMES = [
 export const LOCAL_ONLY_ARCHITECTURE_TOOL_NAMES = [
   "promote_stack_pack_to_files",
   "review_local_workspace",
+  "derive_local_repo_constitution",
   "scan_mcp_config_files",
   "apply_mcp_install_plan"
 ] as const;
@@ -62,6 +63,7 @@ export const ADVANCED_ARCHITECTURE_TOOL_NAMES = [
   "validate_v10_productization_boundary", "run_v10_eval_harness",
   "build_quality_requirements_profile", "evaluate_repo_plan_quality", "audit_generated_repo_quality",
   "suggest_quality_followup_questions", "run_repo_quality_eval_scenarios",
+  "derive_repo_constitution", "derive_local_repo_constitution",
   "review_local_workspace", "scan_mcp_config_files"
 ] as const;
 
