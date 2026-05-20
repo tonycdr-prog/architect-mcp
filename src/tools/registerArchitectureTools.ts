@@ -1,6 +1,7 @@
 import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerArtifactTools } from "./artifactTools.js";
 import { registerContractTools } from "./contractTools.js";
+import { registerFoundryTools } from "./foundryTools.js";
 import { registerHarnessTools } from "./harnessTools.js";
 import { registerIntakeTools } from "./intakeTools.js";
 import { registerLayoutTools } from "./layoutTools.js";
@@ -45,6 +46,9 @@ export function registerArchitectureTools(server: McpServer, options: RegisterAr
   registerV5V9Tools(filteredServer);
   registerV10Tools(filteredServer);
   registerRepoQualityEvalTools(filteredServer);
+  registerFoundryTools(filteredServer, {
+    enableLocalWorkspaceTool: options.enableLocalWorkspaceTool
+  });
   registerReviewTools(filteredServer, {
     enableLocalWorkspaceTool: options.enableLocalWorkspaceTool
   });

@@ -291,9 +291,14 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#311 - Expose large-repo audit coverage and total finding histograms\]/);
-    assert.match(goal, /implemented in PR #331/);
-    assert.match(goal, /#320.*Foundry prerequisite/);
+    assert.match(goal, /Active slice: \[#323 - Derive repo constitutions for Foundry audits\]/);
+    assert.match(goal, /#311 audit-coverage prerequisite landed in PR #331/);
+    assert.match(goal, /#320.*Foundry slice/);
+    assert.match(goal, /repo constitutions for Foundry audits/);
+    assert.match(goal, /recent merged PR bodies are advisory fallback evidence/);
+    assert.match(goal, /\[#323\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/323\) repo constitution slice/);
+    assert.match(goal, /derive_local_repo_constitution/);
+    assert.match(goal, /fresh sparse checkout of `pallets\/flask`/);
     assert.match(goal, /\[#311\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/issues\/311\) audit coverage histogram slice/);
     assert.match(goal, /\[PR #331\]\(https:\/\/github\.com\/tonycdr-prog\/architect-mcp\/pull\/331\)/);
     assert.match(goal, /report\.coverage/);
