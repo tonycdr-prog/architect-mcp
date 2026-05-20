@@ -73,6 +73,24 @@ const verificationEvidenceSchema = z.object({
   recordedAt: z.string().optional()
 }).strict();
 
+const repoConstitutionSchema = z.object({
+  schemaVersion: z.literal(1),
+  findings: z.array(z.object({
+    code: z.string(),
+    severity: z.enum(["info", "warning"]),
+    message: z.string(),
+    recommendation: z.string()
+  }).strict()),
+  pullRequests: z.object({
+    templates: z.array(z.object({
+      path: z.string(),
+      contentProvided: z.boolean(),
+      headings: z.array(z.string()),
+      checklistItems: z.number()
+    }).passthrough())
+  }).passthrough()
+}).passthrough();
+
 export function registerFoundryTools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
   server.registerTool(
     "normalize_foundry_evidence",
@@ -84,7 +102,7 @@ export function registerFoundryTools(server: McpServer, options: { enableLocalWo
         reviewReports: z.array(reviewReportSchema).optional(),
         externalFindings: z.array(externalFindingSchema).optional(),
         verification: z.array(verificationEvidenceSchema).optional(),
-        repoConstitution: z.object({}).passthrough().optional()
+        repoConstitution: repoConstitutionSchema.optional()
       },
       outputSchema: genericObjectOutputSchema
     },

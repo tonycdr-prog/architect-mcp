@@ -44,6 +44,19 @@ describe("Foundry MCP tools", () => {
     }
   });
 
+  it("rejects malformed repo constitution inputs before normalization", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const result = await callToolRaw(client, "normalize_foundry_evidence", {
+        repoConstitution: {}
+      });
+
+      assert.equal(result.isError, true);
+    } finally {
+      await close();
+    }
+  });
+
   it("derives repo constitution from supplied and local evidence", async () => {
     const { client, close } = await connectTestClient();
     const root = mkdtempSync(join(tmpdir(), "architect-mcp-constitution-"));
@@ -114,8 +127,12 @@ async function connectTestClient() {
 }
 
 async function callJson(client: Client, name: string, args: Record<string, unknown>) {
-  const result = await client.callTool({ name, arguments: args });
+  const result = await callToolRaw(client, name, args);
   const text = result.content.find((content) => content.type === "text")?.text;
   assert.equal(typeof text, "string");
   return JSON.parse(text as string);
+}
+
+async function callToolRaw(client: Client, name: string, args: Record<string, unknown>) {
+  return client.callTool({ name, arguments: args });
 }

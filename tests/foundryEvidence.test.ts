@@ -131,4 +131,11 @@ describe("normalizeFoundryEvidence", () => {
     assert.equal(inventory.evidence.some((item) => item.sourceRef.sourceId.includes("[redacted")), true);
     assert.equal(inventory.evidence.some((item) => item.code?.includes("[redacted")), true);
   });
+
+  it("ignores malformed repo constitution objects instead of throwing", () => {
+    const inventory = normalizeFoundryEvidence({ repoConstitution: {} as any });
+
+    assert.equal(inventory.summary.totalEvidence, 0);
+    assert.deepEqual(inventory.summary.bySourceType, {});
+  });
 });

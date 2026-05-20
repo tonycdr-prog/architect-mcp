@@ -37,7 +37,7 @@ export function normalizeFoundryEvidence(input: FoundryEvidenceInventoryInput = 
   for (const [index, verification] of (input.verification ?? []).entries()) {
     items.push(verificationEvidence(verification, index));
   }
-  if (input.repoConstitution) collectRepoConstitutionEvidence(items, input.repoConstitution);
+  if (isRepoConstitutionEvidenceInput(input.repoConstitution)) collectRepoConstitutionEvidence(items, input.repoConstitution);
   return {
     schemaVersion: 1,
     summary: summarizeItems(items),
@@ -162,6 +162,36 @@ function repoConstitutionFindingEvidence(finding: RepoConstitutionFinding, index
     publicSummary: finding.message,
     recommendation: finding.recommendation
   });
+}
+
+function isRepoConstitutionEvidenceInput(value: unknown): value is RepoConstitution {
+  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.findings)) return false;
+  const pullRequests = value.pullRequests;
+  return value.findings.every(isRepoConstitutionFinding) &&
+    isRecord(pullRequests) &&
+    Array.isArray(pullRequests.templates) &&
+    pullRequests.templates.every(isPullRequestTemplateSummary);
+}
+
+function isRepoConstitutionFinding(value: unknown): value is RepoConstitutionFinding {
+  return isRecord(value) &&
+    typeof value.code === "string" &&
+    (value.severity === "info" || value.severity === "warning") &&
+    typeof value.message === "string" &&
+    typeof value.recommendation === "string";
+}
+
+function isPullRequestTemplateSummary(value: unknown): boolean {
+  return isRecord(value) &&
+    typeof value.path === "string" &&
+    typeof value.contentProvided === "boolean" &&
+    Array.isArray(value.headings) &&
+    value.headings.every((heading) => typeof heading === "string") &&
+    typeof value.checklistItems === "number";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function safeItem(input: {
