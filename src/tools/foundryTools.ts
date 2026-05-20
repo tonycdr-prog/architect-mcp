@@ -8,6 +8,7 @@ import {
 import { normalizeFoundryEvidence, type FoundryEvidenceInventoryInput } from "../domain/foundryEvidence.js";
 import { scoreFoundryActionability, type FoundryActionabilityInput } from "../domain/foundryActionability.js";
 import { routeFoundryDecisions, type FoundryDecisionLedgerInput } from "../domain/foundryDecisionLedger.js";
+import { forgeFoundryPreviews, type FoundryForgePreviewInput } from "../domain/foundryForge.js";
 import { deriveLocalRepoConstitution } from "../infrastructure/repoConstitutionWorkspace.js";
 import { safeJsonResponse } from "./responses.js";
 import { fileSummarySchema, genericObjectOutputSchema } from "./schemas.js";
@@ -87,13 +88,39 @@ const repoConstitutionSchema = z.object({
     templates: z.array(z.object({
       path: z.string(),
       contentProvided: z.boolean(),
+      hiddenCommentOnly: z.boolean().optional(),
       headings: z.array(z.string()),
-      checklistItems: z.number()
+      checklistItems: z.number(),
+      mentionsLinkedIssues: z.boolean().optional(),
+      mentionsReleaseNotes: z.boolean().optional(),
+      mentionsVerification: z.boolean().optional()
     }).passthrough())
-  }).passthrough()
+  }).passthrough(),
+  ci: z.object({
+    workflows: z.array(z.object({}).passthrough()).optional()
+  }).passthrough().optional()
 }).passthrough();
 
 export function registerFoundryTools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
+  server.registerTool(
+    "forge_foundry_previews",
+    {
+      title: "Forge Foundry Previews",
+      description: "Generate preview-only PR, architect-issue, exception, no-op, and human-question artifacts from public-safe Foundry decisions without mutating repositories.",
+      inputSchema: {
+        ledger: z.object({}).passthrough(),
+        repoConstitution: repoConstitutionSchema.optional()
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ ledger, repoConstitution }) => safeJsonResponse(() => ({
+      forge: forgeFoundryPreviews({
+        ledger,
+        repoConstitution
+      } as FoundryForgePreviewInput)
+    }))
+  );
+
   server.registerTool(
     "route_foundry_decisions",
     {

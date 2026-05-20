@@ -66,6 +66,7 @@ Repo profile selection, intake, artifact generation, scaffold planning, and repo
 | `list_repo_profiles` | List Repo Profiles. |
 | `get_repo_profile` | Get Repo Profile. |
 | `infer_repo_layout` | Infer Repo Layout. |
+| `forge_foundry_previews` | Generate preview-only PR, issue, exception, no-op, and human-question artifacts from public-safe Foundry decisions without mutating repositories. |
 | `route_foundry_decisions` | Route scored Foundry assessments into public-safe ledger entries without mutating repositories. |
 | `score_foundry_actionability` | Score normalized Foundry evidence for PR-preview suitability, human review, exceptions, and no-op candidates. |
 | `normalize_foundry_evidence` | Normalize findings, verification, repo constitution, coverage, and suppression candidates into public-safe Foundry evidence. |
