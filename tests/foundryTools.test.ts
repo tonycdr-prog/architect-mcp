@@ -36,6 +36,10 @@ describe("Foundry MCP tools", () => {
 
       assert.equal(normalized.inventory.schemaVersion, 1);
       assert.equal(normalized.inventory.publicSafety.rawPayloadsIncluded, false);
+      assert.equal(normalized.inventory.publicSafety.rawRepoContentIncluded, false);
+      assert.equal(normalized.inventory.publicSafety.localPathsIncluded, false);
+      assert.equal(normalized.inventory.publicSafety.tokenValuesIncluded, false);
+      assert.equal(normalized.inventory.publicSafety.mutationAllowed, false);
       assert.equal(normalized.inventory.summary.omittedRawPayloads, 1);
       assert.equal(normalized.inventory.evidence.some((item: { suppressionCandidate?: { category: string } }) => item.suppressionCandidate?.category === "vendored_code"), true);
       assert.equal(JSON.stringify(normalized.inventory).includes("private"), false);
@@ -101,7 +105,13 @@ describe("Foundry MCP tools", () => {
           }],
           coverage: { scanTruncated: false, detailedFindingsTruncated: false, topScannedDirectories: [], findingHistogram: [], caveats: [] },
           suppressionPrerequisites: [],
-          publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+          publicSafety: {
+            rawPayloadsIncluded: false,
+            rawRepoContentIncluded: false,
+            localPathsIncluded: false,
+            tokenValuesIncluded: false,
+            mutationAllowed: false
+          }
         }
       });
       const serialized = JSON.stringify(scored);

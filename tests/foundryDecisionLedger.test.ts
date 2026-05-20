@@ -5,6 +5,15 @@ import { scoreFoundryActionability } from "../src/domain/foundryActionability.js
 import { normalizeFoundryEvidence } from "../src/domain/foundryEvidence.js";
 import type { FoundryActionabilityReport } from "../src/domain/foundryActionabilityTypes.js";
 
+const publicSafety = {
+  rawPayloadsIncluded: false,
+  rawRepoContentIncluded: false,
+  localPathsIncluded: false,
+  tokenValuesIncluded: false,
+  mutationAllowed: false,
+  publicRecommendationsOnly: true
+} as const;
+
 describe("routeFoundryDecisions", () => {
   it("routes scored findings to every ledger route deterministically", () => {
     const ledger = routeFoundryDecisions({
@@ -20,7 +29,7 @@ describe("routeFoundryDecisions", () => {
           assessment("fev-noop", "no_op_candidate", 42, 85, 35),
           assessment("fev-human", "ask_human", 66, 20, 85, ["Security-sensitive evidence needs human disclosure review before public recommendations."])
         ],
-        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+        publicSafety
       }
     });
 
@@ -79,7 +88,7 @@ describe("routeFoundryDecisions", () => {
             ["stderr: private verification"]
           )
         ],
-        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+        publicSafety
       }
     });
     const serialized = JSON.stringify(ledger);
@@ -107,7 +116,7 @@ describe("routeFoundryDecisions", () => {
             ["Security-sensitive evidence needs human disclosure review before public recommendations."]
           )
         ],
-        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+        publicSafety
       }
     });
 
@@ -135,7 +144,7 @@ describe("routeFoundryDecisions", () => {
             "Brace-only raw source:\n{\n  privateBranch\n}"
           ]
         }],
-        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+        publicSafety
       }
     });
     const serialized = JSON.stringify(ledger);
@@ -161,7 +170,7 @@ describe("routeFoundryDecisions", () => {
             "Review export const repoSecret = process.env.REPO_SECRET before merge."
           ]
         }],
-        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+        publicSafety
       }
     });
     const serialized = JSON.stringify(ledger);
@@ -195,7 +204,7 @@ describe("routeFoundryDecisions", () => {
             factors: [...base.factors, factor("public_safety_risk", 95)]
           }
         ],
-        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+        publicSafety
       }
     });
 

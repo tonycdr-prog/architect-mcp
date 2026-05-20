@@ -52,6 +52,9 @@ export type FoundryActionabilityReport = {
   assessments: FoundryActionabilityAssessment[];
   publicSafety: {
     rawPayloadsIncluded: false;
+    rawRepoContentIncluded: false;
+    localPathsIncluded: false;
+    tokenValuesIncluded: false;
     mutationAllowed: false;
     publicRecommendationsOnly: true;
   };

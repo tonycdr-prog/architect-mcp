@@ -23,6 +23,9 @@ export function scoreFoundryActionability(input: FoundryActionabilityInput = {})
     assessments,
     publicSafety: {
       rawPayloadsIncluded: false,
+      rawRepoContentIncluded: false,
+      localPathsIncluded: false,
+      tokenValuesIncluded: false,
       mutationAllowed: false,
       publicRecommendationsOnly: true
     }
@@ -248,6 +251,12 @@ function emptyInventory(): FoundryEvidenceInventory {
     evidence: [],
     coverage: { scanTruncated: false, detailedFindingsTruncated: false, topScannedDirectories: [], findingHistogram: [], caveats: [] },
     suppressionPrerequisites: [],
-    publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+    publicSafety: {
+      rawPayloadsIncluded: false,
+      rawRepoContentIncluded: false,
+      localPathsIncluded: false,
+      tokenValuesIncluded: false,
+      mutationAllowed: false
+    }
   };
 }

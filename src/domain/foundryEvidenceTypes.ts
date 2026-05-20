@@ -119,6 +119,8 @@ export type FoundryEvidenceInventory = {
   publicSafety: {
     rawPayloadsIncluded: false;
     rawRepoContentIncluded: false;
+    localPathsIncluded: false;
+    tokenValuesIncluded: false;
     mutationAllowed: false;
   };
 };
