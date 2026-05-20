@@ -45,6 +45,7 @@
 - Repo-foundry public summaries must omit local workspace paths, staged repo paths, private proof-repo names/URLs, raw command strings, command transcripts, stdout/stderr tails, raw MCP payloads, and token-shaped values.
 - Repo-foundry retention decisions must be explicit public-safe evidence only; they must not imply repository deletion occurred unless a separate approved cleanup action actually performed it.
 - Foundry audit summaries must be read-only evidence. They may expose decision routes, scores, evidence counts, redaction risk, approval state, next action, and preview counts, but must omit local paths, raw command output markers, raw MCP payloads, raw repo content, token-shaped values, and private diagnostics.
+- Foundry eval corpus reports must run from small public-safe summaries by default, require no network, prove route coverage and zero mutation, and treat live public-repo smoke as optional read-only evidence rather than a prerequisite for offline pass.
 
 ## Baseline Lifecycle
 - New findings must be fixed or deliberately accepted with a reason.

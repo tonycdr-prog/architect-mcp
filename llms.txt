@@ -61,6 +61,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - list_repo_profiles: list reusable repo layout profiles.
 - get_repo_profile: return one repo profile by id.
 - infer_repo_layout: infer canonical-to-existing repo path mappings.
+- run_foundry_eval_corpus: run deterministic offline Foundry eval scenarios over large and small repo summaries without network access or mutation.
 - forge_foundry_previews: generate preview-only PR, issue, exception, no-op, and human-question artifacts from public-safe Foundry decisions without mutating repositories.
 - route_foundry_decisions: route scored Foundry assessments into public-safe ledger entries without mutating repositories.
 - score_foundry_actionability: score normalized Foundry evidence for PR-preview suitability, human review, exceptions, and no-op candidates.

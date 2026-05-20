@@ -297,9 +297,9 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#325 - Add TUI read-only Foundry audit and ledger view\]/);
+    assert.match(goal, /Active slice: \[#327 - Add Foundry large\/small repo eval corpus\]/);
     assert.match(goal, /comprehensive, PR-specific `@copilot` review/);
-    assert.match(goal, /#326 forge-preview slice landed in PR #336/);
+    assert.match(goal, /#326 forge-preview slice landed in \[PR #336\]/);
     assert.match(goal, /#321 actionability-scoring slice landed in \[PR #334\]/);
     assert.match(goal, /#324 evidence-normalization slice landed in \[PR #333\]/);
     assert.match(goal, /#320.*Foundry slice/);
@@ -312,6 +312,10 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /architect-mcp-tui foundry-audit/);
     assert.match(goal, /TUI read-only Foundry audit slice/);
     assert.match(goal, /foundry ledger/);
+    assert.match(goal, /run_foundry_eval_corpus/);
+    assert.match(goal, /Foundry eval-corpus slice/);
+    assert.match(goal, /vercel\/next\.js/);
+    assert.match(goal, /PR-preview, architect-issue, exception, no-op, and ask-human route/);
     assert.match(goal, /score_foundry_actionability/);
     assert.match(goal, /actionability-scoring slice/);
     assert.match(goal, /normalized evidence inventory/);
