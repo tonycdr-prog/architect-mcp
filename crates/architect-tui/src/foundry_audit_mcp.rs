@@ -4,7 +4,9 @@ use anyhow::Result;
 use serde_json::{Value, json};
 
 use crate::config::TuiConfig;
-use crate::foundry_audit_report::{FoundryAuditReport, failed_report, report_from_mcp_values};
+use crate::foundry_audit_report::{
+    FoundryAuditMcpValues, FoundryAuditReport, failed_report, report_from_mcp_values,
+};
 use crate::mcp::{ArchitectMcpBridge, McpToolOutcome, StdioMcpClient};
 
 pub(crate) fn run_mcp_foundry_audit(
@@ -31,12 +33,15 @@ pub(crate) fn run_mcp_foundry_audit(
         Ok((review, constitution, inventory, actionability, ledger, forge)) => {
             report_from_mcp_values(
                 workspace_string,
-                review,
-                constitution,
-                inventory,
-                actionability,
-                ledger,
-                forge,
+                FoundryAuditMcpValues {
+                    tools_called,
+                    review,
+                    constitution,
+                    inventory,
+                    actionability,
+                    ledger,
+                    forge,
+                },
             )
         }
         Err(error) => failed_report(workspace_string, tools_called, error.to_string()),

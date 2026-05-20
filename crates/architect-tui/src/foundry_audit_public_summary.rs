@@ -168,9 +168,16 @@ fn public_next_actions(decisions: &[FoundryAuditDecision]) -> Vec<String> {
 }
 
 fn audit_public_text(value: &str, max_len: usize) -> String {
+    if contains_raw_output_marker(value) {
+        return "[omitted-raw-output]".to_string();
+    }
     public_text(value, max_len)
-        .replace("stdout:", "[omitted-raw-output]:")
-        .replace("stderr:", "[omitted-raw-output]:")
-        .replace("STDOUT:", "[omitted-raw-output]:")
-        .replace("STDERR:", "[omitted-raw-output]:")
+}
+
+fn contains_raw_output_marker(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.contains("stdout:")
+        || lower.contains("stderr:")
+        || lower.contains("payload:")
+        || value.contains("```")
 }

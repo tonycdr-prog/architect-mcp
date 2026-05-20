@@ -38,6 +38,16 @@ pub struct FoundryAuditReport {
     pub error: Option<String>,
 }
 
+pub(crate) struct FoundryAuditMcpValues {
+    pub tools_called: Vec<String>,
+    pub review: Value,
+    pub constitution: Value,
+    pub inventory: Value,
+    pub actionability: Value,
+    pub ledger: Value,
+    pub forge: Value,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FoundryAuditMcpSummary {
@@ -130,22 +140,19 @@ pub struct FoundryAuditPublicSafety {
 
 pub(crate) fn report_from_mcp_values(
     workspace: String,
-    review: Value,
-    constitution: Value,
-    inventory: Value,
-    actionability: Value,
-    ledger: Value,
-    forge: Value,
+    values: FoundryAuditMcpValues,
 ) -> FoundryAuditReport {
+    let FoundryAuditMcpValues {
+        tools_called,
+        review,
+        constitution,
+        inventory,
+        actionability,
+        ledger,
+        forge,
+    } = values;
     let mcp = FoundryAuditMcpSummary {
-        tools_called: vec![
-            "review_local_workspace".to_string(),
-            "derive_local_repo_constitution".to_string(),
-            "normalize_foundry_evidence".to_string(),
-            "score_foundry_actionability".to_string(),
-            "route_foundry_decisions".to_string(),
-            "forge_foundry_previews".to_string(),
-        ],
+        tools_called,
         files_reviewed: review.get("filesReviewed").and_then(Value::as_u64),
         scan_truncated: review
             .pointer("/scan/truncated")
@@ -271,6 +278,9 @@ pub(crate) fn print_text_report(report: &FoundryAuditReport) {
             decision.preview_kind.as_deref().unwrap_or("none"),
             decision.next_action
         );
+    }
+    if let Some(error) = &report.error {
+        println!("error: {error}");
     }
 }
 

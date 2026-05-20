@@ -35,30 +35,62 @@ fn public_summary_omits_paths_tokens_and_raw_details_from_decisions() {
         actionability: FoundryAuditActionabilitySummary::default(),
         ledger: FoundryAuditLedgerSummary::default(),
         forge: FoundryAuditForgeSummary::default(),
-        decisions: vec![FoundryAuditDecision {
-            id: "fdl-001-pr_preview".to_string(),
-            route: "pr_preview".to_string(),
-            score: 76,
-            evidence_count: 2,
-            risk: "redacted".to_string(),
-            approval_state: "approval_required".to_string(),
-            next_action:
-                "Do not paste stdout: secret lines from /Users/alice/private/repo with ghp_123456"
+        decisions: vec![
+            FoundryAuditDecision {
+                id: "fdl-001-pr_preview".to_string(),
+                route: "pr_preview".to_string(),
+                score: 76,
+                evidence_count: 2,
+                risk: "redacted".to_string(),
+                approval_state: "approval_required".to_string(),
+                next_action:
+                    "Do not paste stdout: secret lines from /Users/alice/private/repo with ghp_123456"
+                        .to_string(),
+                preview_kind: Some("pull_request".to_string()),
+                preview_title: Some("[foundry-preview] /Users/alice/private/repo".to_string()),
+                warning_count: 1,
+            },
+            FoundryAuditDecision {
+                id: "fdl-002-ask_human".to_string(),
+                route: "ask_human".to_string(),
+                score: 42,
+                evidence_count: 1,
+                risk: "public".to_string(),
+                approval_state: "human_required".to_string(),
+                next_action: "Review /Users/alice/private/repo with ghp_abcdef before action"
                     .to_string(),
-            preview_kind: Some("pull_request".to_string()),
-            preview_title: Some("[foundry-preview] /Users/alice/private/repo".to_string()),
-            warning_count: 1,
-        }],
+                preview_kind: None,
+                preview_title: None,
+                warning_count: 0,
+            },
+        ],
         public_safety: FoundryAuditPublicSafety::default(),
-        error: None,
+        error: Some("payload: ```raw``` from /Users/alice/private/repo".to_string()),
     });
 
     let json = serde_json::to_string(&summary).expect("summary json");
     assert!(!json.contains("/Users/alice"));
     assert!(!json.contains("ghp_123456"));
     assert!(!json.contains("stdout:"));
+    assert!(!json.contains("payload:"));
+    assert!(!json.contains("```"));
     assert!(json.contains("[redacted-local-path]"));
     assert!(json.contains("[redacted-secret]"));
+    assert_eq!(summary.decisions[0].next_action, "[omitted-raw-output]");
+    assert!(
+        summary.decisions[1]
+            .next_action
+            .contains("[redacted-local-path]")
+    );
+    assert!(
+        summary.decisions[1]
+            .next_action
+            .contains("[redacted-secret]")
+    );
+    assert_eq!(summary.next_actions.len(), 2);
+    assert_eq!(summary.next_actions[0], "[omitted-raw-output]");
+    assert!(summary.next_actions[1].contains("[redacted-local-path]"));
+    assert_eq!(summary.error.as_deref(), Some("[omitted-raw-output]"));
     assert!(summary.read_only);
     assert_eq!(summary.server_writes_performed, 0);
 }
