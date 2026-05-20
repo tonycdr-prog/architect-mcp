@@ -291,9 +291,11 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#324 - Normalize Foundry audit evidence across MCP and tool signals\]/);
-    assert.match(goal, /#323 repo-constitution slice landed in PR #332/);
+    assert.match(goal, /Active slice: \[#321 - Add Foundry actionability assay scoring\]/);
+    assert.match(goal, /#324 evidence-normalization slice landed in PR #333/);
     assert.match(goal, /#320.*Foundry slice/);
+    assert.match(goal, /score_foundry_actionability/);
+    assert.match(goal, /actionability-scoring slice/);
     assert.match(goal, /normalized evidence inventory/);
     assert.match(goal, /normalize_foundry_evidence/);
     assert.match(goal, /stable `fev-\*` evidence IDs/);

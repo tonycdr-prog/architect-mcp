@@ -44,6 +44,110 @@ describe("Foundry MCP tools", () => {
     }
   });
 
+  it("scores normalized evidence through the MCP surface", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const normalized = await callJson(client, "normalize_foundry_evidence", {
+        findings: [
+          {
+            code: "ARCH008_ENV_SCATTER",
+            confidence: "high",
+            severity: "error",
+            path: "src/config/env.ts",
+            message: "Environment access is scattered.",
+            recommendation: "Centralize environment parsing."
+          }
+        ],
+        verification: [
+          { check: "npm test", status: "passed", summary: "passed" }
+        ]
+      });
+      const scored = await callJson(client, "score_foundry_actionability", {
+        inventory: normalized.inventory
+      });
+
+      assert.equal(scored.actionability.schemaVersion, 1);
+      assert.equal(scored.actionability.publicSafety.mutationAllowed, false);
+      assert.equal(scored.actionability.assessments[0].decision, "pr_preview_candidate");
+      assert.equal(scored.actionability.assessments[0].requiredVerification.some((item: string) => item.includes("npm test")), true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("redacts caller-supplied unsafe inventory fields before scoring through MCP", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const scored = await callJson(client, "score_foundry_actionability", {
+        inventory: {
+          schemaVersion: 1,
+          summary: { totalEvidence: 1, bySourceType: {}, byConfidence: {}, byPublicSafetyClass: {}, redacted: 0, omittedRawPayloads: 0, suppressionCandidates: 0, coverageCaveats: 0 },
+          evidence: [{
+            id: "/Users/alice/project/npm_abcdefghijklmnopqrstuvwxyz1234567890",
+            kind: "finding",
+            sourceType: "external_tool",
+            sourceRef: {
+              sourceType: "external_tool",
+              sourceId: "npm_abcdefghijklmnopqrstuvwxyz1234567890",
+              path: "/Users/alice/project/.env"
+            },
+            confidence: "high",
+            severity: "error",
+            code: "npm_abcdefghijklmnopqrstuvwxyz1234567890",
+            path: "/Users/alice/project/.env",
+            publicSummary: "Caller supplied identity fields were not normalized.",
+            publicSafetyClass: "public",
+            redactionStatus: "none"
+          }],
+          coverage: { scanTruncated: false, detailedFindingsTruncated: false, topScannedDirectories: [], findingHistogram: [], caveats: [] },
+          suppressionPrerequisites: [],
+          publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+        }
+      });
+      const serialized = JSON.stringify(scored);
+
+      assert.equal(scored.actionability.assessments[0].decision, "ask_human");
+      assert.equal(scored.actionability.assessments[0].sourceType, "external_tool");
+      assert.equal(scored.actionability.assessments[0].blockers.some((item: string) => item.includes("identity fields needed redaction")), true);
+      assert.equal(serialized.includes("/Users/alice"), false);
+      assert.equal(serialized.includes("npm_abcdefghijklmnopqrstuvwxyz1234567890"), false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps raw-output-shaped verification labels out of PR-preview routing", async () => {
+    const { client, close } = await connectTestClient();
+    try {
+      const normalized = await callJson(client, "normalize_foundry_evidence", {
+        findings: [
+          {
+            code: "ARCH008_ENV_SCATTER",
+            confidence: "high",
+            severity: "error",
+            path: "src/config/env.ts",
+            message: "Environment access is scattered.",
+            recommendation: "Centralize environment parsing."
+          }
+        ],
+        verification: [
+          { check: "npm test stderr: private stack trace line", status: "passed", summary: "passed" }
+        ]
+      });
+      const scored = await callJson(client, "score_foundry_actionability", {
+        inventory: normalized.inventory
+      });
+      const serialized = JSON.stringify(scored);
+
+      assert.equal(scored.actionability.assessments[0].decision, "ask_human");
+      assert.equal(scored.actionability.assessments[0].blockers.some((item: string) => item.includes("passing verification path is missing")), true);
+      assert.equal(serialized.includes("private stack trace"), false);
+      assert.equal(scored.actionability.assessments[0].requiredVerification.some((item: string) => item.includes("[redacted-raw-output]")), true);
+    } finally {
+      await close();
+    }
+  });
+
   it("rejects malformed repo constitution inputs before normalization", async () => {
     const { client, close } = await connectTestClient();
     try {
