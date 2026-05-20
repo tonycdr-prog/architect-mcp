@@ -33,6 +33,12 @@ export type FoundryEvalCorpusInput = {
   includePreviews?: boolean;
 };
 
+export type FoundryEvalRegressionAssertion = {
+  issue: number;
+  passed: boolean;
+  evidence: string;
+};
+
 export type FoundryEvalCorpusResult = {
   id: string;
   repo: FoundryEvalCorpusCase["repo"];
@@ -43,6 +49,9 @@ export type FoundryEvalCorpusResult = {
   previewKinds: Record<string, number>;
   suppressionCategories: FoundrySuppressionCategory[];
   regressionIssues: number[];
+  declaredRegressionIssues: number[];
+  missingDeclaredRegressionIssues: number[];
+  regressionAssertions: FoundryEvalRegressionAssertion[];
   expectedNoisePatterns: string[];
   publicSafety: FoundryEvalPublicSafety;
   noMutation: {
@@ -63,7 +72,7 @@ export type FoundryEvalPublicSafety = {
 
 export type FoundryEvalCorpusReport = {
   schemaVersion: 1;
-  status: "pass" | "fail";
+  status: "pass" | "partial" | "fail";
   summary: {
     totalCases: number;
     passed: number;
@@ -73,6 +82,8 @@ export type FoundryEvalCorpusReport = {
     previewKinds: Record<string, number>;
     suppressionCategories: FoundrySuppressionCategory[];
     regressionIssuesCovered: number[];
+    selectedSubset: boolean;
+    unknownCaseIds: string[];
     offlineNetworkRequired: false;
     liveSmokeAvailable: true;
     serverWritesPerformed: 0;

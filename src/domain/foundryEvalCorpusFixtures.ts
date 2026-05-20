@@ -134,6 +134,15 @@ export const foundryEvalCorpusFixtureCases: FoundryEvalCorpusCase[] = [
           recommendation: "Record a no-op unless the maintainer already requested this cleanup."
         },
         {
+          toolName: "tsx-context-check",
+          ruleId: "TSX_ENV_CONTEXT",
+          severity: "info",
+          confidence: "medium",
+          path: "src/theme.tsx",
+          message: "TSX display copy includes env-like text that needs context before routing.",
+          recommendation: "Treat TSX env-like display copy as context, not as direct environment access."
+        },
+        {
           toolName: "security-probe",
           ruleId: "SECRET_IN_ENV_SAMPLE",
           severity: "error",

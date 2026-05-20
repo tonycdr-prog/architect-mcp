@@ -22,7 +22,9 @@ describe("Foundry eval corpus", () => {
 
     for (const issue of [310, 311, 312, 313, 314, 315, 316, 317, 318, 319]) {
       assert.equal(report.requirements.regressionIssues[String(issue)], true, `#${issue} was not covered`);
+      assert.equal(report.results.some((result) => result.regressionAssertions.some((assertion) => assertion.issue === issue && assertion.passed)), true, `#${issue} had no derived passing assertion`);
     }
+    assert.equal(report.results.every((result) => result.missingDeclaredRegressionIssues.length === 0), true);
     assert.deepEqual(report.summary.suppressionCategories.sort(), [
       "conventional_entrypoint",
       "docs_example",
@@ -59,8 +61,29 @@ describe("Foundry eval corpus", () => {
     const [first] = foundryEvalCorpusCases();
     const report = runFoundryEvalCorpus({ caseIds: [first.id] });
 
+    assert.equal(report.status, "partial");
     assert.equal(report.summary.totalCases, 1);
+    assert.equal(report.summary.selectedSubset, true);
+    assert.deepEqual(report.summary.unknownCaseIds, []);
     assert.equal(report.results[0].id, first.id);
     assert.equal(report.results[0].status, "pass");
+  });
+
+  it("reports unknown focused case ids explicitly", () => {
+    const report = runFoundryEvalCorpus({ caseIds: ["missing-case"] });
+
+    assert.equal(report.status, "fail");
+    assert.equal(report.summary.totalCases, 0);
+    assert.equal(report.summary.selectedSubset, true);
+    assert.deepEqual(report.summary.unknownCaseIds, ["missing-case"]);
+    assert.equal(report.requirements.offlineFixtures, false);
+  });
+
+  it("makes disabled previews visible in corpus status and preview coverage", () => {
+    const report = runFoundryEvalCorpus({ includePreviews: false });
+
+    assert.equal(report.status, "fail");
+    assert.deepEqual(report.summary.previewKinds, {});
+    assert.equal(report.results.some((result) => result.missingDeclaredRegressionIssues.includes(314)), true);
   });
 });

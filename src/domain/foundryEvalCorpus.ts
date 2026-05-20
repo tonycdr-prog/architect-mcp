@@ -1,6 +1,7 @@
 import { scoreFoundryActionability } from "./foundryActionability.js";
 import { routeFoundryDecisions } from "./foundryDecisionLedger.js";
 import type { FoundryDecisionRoute } from "./foundryDecisionLedgerTypes.js";
+import { evaluateFoundryEvalRegressionAssertions } from "./foundryEvalCorpusAssertions.js";
 import { foundryEvalCorpusFixtureCases } from "./foundryEvalCorpusFixtures.js";
 import type {
   FoundryEvalCorpusCase,
@@ -52,8 +53,12 @@ export function foundryEvalCorpusCases(): FoundryEvalCorpusCase[] {
 }
 
 export function runFoundryEvalCorpus(input: FoundryEvalCorpusInput = {}): FoundryEvalCorpusReport {
+  const cases = foundryEvalCorpusCases();
   const caseIds = new Set(input.caseIds ?? []);
-  const selectedCases = foundryEvalCorpusCases().filter((item) => caseIds.size === 0 || caseIds.has(item.id));
+  const knownCaseIds = new Set(cases.map((item) => item.id));
+  const unknownCaseIds = [...caseIds].filter((id) => !knownCaseIds.has(id)).sort();
+  const selectedSubset = caseIds.size > 0;
+  const selectedCases = cases.filter((item) => caseIds.size === 0 || caseIds.has(item.id));
   const results = selectedCases.map((item) => evaluateCase(item, input.includePreviews ?? true));
   const byRoute = mergeCounts(results.map((result) => result.routes));
   const previewKinds = mergeCounts(results.map((result) => result.previewKinds));
@@ -63,13 +68,19 @@ export function runFoundryEvalCorpus(input: FoundryEvalCorpusInput = {}): Foundr
   const publicSafety = summarizePublicSafety(results);
   const noMutation = results.every((result) => result.noMutation.passed);
   const failed = results.filter((result) => result.status === "fail").length;
-  const status = failed === 0 &&
+  const corpusPassed = failed === 0 &&
+    selectedCases.length > 0 &&
+    unknownCaseIds.length === 0 &&
     Object.values(routeCoverage).every(Boolean) &&
     Object.values(regressionIssues).every(Boolean) &&
     publicSafety.passed &&
-    noMutation
-    ? "pass"
-    : "fail";
+    noMutation;
+  const status = corpusPassed ? "pass" : selectedSubset &&
+    failed === 0 &&
+    selectedCases.length > 0 &&
+    unknownCaseIds.length === 0 &&
+    publicSafety.passed &&
+    noMutation ? "partial" : "fail";
 
   return {
     schemaVersion: 1,
@@ -83,6 +94,8 @@ export function runFoundryEvalCorpus(input: FoundryEvalCorpusInput = {}): Foundr
       previewKinds,
       suppressionCategories: uniqueFlat(results.map((result) => result.suppressionCategories)),
       regressionIssuesCovered,
+      selectedSubset,
+      unknownCaseIds,
       offlineNetworkRequired: false,
       liveSmokeAvailable: true,
       serverWritesPerformed: 0
@@ -123,6 +136,17 @@ function evaluateCase(item: FoundryEvalCorpusCase, includePreviews: boolean): Fo
   const suppressionCategories = uniqueFlat(inventory.evidence.map((entry) => entry.suppressionCandidate?.category ? [entry.suppressionCandidate.category] : []));
   const previewKinds = forge ? previewKindCounts(forge.previews.map((preview) => preview.kind)) : {};
   const missingExpectedRoutes = item.expectedRoutes.filter((route) => (ledger.summary.byRoute[route] ?? 0) === 0);
+  const regressionAssertions = evaluateFoundryEvalRegressionAssertions({
+    item,
+    constitution,
+    inventory,
+    actionability,
+    ledger,
+    forge,
+    suppressionCategories
+  });
+  const regressionIssues = regressionAssertions.filter((assertion) => assertion.passed).map((assertion) => assertion.issue);
+  const missingDeclaredRegressionIssues = item.regressionIssues.filter((issue) => !regressionIssues.includes(issue));
   const publicSafety = evaluatePublicSafety({
     inventory: {
       publicSafety: inventory.publicSafety,
@@ -154,13 +178,16 @@ function evaluateCase(item: FoundryEvalCorpusCase, includePreviews: boolean): Fo
   return {
     id: item.id,
     repo: item.repo,
-    status: missingExpectedRoutes.length === 0 && publicSafety.passed && noMutation ? "pass" : "fail",
+    status: missingExpectedRoutes.length === 0 && missingDeclaredRegressionIssues.length === 0 && publicSafety.passed && noMutation ? "pass" : "fail",
     expectedRoutes: item.expectedRoutes,
     missingExpectedRoutes,
     routes: ledger.summary.byRoute,
     previewKinds,
     suppressionCategories,
-    regressionIssues: item.regressionIssues,
+    regressionIssues,
+    declaredRegressionIssues: item.regressionIssues,
+    missingDeclaredRegressionIssues,
+    regressionAssertions,
     expectedNoisePatterns: item.expectedNoisePatterns,
     publicSafety,
     noMutation: { passed: noMutation, serverWritesPerformed: 0, mutationAllowed: false }
