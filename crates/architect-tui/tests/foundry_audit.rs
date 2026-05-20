@@ -109,7 +109,51 @@ async fn interactive_foundry_audit_renders_ephemeral_ledger_without_approval() {
     );
 }
 
+#[tokio::test]
+async fn foundry_audit_fails_closed_when_chain_tool_omits_required_structured_content() {
+    let Some((workspace, config, _temp)) =
+        fake_mcp_workspace_with_script(fake_mcp_server_script_missing_inventory())
+    else {
+        return;
+    };
+
+    let report = build_foundry_audit_report(
+        workspace.clone(),
+        config,
+        &FoundryAuditOptions {
+            json: true,
+            public_summary: false,
+            max_files: 50,
+            mcp_workspace: None,
+        },
+    )
+    .await;
+
+    assert_eq!(report.status, FoundryAuditStatus::Failed);
+    assert_eq!(
+        report.mcp.tools_called,
+        [
+            "review_local_workspace",
+            "derive_local_repo_constitution",
+            "normalize_foundry_evidence",
+        ]
+    );
+    assert_eq!(report.server_writes_performed, 0);
+    assert!(!workspace.join(".architect-mcp").exists());
+    assert!(
+        report
+            .error
+            .as_deref()
+            .unwrap_or_default()
+            .contains("missing structuredContent.inventory")
+    );
+}
+
 fn fake_mcp_workspace() -> Option<(PathBuf, TuiConfig, tempfile::TempDir)> {
+    fake_mcp_workspace_with_script(fake_mcp_server_script())
+}
+
+fn fake_mcp_workspace_with_script(script: &str) -> Option<(PathBuf, TuiConfig, tempfile::TempDir)> {
     if Command::new("node").arg("--version").output().is_err() {
         return None;
     }
@@ -119,7 +163,7 @@ fn fake_mcp_workspace() -> Option<(PathBuf, TuiConfig, tempfile::TempDir)> {
     std::fs::write(workspace.join("README.md"), "# fake\n").expect("readme");
     std::fs::write(workspace.join("src").join("main.rs"), "fn main() {}\n").expect("main");
     let server_path = temp.path().join("fake-foundry-mcp.mjs");
-    std::fs::write(&server_path, fake_mcp_server_script()).expect("fake server");
+    std::fs::write(&server_path, script).expect("fake server");
     let mut config = TuiConfig::default();
     config.architect_mcp.command = Some("node".to_string());
     config.architect_mcp.args = vec![server_path.display().to_string()];
@@ -180,7 +224,7 @@ rl.on('line', (line) => {
         evidence: [],
         coverage: { scanTruncated: false, detailedFindingsTruncated: false, filesReviewed: 12, maxFiles: 50, topScannedDirectories: [], findingHistogram: [], caveats: [] },
         suppressionPrerequisites: [],
-        publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+        publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, localPathsIncluded: false, tokenValuesIncluded: false, mutationAllowed: false }
       }
     });
   } else if (name === 'score_foundry_actionability') {
@@ -221,6 +265,65 @@ rl.on('line', (line) => {
         previews: [{ id: 'ffp-001-pull_request', kind: 'pull_request', sourceDecisionId: 'fdl-001-pr_preview', title: '[foundry-preview] redacted decision', warnings: ['Decision is redacted.'], mutation: { serverMutationAllowed: false, explicitApprovalRequired: true } }],
         publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, localPathsIncluded: false, tokenValuesIncluded: false, mutationAllowed: false, publicPreviewsOnly: true }
       }
+    });
+  } else {
+    tool(msg.id, { ok: true });
+  }
+});
+"#
+}
+
+fn fake_mcp_server_script_missing_inventory() -> &'static str {
+    r#"
+import readline from 'node:readline';
+const rl = readline.createInterface({ input: process.stdin });
+function respond(id, result) {
+  console.log(JSON.stringify({ jsonrpc: '2.0', id, result }));
+}
+function tool(id, value) {
+  respond(id, { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value });
+}
+rl.on('line', (line) => {
+  const msg = JSON.parse(line);
+  if (!msg.id) return;
+  if (msg.method === 'initialize') {
+    respond(msg.id, { protocolVersion: '2025-11-25', capabilities: {}, serverInfo: { name: 'fake', version: '0.0.0' } });
+    return;
+  }
+  if (msg.method !== 'tools/call') {
+    respond(msg.id, {});
+    return;
+  }
+  const name = msg.params.name;
+  if (name === 'review_local_workspace') {
+    tool(msg.id, {
+      filesReviewed: 2,
+      scan: { truncated: false },
+      summary: { errors: 0, warnings: 0 },
+      report: { gate: { status: 'pass' } },
+      violations: []
+    });
+  } else if (name === 'derive_local_repo_constitution') {
+    tool(msg.id, {
+      filesReviewed: 2,
+      constitution: {
+        schemaVersion: 1,
+        summary: { hardSignals: 1, advisorySignals: 0, warnings: 0, missingRecommendedSignals: [], primaryLanguages: ['Rust'], packageManagers: ['cargo'], repoShape: 'rust_cli' },
+        pullRequests: { templates: [], recentStyle: { advisory: false, sampleSize: 0, acceptedSamples: 0, maintainerAuthoredSamples: 0, botSamplesIgnored: 0, nonMergedOrUnknownSamplesIgnored: 0, commonHeadings: [], checklistObserved: false, releaseNoteObserved: false, linkedIssueObserved: false }, precedence: [] },
+        ci: { workflows: [], labelerConfigPaths: [] },
+        release: { changelogPaths: [], releaseWorkflowPaths: [], releaseDocPaths: [] },
+        packageMetadata: [],
+        maintainerConstraints: [],
+        findings: [],
+        provenance: [],
+        publicSafety: { rawContentIncluded: false, mutationAllowed: false }
+      }
+    });
+  } else if (name === 'normalize_foundry_evidence') {
+    tool(msg.id, {
+      schemaVersion: 1,
+      summary: { totalEvidence: 1, redacted: 0, omittedRawPayloads: 0, suppressionCandidates: 0, coverageCaveats: 0 },
+      publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, localPathsIncluded: false, tokenValuesIncluded: false, mutationAllowed: false }
     });
   } else {
     tool(msg.id, { ok: true });

@@ -88,11 +88,12 @@ fn call_foundry_chain(
             "allowOutsideCwd": allow_outside_cwd
         }),
     )?;
-    let repo_constitution = constitution
-        .get("constitution")
-        .cloned()
-        .unwrap_or_else(|| json!({}));
-    let inventory = call_required(
+    let repo_constitution = required_object_field(
+        &constitution,
+        "derive_local_repo_constitution",
+        "constitution",
+    )?;
+    let inventory_response = call_required(
         client,
         tools_called,
         "normalize_foundry_evidence",
@@ -100,40 +101,40 @@ fn call_foundry_chain(
             "reviewReports": [review.clone()],
             "repoConstitution": repo_constitution
         }),
-    )?
-    .get("inventory")
-    .cloned()
-    .unwrap_or_else(|| json!({}));
-    let actionability = call_required(
+    )?;
+    let inventory = required_object_field(
+        &inventory_response,
+        "normalize_foundry_evidence",
+        "inventory",
+    )?;
+    let actionability_response = call_required(
         client,
         tools_called,
         "score_foundry_actionability",
         json!({ "inventory": inventory }),
-    )?
-    .get("actionability")
-    .cloned()
-    .unwrap_or_else(|| json!({}));
-    let ledger = call_required(
+    )?;
+    let actionability = required_object_field(
+        &actionability_response,
+        "score_foundry_actionability",
+        "actionability",
+    )?;
+    let ledger_response = call_required(
         client,
         tools_called,
         "route_foundry_decisions",
         json!({ "actionability": actionability }),
-    )?
-    .get("ledger")
-    .cloned()
-    .unwrap_or_else(|| json!({}));
-    let forge = call_required(
+    )?;
+    let ledger = required_object_field(&ledger_response, "route_foundry_decisions", "ledger")?;
+    let forge_response = call_required(
         client,
         tools_called,
         "forge_foundry_previews",
         json!({
             "ledger": ledger,
-            "repoConstitution": constitution.get("constitution").cloned().unwrap_or_else(|| json!({}))
+            "repoConstitution": repo_constitution
         }),
-    )?
-    .get("forge")
-    .cloned()
-    .unwrap_or_else(|| json!({}));
+    )?;
+    let forge = required_object_field(&forge_response, "forge_foundry_previews", "forge")?;
 
     Ok((
         review,
@@ -156,6 +157,16 @@ fn call_required(
         McpToolOutcome::Ok { value } => Ok(value),
         McpToolOutcome::Error { error } => anyhow::bail!("{name} failed: {}", error.message),
     }
+}
+
+fn required_object_field(value: &Value, tool_name: &str, field: &str) -> Result<Value> {
+    let Some(field_value) = value.get(field) else {
+        anyhow::bail!("{tool_name} missing structuredContent.{field}");
+    };
+    if !field_value.is_object() {
+        anyhow::bail!("{tool_name} returned non-object structuredContent.{field}");
+    }
+    Ok(field_value.clone())
 }
 
 #[cfg(test)]

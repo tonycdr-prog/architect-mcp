@@ -103,13 +103,22 @@ pub(crate) fn decisions(ledger: &Value, forge: &Value) -> Vec<FoundryAuditDecisi
 pub(crate) fn public_safety_summary(values: [&Value; 3]) -> FoundryAuditPublicSafety {
     let mut safety = FoundryAuditPublicSafety::default();
     for value in values {
-        let public_safety = value.get("publicSafety").unwrap_or(value);
-        safety.raw_payloads_included |= bool_field(public_safety, "rawPayloadsIncluded");
-        safety.raw_repo_content_included |= bool_field(public_safety, "rawRepoContentIncluded")
-            || bool_field(public_safety, "rawContentIncluded");
-        safety.local_paths_included |= bool_field(public_safety, "localPathsIncluded");
-        safety.token_values_included |= bool_field(public_safety, "tokenValuesIncluded");
-        safety.mutation_allowed |= bool_field(public_safety, "mutationAllowed");
+        let Some(public_safety) = value.get("publicSafety") else {
+            safety.raw_payloads_included = true;
+            safety.raw_repo_content_included = true;
+            safety.local_paths_included = true;
+            safety.token_values_included = true;
+            safety.mutation_allowed = true;
+            continue;
+        };
+        safety.raw_payloads_included |= bool_field_aliases(public_safety, &["rawPayloadsIncluded"]);
+        safety.raw_repo_content_included |= bool_field_aliases(
+            public_safety,
+            &["rawRepoContentIncluded", "rawContentIncluded"],
+        );
+        safety.local_paths_included |= bool_field_aliases(public_safety, &["localPathsIncluded"]);
+        safety.token_values_included |= bool_field_aliases(public_safety, &["tokenValuesIncluded"]);
+        safety.mutation_allowed |= bool_field_aliases(public_safety, &["mutationAllowed"]);
     }
     safety
 }
@@ -193,6 +202,55 @@ fn field_u64(value: &Value, name: &str) -> u64 {
     value.get(name).and_then(Value::as_u64).unwrap_or(0)
 }
 
-fn bool_field(value: &Value, name: &str) -> bool {
-    value.get(name).and_then(Value::as_bool).unwrap_or(false)
+fn bool_field_aliases(value: &Value, names: &[&str]) -> bool {
+    let mut saw_alias = false;
+    let mut included = false;
+    for name in names {
+        match value.get(name) {
+            Some(Value::Bool(current)) => {
+                saw_alias = true;
+                included |= *current;
+            }
+            Some(_) => return true,
+            None => continue,
+        }
+    }
+    if saw_alias { included } else { true }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::public_safety_summary;
+
+    #[test]
+    fn public_safety_fails_closed_when_public_safety_block_missing() {
+        let safety = public_safety_summary([
+            &json!({"summary": {}}),
+            &json!({"publicSafety": {"rawPayloadsIncluded": false, "rawRepoContentIncluded": false, "localPathsIncluded": false, "tokenValuesIncluded": false, "mutationAllowed": false}}),
+            &json!({"publicSafety": {"rawPayloadsIncluded": false, "rawRepoContentIncluded": false, "localPathsIncluded": false, "tokenValuesIncluded": false, "mutationAllowed": false}}),
+        ]);
+
+        assert!(safety.raw_payloads_included);
+        assert!(safety.raw_repo_content_included);
+        assert!(safety.local_paths_included);
+        assert!(safety.token_values_included);
+        assert!(safety.mutation_allowed);
+    }
+
+    #[test]
+    fn public_safety_fails_closed_when_flags_are_missing_or_malformed() {
+        let safety = public_safety_summary([
+            &json!({"publicSafety": {"rawPayloadsIncluded": false, "rawRepoContentIncluded": false, "localPathsIncluded": false, "tokenValuesIncluded": false, "mutationAllowed": false}}),
+            &json!({"publicSafety": {"rawPayloadsIncluded": "nope", "rawRepoContentIncluded": false, "localPathsIncluded": false, "tokenValuesIncluded": false, "mutationAllowed": false}}),
+            &json!({"publicSafety": {"rawRepoContentIncluded": false, "localPathsIncluded": false, "tokenValuesIncluded": false, "mutationAllowed": false}}),
+        ]);
+
+        assert!(safety.raw_payloads_included);
+        assert!(!safety.raw_repo_content_included);
+        assert!(!safety.local_paths_included);
+        assert!(!safety.token_values_included);
+        assert!(!safety.mutation_allowed);
+    }
 }
