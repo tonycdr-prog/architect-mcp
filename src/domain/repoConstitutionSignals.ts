@@ -25,10 +25,12 @@ export function collectPullRequestTemplates(
   const templatePaths = [...paths].filter(isPullRequestTemplatePath).sort();
   addPathProvenance(provenance, "pull-request-template", templatePaths, "Repository pull request template.");
   return templatePaths.map((path) => {
+    const contentProvided = artifacts.has(path);
     const content = artifacts.get(path) ?? "";
     const visibleContent = stripHtmlComments(content).trim();
     return {
       path,
+      contentProvided,
       hiddenCommentOnly: Boolean(content.trim()) && visibleContent.length === 0,
       headings: extractMarkdownHeadings(visibleContent || content),
       checklistItems: countChecklistItems(content),
@@ -208,7 +210,7 @@ function languageForPath(path: string): string | undefined {
 
 function extractWorkflowTriggers(content: string): string[] {
   const triggers = new Set<string>();
-  for (const match of content.matchAll(/^\s{0,2}(pull_request|pull_request_target|push|workflow_dispatch|schedule|release):/gm)) {
+  for (const match of content.matchAll(/^\s*(pull_request|pull_request_target|push|workflow_dispatch|schedule|release):/gm)) {
     triggers.add(match[1]);
   }
   const inline = /^on:\s*\[([^\]]+)\]/im.exec(content)?.[1] ?? "";

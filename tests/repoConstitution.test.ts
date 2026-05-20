@@ -38,6 +38,7 @@ describe("deriveRepoConstitution", () => {
     assert.equal(constitution.publicSafety.rawContentIncluded, false);
     assert.equal(constitution.publicSafety.mutationAllowed, false);
     assert.deepEqual(constitution.instructions.agentInstructionPaths, ["AGENTS.md"]);
+    assert.equal(constitution.pullRequests.templates[0].contentProvided, true);
     assert.equal(constitution.pullRequests.templates[0].mentionsVerification, true);
     assert.equal(constitution.pullRequests.templates[0].mentionsReleaseNotes, true);
     assert.deepEqual(constitution.ci.workflows[0].triggers, ["pull_request", "push"]);
@@ -117,6 +118,22 @@ describe("deriveRepoConstitution", () => {
       "pull_request_template.md"
     ]);
     assert.deepEqual(constitution.ci.workflows[0].triggers, ["push"]);
+  });
+
+  it("does not treat missing template artifact bodies as sparse templates", () => {
+    const constitution = deriveRepoConstitution({
+      files: [
+        { path: ".github/pull_request_template.md", lines: 20 },
+        { path: ".github/workflows/ci.yml", lines: 20 }
+      ],
+      artifacts: [
+        { path: ".github/workflows/ci.yml", content: "name: CI\non:\n    pull_request:\n" }
+      ]
+    });
+
+    assert.equal(constitution.pullRequests.templates[0].contentProvided, false);
+    assert.equal(constitution.findings.some((finding) => finding.code === "HIDDEN_OR_SPARSE_PR_TEMPLATE"), false);
+    assert.deepEqual(constitution.ci.workflows[0].triggers, ["pull_request"]);
   });
 
   it("summarizes polyglot repos before single package manager shapes", () => {

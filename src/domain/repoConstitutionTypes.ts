@@ -68,6 +68,7 @@ export type RepoConstitution = {
 
 export type PullRequestTemplateSummary = {
   path: string;
+  contentProvided: boolean;
   hiddenCommentOnly: boolean;
   headings: string[];
   checklistItems: number;

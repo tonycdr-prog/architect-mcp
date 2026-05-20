@@ -144,7 +144,7 @@ function collectFindings(input: {
       recommendation: "Use recent accepted PR style as advisory fallback and ask a maintainer before mutating external repos."
     });
   }
-  if (input.templates.some((template) => template.hiddenCommentOnly || (template.headings.length === 0 && template.checklistItems === 0))) {
+  if (input.templates.some((template) => template.contentProvided && (template.hiddenCommentOnly || (template.headings.length === 0 && template.checklistItems === 0)))) {
     findings.push({
       code: "HIDDEN_OR_SPARSE_PR_TEMPLATE",
       severity: "warning",

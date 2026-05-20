@@ -1,6 +1,6 @@
 # Use architect-mcp On A Repo
 
-The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_contract`, `review_build_plan`, `review_proposed_file_plan`, `review_repo_structure`, `review_implementation_against_contract`, `review_agent_final_response`, and `review_agent_session`. Set `ARCHITECT_MCP_TOOL_SURFACE=advanced` when you need stack-pack authoring, governance, repo-quality, productization boundary, or eval tools.
+The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_contract`, `review_build_plan`, `review_proposed_file_plan`, `review_repo_structure`, `review_implementation_against_contract`, `review_agent_final_response`, and `review_agent_session`. Set `ARCHITECT_MCP_TOOL_SURFACE=advanced` when you need stack-pack authoring, governance, repo-quality, productization boundary, eval, repo constitution, workspace review, or MCP config review tools. Local-only tools still require an environment that enables trusted workspace access.
 
 ## Local Flow
 
