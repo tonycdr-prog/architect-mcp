@@ -6,6 +6,7 @@ import {
   type RepoConstitutionPullRequest
 } from "../domain/repoConstitution.js";
 import { normalizeFoundryEvidence, type FoundryEvidenceInventoryInput } from "../domain/foundryEvidence.js";
+import { scoreFoundryActionability, type FoundryActionabilityInput } from "../domain/foundryActionability.js";
 import { deriveLocalRepoConstitution } from "../infrastructure/repoConstitutionWorkspace.js";
 import { safeJsonResponse } from "./responses.js";
 import { fileSummarySchema, genericObjectOutputSchema } from "./schemas.js";
@@ -92,6 +93,25 @@ const repoConstitutionSchema = z.object({
 }).passthrough();
 
 export function registerFoundryTools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
+  server.registerTool(
+    "score_foundry_actionability",
+    {
+      title: "Score Foundry Actionability",
+      description: "Score normalized Foundry evidence for PR-preview suitability, human review, exceptions, and no-op candidates without mutating repositories.",
+      inputSchema: {
+        inventory: z.object({}).passthrough(),
+        verificationHints: z.array(z.string()).optional()
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ inventory, verificationHints }) => safeJsonResponse(() => ({
+      actionability: scoreFoundryActionability({
+        inventory,
+        verificationHints
+      } as FoundryActionabilityInput)
+    }))
+  );
+
   server.registerTool(
     "normalize_foundry_evidence",
     {

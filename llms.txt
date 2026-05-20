@@ -61,6 +61,7 @@ Advanced surface: set ARCHITECT_MCP_TOOL_SURFACE=advanced to expose stack-pack, 
 - list_repo_profiles: list reusable repo layout profiles.
 - get_repo_profile: return one repo profile by id.
 - infer_repo_layout: infer canonical-to-existing repo path mappings.
+- score_foundry_actionability: score normalized Foundry evidence for PR-preview suitability, human review, exceptions, and no-op candidates.
 - normalize_foundry_evidence: normalize findings, verification, repo constitution, coverage, and suppression candidates into public-safe Foundry evidence.
 - derive_repo_constitution: derive repo instructions, PR templates, CI, release, package, and recent-PR style signals from supplied evidence.
 - derive_local_repo_constitution: local-only scan that derives a public-safe repo constitution without mutating files.
