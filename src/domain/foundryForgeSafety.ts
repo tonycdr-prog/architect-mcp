@@ -1,11 +1,13 @@
-import { publicSafeSummary, publicSafeText } from "./publicSafetyText.js";
+import { publicSafeSummary } from "./publicSafetyText.js";
 
 export function safeForgeList(values: string[]): string[] {
   return values.map(safeForgeSummary).filter((value) => value.length > 0);
 }
 
 export function safeForgeText(value: string): string {
-  return publicSafeText(value).value;
+  const safe = publicSafeSummary(value).value;
+  if (hasRawRepoContent(safe)) return "[redacted-raw-repo-content]";
+  return safe;
 }
 
 export function safeForgeSummary(value: string): string {

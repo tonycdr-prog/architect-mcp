@@ -76,6 +76,40 @@ describe("forgeFoundryPreviews", () => {
     assert.equal(forge.previews[0].warnings.some((warning) => /No PR template/.test(warning)), true);
   });
 
+  it("accepts schema-compatible partial constitution flags without dropping template headings", () => {
+    const forge = forgeFoundryPreviews({
+      ledger: ledger([entry("pr_preview")]),
+      repoConstitution: {
+        schemaVersion: 1,
+        pullRequests: {
+          templates: [{
+            path: ".github/pull_request_template.md",
+            contentProvided: true,
+            headings: ["Summary", "Verification"],
+            checklistItems: 0
+          }],
+          recentStyle: {
+            advisory: true,
+            sampleSize: 0,
+            acceptedSamples: 0,
+            maintainerAuthoredSamples: 0,
+            botSamplesIgnored: 0,
+            nonMergedOrUnknownSamplesIgnored: 0,
+            commonHeadings: [],
+            checklistObserved: false,
+            releaseNoteObserved: false,
+            linkedIssueObserved: false
+          }
+        },
+        findings: []
+      }
+    });
+
+    assert.deepEqual(forge.previews[0].sections.map((section) => section.heading), ["Summary", "Verification"]);
+    assert.equal(forge.previews[0].warnings.some((warning) => /No repo constitution/.test(warning)), false);
+    assert.equal(forge.previews[0].warnings.some((warning) => /No CI workflow/.test(warning)), true);
+  });
+
   it("dedupes multiple template styles and generates architect issue previews safely", () => {
     const constitution = deriveRepoConstitution({
       files: [
@@ -107,6 +141,27 @@ describe("forgeFoundryPreviews", () => {
     assert.equal(serialized.includes("/Users/alice"), false);
     assert.equal(serialized.includes("npm_abcdefghijklmnopqrstuvwxyz1234567890"), false);
     assert.equal(serialized.includes("stdout:"), false);
+  });
+
+  it("redacts raw-output markers from headings, ids, and evidence aliases", () => {
+    const constitution = deriveRepoConstitution({
+      files: [{ path: ".github/pull_request_template.md", lines: 1 }],
+      artifacts: [{ path: ".github/pull_request_template.md", content: "## stdout: maintainer detail\n" }]
+    });
+    const forge = forgeFoundryPreviews({
+      ledger: ledger([entry("pr_preview", {
+        id: "stdout: private decision id",
+        evidenceIds: ["payload: private evidence alias"]
+      })]),
+      repoConstitution: constitution
+    });
+    const serialized = JSON.stringify(forge);
+
+    assert.equal(serialized.includes("stdout:"), false);
+    assert.equal(serialized.includes("payload:"), false);
+    assert.equal(serialized.includes("private decision id"), false);
+    assert.equal(serialized.includes("private evidence alias"), false);
+    assert.match(serialized, /\[redacted-raw-output\]/);
   });
 
   it("emits exception, no-op, and human-question records without mutation", () => {

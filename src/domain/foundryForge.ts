@@ -1,4 +1,4 @@
-import { isForgeRepoConstitution, isFoundryDecisionLedgerReport } from "./foundryForgeInput.js";
+import { isFoundryDecisionLedgerReport, normalizeForgeRepoConstitution } from "./foundryForgeInput.js";
 import { forgeBulletList, safeForgeList, safeForgeScore, safeForgeSummary, safeForgeText, shortForgeReason } from "./foundryForgeSafety.js";
 import type { FoundryDecisionLedgerEntry, FoundryDecisionLedgerReport, FoundryDecisionRoute } from "./foundryDecisionLedgerTypes.js";
 import type {
@@ -18,7 +18,7 @@ const MAX_HEADINGS = 8;
 
 export function forgeFoundryPreviews(input: FoundryForgePreviewInput = {}): FoundryForgePreviewReport {
   const ledger = isFoundryDecisionLedgerReport(input.ledger) ? input.ledger : emptyLedger();
-  const constitution = isForgeRepoConstitution(input.repoConstitution) ? input.repoConstitution : undefined;
+  const constitution = normalizeForgeRepoConstitution(input.repoConstitution);
   const previews = ledger.entries.map((entry, index) => previewFor(entry, index, constitution));
   return {
     schemaVersion: 1,
