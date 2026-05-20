@@ -7,6 +7,7 @@ import {
 } from "../domain/repoConstitution.js";
 import { normalizeFoundryEvidence, type FoundryEvidenceInventoryInput } from "../domain/foundryEvidence.js";
 import { scoreFoundryActionability, type FoundryActionabilityInput } from "../domain/foundryActionability.js";
+import { routeFoundryDecisions, type FoundryDecisionLedgerInput } from "../domain/foundryDecisionLedger.js";
 import { deriveLocalRepoConstitution } from "../infrastructure/repoConstitutionWorkspace.js";
 import { safeJsonResponse } from "./responses.js";
 import { fileSummarySchema, genericObjectOutputSchema } from "./schemas.js";
@@ -93,6 +94,27 @@ const repoConstitutionSchema = z.object({
 }).passthrough();
 
 export function registerFoundryTools(server: McpServer, options: { enableLocalWorkspaceTool?: boolean } = {}): void {
+  server.registerTool(
+    "route_foundry_decisions",
+    {
+      title: "Route Foundry Decisions",
+      description: "Route scored Foundry actionability assessments into public-safe ledger entries without writing files or mutating repositories.",
+      inputSchema: {
+        actionability: z.object({}).passthrough(),
+        ledgerId: z.string().optional(),
+        recordedAt: z.string().optional()
+      },
+      outputSchema: genericObjectOutputSchema
+    },
+    async ({ actionability, ledgerId, recordedAt }) => safeJsonResponse(() => ({
+      ledger: routeFoundryDecisions({
+        actionability,
+        ledgerId,
+        recordedAt
+      } as FoundryDecisionLedgerInput)
+    }))
+  );
+
   server.registerTool(
     "score_foundry_actionability",
     {
