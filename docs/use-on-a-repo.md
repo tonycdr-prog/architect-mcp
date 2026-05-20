@@ -12,10 +12,11 @@ The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_con
 6. Normalize review findings, external tool findings, verification summaries, coverage, and repo constitution output with `normalize_foundry_evidence` before scoring or routing.
 7. Score normalized evidence with `score_foundry_actionability` before generating PR previews, issue previews, exceptions, or human questions.
 8. Route scored decisions with `route_foundry_decisions` so each finding has an explicit public-safe ledger route before any PR, issue, exception, no-op, or human-question workflow.
-9. Run `scan_mcp_config_files` to check `.mcp.json`, Cursor, Claude Desktop, and Codex MCP configs.
-10. Use `review_build_plan` before implementation slices.
-11. Use `review_agent_session` before final output when a client has intent, contract, changed files, verification, memory, and response data.
-12. Use `review_agent_final_response` before sending a final reply.
+9. Forge preview-only PR, issue, exception, no-op, or human-question artifacts with `forge_foundry_previews`; treat the output as a draft artifact, not mutation permission.
+10. Run `scan_mcp_config_files` to check `.mcp.json`, Cursor, Claude Desktop, and Codex MCP configs.
+11. Use `review_build_plan` before implementation slices.
+12. Use `review_agent_session` before final output when a client has intent, contract, changed files, verification, memory, and response data.
+13. Use `review_agent_final_response` before sending a final reply.
 
 ## Hosted-Safe Flow
 
@@ -25,9 +26,10 @@ The default MCP surface is the agent work gate: `grill_me`, `create_pre_edit_con
 4. Send supplied review reports, external finding summaries, verification summaries, and constitution output to `normalize_foundry_evidence`.
 5. Send normalized evidence to `score_foundry_actionability`; treat the result as advisory until the decision-ledger routing step records an explicit route.
 6. Send scored actionability output to `route_foundry_decisions`; use the emitted ledger routes as public-safe previews, not as mutation permission.
-7. Send parsed MCP config objects to `review_mcp_config_security`.
-8. Use `audit_hosted_tool_policy` to confirm local-only tools are not exposed.
-9. Keep memory tools stateless unless a future adapter is explicitly configured.
+7. Send the public-safe ledger and repo constitution to `forge_foundry_previews` to generate maintainer-native previews without creating branches, issues, pull requests, comments, or labels.
+8. Send parsed MCP config objects to `review_mcp_config_security`.
+9. Use `audit_hosted_tool_policy` to confirm local-only tools are not exposed.
+10. Keep memory tools stateless unless a future adapter is explicitly configured.
 
 ## Repo Constitution Flow
 
@@ -42,6 +44,8 @@ Use `normalize_foundry_evidence` after repo constitution derivation and read-onl
 Use `score_foundry_actionability` on that inventory before proposing maintainer work. The score is deterministic and advisory: it labels findings as `pr_preview_candidate`, `ask_human`, `exception_candidate`, or `no_op_candidate` and explains evidence strength, confidence, blast radius, patch-size confidence, maintainer fit, duplicate risk, release impact, verification path, public-safety risk, and expected maintainer value. The scorer does not mutate repositories and does not create issues or PRs; later routing and forge steps must still record an explicit decision.
 
 Use `route_foundry_decisions` after scoring to emit the next explicit preview route for each finding: `pr_preview`, `architect_issue`, `exception`, `no_op`, or `ask_human`. The ledger reports public-safe, ledger-local evidence aliases, decision reasons, redaction state, verification requirements, approval state, and next action while reporting zero server writes. Direct MCP clients must treat `pr_preview`, `architect_issue`, and `exception` as approval-required previews only; the tool does not write files, create GitHub issues, open pull requests, or persist raw MCP payloads.
+
+Use `forge_foundry_previews` after decision routing to render public-safe draft artifacts for the chosen routes. Pull request previews use repository PR-template headings as hard signals, recent accepted PR headings only as advisory fallback when templates are missing or sparse, and include verification, release-note impact, ledger-local evidence aliases, maintainer-fit rationale, and an architect-mcp footer. Architect issue previews, exception records, no-op records, and human questions remain preview-only as well. The forge reports zero server writes and never creates branches, issues, pull requests, comments, labels, or raw payload persistence.
 
 ## Baseline Flow
 

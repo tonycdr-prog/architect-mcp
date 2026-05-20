@@ -63,7 +63,7 @@ export const ADVANCED_ARCHITECTURE_TOOL_NAMES = [
   "validate_v10_productization_boundary", "run_v10_eval_harness",
   "build_quality_requirements_profile", "evaluate_repo_plan_quality", "audit_generated_repo_quality",
   "suggest_quality_followup_questions", "run_repo_quality_eval_scenarios",
-  "route_foundry_decisions", "score_foundry_actionability", "normalize_foundry_evidence", "derive_repo_constitution", "derive_local_repo_constitution",
+  "forge_foundry_previews", "route_foundry_decisions", "score_foundry_actionability", "normalize_foundry_evidence", "derive_repo_constitution", "derive_local_repo_constitution",
   "review_local_workspace", "scan_mcp_config_files"
 ] as const;
 

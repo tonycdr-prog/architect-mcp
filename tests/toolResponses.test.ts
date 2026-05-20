@@ -218,6 +218,7 @@ describe("MCP tool responses", () => {
       assert.equal(tools.tools.some((tool) => tool.name === "audit_generated_repo_quality"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "suggest_quality_followup_questions"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "run_repo_quality_eval_scenarios"), true);
+      assert.equal(tools.tools.some((tool) => tool.name === "forge_foundry_previews"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "normalize_foundry_evidence"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "derive_repo_constitution"), true);
       assert.equal(tools.tools.some((tool) => tool.name === "derive_local_repo_constitution"), true);
