@@ -22,7 +22,8 @@ function isEvidenceRecord(value: unknown): value is FoundryEvidenceItem {
     typeof value.publicSummary === "string" &&
     (value.recommendation === undefined || typeof value.recommendation === "string") &&
     (value.publicSafetyClass === "public" || value.publicSafetyClass === "redacted" || value.publicSafetyClass === "sensitive") &&
-    (value.redactionStatus === "none" || value.redactionStatus === "redacted" || value.redactionStatus === "omitted_raw_payload" || value.redactionStatus === "redacted_and_omitted_raw_payload");
+    (value.redactionStatus === "none" || value.redactionStatus === "redacted" || value.redactionStatus === "omitted_raw_payload" || value.redactionStatus === "redacted_and_omitted_raw_payload") &&
+    (value.suppressionCandidate === undefined || isSuppressionCandidate(value.suppressionCandidate));
 }
 
 function isCoverageRecord(value: unknown): value is FoundryEvidenceInventory["coverage"] {
@@ -57,6 +58,22 @@ function isKnownSourceType(value: unknown): value is FoundryEvidenceItem["source
 
 function isKnownConfidence(value: unknown): value is FoundryEvidenceItem["confidence"] {
   return value === "high" || value === "medium" || value === "low";
+}
+
+function isSuppressionCandidate(value: unknown): boolean {
+  return isRecord(value) &&
+    isKnownSuppressionCategory(value.category) &&
+    typeof value.reason === "string" &&
+    typeof value.prerequisiteIssue === "string";
+}
+
+function isKnownSuppressionCategory(value: unknown): boolean {
+  return value === "generated_file" ||
+    value === "vendored_code" ||
+    value === "fixture_or_test_data" ||
+    value === "docs_example" ||
+    value === "conventional_entrypoint" ||
+    value === "repo_profile_mismatch";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

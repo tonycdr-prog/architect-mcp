@@ -170,6 +170,39 @@ describe("scoreFoundryActionability", () => {
     assert.deepEqual(report.assessments, []);
   });
 
+  it("rejects malformed suppression candidates before blocker text is rendered", () => {
+    const report = scoreFoundryActionability({
+      inventory: {
+        schemaVersion: 1,
+        summary: { totalEvidence: 1, bySourceType: {}, byConfidence: {}, byPublicSafetyClass: {}, redacted: 0, omittedRawPayloads: 0, suppressionCandidates: 0, coverageCaveats: 0 },
+        evidence: [{
+          id: "fev-malformed-suppression",
+          kind: "finding",
+          sourceType: "external_tool",
+          sourceRef: { sourceType: "external_tool", sourceId: "scanner" },
+          confidence: "high",
+          severity: "warning",
+          code: "ARCH001_OVERSIZED_FILE",
+          path: "src/generated.ts",
+          publicSummary: "Malformed suppression candidate should not score.",
+          publicSafetyClass: "public",
+          redactionStatus: "none",
+          suppressionCandidate: {
+            category: "private customer Acme incident",
+            reason: "caller supplied",
+            prerequisiteIssue: "private issue"
+          }
+        }],
+        coverage: { scanTruncated: false, detailedFindingsTruncated: false, topScannedDirectories: [], findingHistogram: [], caveats: [] },
+        suppressionPrerequisites: [],
+        publicSafety: { rawPayloadsIncluded: false, rawRepoContentIncluded: false, mutationAllowed: false }
+      } as any
+    });
+
+    assert.equal(report.summary.totalFindings, 0);
+    assert.equal(JSON.stringify(report).includes("Acme"), false);
+  });
+
   it("redacts raw-output-shaped caller identity fields before returning assessments", () => {
     const report = scoreFoundryActionability({
       inventory: {
