@@ -29,7 +29,11 @@ describe("Foundry decision ledger MCP tool", () => {
       });
 
       assert.equal(routed.ledger.schemaVersion, 1);
+      assert.equal(routed.ledger.ledgerId, "foundry-ledger");
       assert.equal(routed.ledger.entries[0].route, "pr_preview");
+      assert.deepEqual(routed.ledger.entries[0].evidenceIds, ["fde-001"]);
+      assert.deepEqual(routed.ledger.entries[0].source, { score: 81 });
+      assert.equal(Object.hasOwn(routed.ledger.entries[0].source, "actionabilityDecision"), false);
       assert.equal(routed.ledger.entries[0].mutation.serverMutationAllowed, false);
       assert.equal(routed.ledger.publicSafety.rawPayloadsIncluded, false);
       assert.equal(routed.ledger.summary.serverWritesPerformed, 0);
@@ -121,9 +125,13 @@ describe("Foundry decision ledger MCP tool", () => {
       assert.equal(routed.ledger.publicSafety.tokenValuesIncluded, false);
       assert.equal(routed.ledger.publicSafety.mutationAllowed, false);
       assert.equal(routed.ledger.summary.serverWritesPerformed, 0);
+      assert.equal(routed.ledger.ledgerId, "foundry-ledger");
       assert.equal(serialized.includes("/Users/alice"), false);
       assert.equal(serialized.includes("npm_abcdefghijklmnopqrstuvwxyz1234567890"), false);
       assert.equal(serialized.includes("private"), false);
+      assert.equal(serialized.includes("fev-"), false);
+      assert.equal(serialized.includes("actionabilityDecision"), false);
+      assert.equal(serialized.includes("\"path\""), false);
     } finally {
       await close();
     }

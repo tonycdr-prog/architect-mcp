@@ -22,10 +22,7 @@ export type FoundryDecisionLedgerEntry = {
   route: FoundryDecisionRoute;
   evidenceIds: string[];
   source: {
-    actionabilityDecision: string;
     score: number;
-    code?: string;
-    path?: string;
   };
   decisionReason: string;
   redactionState: FoundryDecisionRedactionState;

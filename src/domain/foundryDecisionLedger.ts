@@ -20,7 +20,7 @@ export function routeFoundryDecisions(input: FoundryDecisionLedgerInput = {}): F
   const entries = actionability.assessments.map((assessment, index) => ledgerEntry(assessment, index));
   return {
     schemaVersion: 1,
-    ledgerId: safeRequiredText(input.ledgerId, "foundry-ledger"),
+    ledgerId: "foundry-ledger",
     recordedAt: safeOptionalText(input.recordedAt),
     summary: summarizeEntries(entries),
     entries,
@@ -42,12 +42,9 @@ function ledgerEntry(assessment: FoundryActionabilityAssessment, index: number):
   return {
     id: `fdl-${String(index + 1).padStart(3, "0")}-${route}`,
     route,
-    evidenceIds: [safeRequiredText(assessment.evidenceId, "unknown-evidence")],
+    evidenceIds: [`fde-${String(index + 1).padStart(3, "0")}`],
     source: {
-      actionabilityDecision: safeRequiredText(assessment.decision, "unknown_decision"),
-      score: clamp(assessment.score),
-      code: safeOptionalText(assessment.code),
-      path: safeOptionalText(assessment.path)
+      score: clamp(assessment.score)
     },
     decisionReason: decisionReason(route, assessment),
     redactionState,
@@ -62,6 +59,7 @@ function ledgerEntry(assessment: FoundryActionabilityAssessment, index: number):
 }
 
 function routeAssessment(assessment: FoundryActionabilityAssessment): FoundryDecisionRoute {
+  if (!hasRoutingFactors(assessment)) return "ask_human";
   if (requiresHumanDisclosure(assessment)) return "ask_human";
   if (assessment.decision === "pr_preview_candidate") return "pr_preview";
   if (assessment.decision === "exception_candidate") return "exception";
@@ -72,14 +70,14 @@ function routeAssessment(assessment: FoundryActionabilityAssessment): FoundryDec
 
 function requiresHumanDisclosure(assessment: FoundryActionabilityAssessment): boolean {
   const publicSafety = factorScore(assessment, "public_safety_risk");
-  const text = [...assessment.blockers, ...assessment.publicRationale].join(" ").toLowerCase();
+  const text = assessmentText(assessment);
   return publicSafety < 50 ||
     hasRawRepoContent(text) ||
     /security-sensitive|redacted evidence|identity fields|safe disclosure|human disclosure/.test(text);
 }
 
 function redactionStateFor(assessment: FoundryActionabilityAssessment): FoundryDecisionRedactionState {
-  const text = [...assessment.blockers, ...assessment.publicRationale].join(" ").toLowerCase();
+  const text = assessmentText(assessment);
   if (factorScore(assessment, "public_safety_risk") < 35 || /security-sensitive|safe disclosure/.test(text)) return "sensitive";
   if (factorScore(assessment, "public_safety_risk") < 75 || hasRawRepoContent(text) || /redacted|identity fields|\[redacted-/.test(text)) return "redacted";
   return "public";
@@ -94,7 +92,7 @@ function approvalStateFor(route: FoundryDecisionRoute): FoundryDecisionApprovalS
 function decisionReason(route: FoundryDecisionRoute, assessment: FoundryActionabilityAssessment): string {
   const blocker = assessment.blockers[0] ? ` Primary blocker: ${assessment.blockers[0]}` : "";
   const rationale = assessment.publicRationale[0] ? ` ${assessment.publicRationale[0]}` : "";
-  return publicSafeLedgerSummary(`Route ${route} from ${assessment.decision} at score ${clamp(assessment.score)}.${blocker}${rationale}`);
+  return publicSafeLedgerSummary(`Route ${route} at score ${clamp(assessment.score)}.${blocker}${rationale}`);
 }
 
 function nextActionFor(route: FoundryDecisionRoute): string {
@@ -112,6 +110,23 @@ function factorScore(assessment: FoundryActionabilityAssessment, name: string): 
   return assessment.factors.find((factor) => factor.name === name)?.score ?? 0;
 }
 
+function hasRoutingFactors(assessment: FoundryActionabilityAssessment): boolean {
+  return hasSingleFactor(assessment, "public_safety_risk") &&
+    hasSingleFactor(assessment, "maintainer_value");
+}
+
+function hasSingleFactor(assessment: FoundryActionabilityAssessment, name: string): boolean {
+  return assessment.factors.filter((factor) => factor.name === name).length === 1;
+}
+
+function assessmentText(assessment: FoundryActionabilityAssessment): string {
+  return [
+    ...assessment.blockers,
+    ...assessment.publicRationale,
+    ...assessment.requiredVerification
+  ].join(" ").toLowerCase();
+}
+
 function summarizeEntries(entries: FoundryDecisionLedgerEntry[]): FoundryDecisionLedgerReport["summary"] {
   const byRoute = countBy(entries.map((entry) => entry.route));
   return {
@@ -126,11 +141,6 @@ function summarizeEntries(entries: FoundryDecisionLedgerEntry[]): FoundryDecisio
 
 function publicSafeList(values: string[]): string[] {
   return values.map((value) => publicSafeLedgerSummary(value));
-}
-
-function safeRequiredText(value: unknown, fallback: string): string {
-  const safe = typeof value === "string" ? publicSafeLedgerSummary(value) : fallback;
-  return safe.length > 0 ? safe : fallback;
 }
 
 function safeOptionalText(value: unknown): string | undefined {

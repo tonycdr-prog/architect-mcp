@@ -25,6 +25,7 @@ describe("routeFoundryDecisions", () => {
     });
 
     assert.equal(ledger.schemaVersion, 1);
+    assert.equal(ledger.ledgerId, "foundry-ledger");
     assert.deepEqual(ledger.summary.byRoute, {
       pr_preview: 1,
       architect_issue: 1,
@@ -83,6 +84,8 @@ describe("routeFoundryDecisions", () => {
     });
     const serialized = JSON.stringify(ledger);
 
+    assert.equal(ledger.ledgerId, "foundry-ledger");
+    assert.deepEqual(ledger.entries[0].evidenceIds, ["fde-001"]);
     assert.equal(serialized.includes("/Users/alice"), false);
     assert.equal(serialized.includes("npm_abcdefghijklmnopqrstuvwxyz1234567890"), false);
     assert.equal(serialized.includes("private"), false);
@@ -146,9 +149,70 @@ describe("routeFoundryDecisions", () => {
     assert.equal(serialized.includes("[redacted-raw-repo-content]"), true);
   });
 
+  it("routes source-like verification strings to ask_human and omits raw ids and source fields", () => {
+    const ledger = routeFoundryDecisions({
+      ledgerId: "slice-322",
+      actionability: {
+        schemaVersion: 1,
+        summary: { totalFindings: 1, byDecision: {}, prPreviewCandidates: 1, askHuman: 0, exceptionCandidates: 0, noOpCandidates: 0, publicSafetyHolds: 0 },
+        assessments: [{
+          ...assessment("fev-verification-source", "pr_preview_candidate", 84, 85, 85),
+          requiredVerification: [
+            "Review export const repoSecret = process.env.REPO_SECRET before merge."
+          ]
+        }],
+        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+      }
+    });
+    const serialized = JSON.stringify(ledger);
+
+    assert.equal(ledger.ledgerId, "foundry-ledger");
+    assert.equal(ledger.entries[0].route, "ask_human");
+    assert.deepEqual(ledger.entries[0].evidenceIds, ["fde-001"]);
+    assert.deepEqual(ledger.entries[0].source, { score: 84 });
+    assert.equal(Object.hasOwn(ledger.entries[0].source, "actionabilityDecision"), false);
+    assert.equal(serialized.includes("slice-322"), false);
+    assert.equal(serialized.includes("fev-verification-source"), false);
+    assert.equal(serialized.includes("REPO_SECRET"), false);
+    assert.equal(serialized.includes("[redacted-raw-repo-content]"), true);
+  });
+
+  it("fails closed to ask_human when routing factors are missing or duplicated", () => {
+    const base = assessment("fev-factors", "pr_preview_candidate", 84, 85, 85);
+    const ledger = routeFoundryDecisions({
+      actionability: {
+        schemaVersion: 1,
+        summary: { totalFindings: 2, byDecision: {}, prPreviewCandidates: 2, askHuman: 0, exceptionCandidates: 0, noOpCandidates: 0, publicSafetyHolds: 0 },
+        assessments: [
+          {
+            ...base,
+            evidenceId: "fev-missing-factor",
+            factors: base.factors.filter((factor) => factor.name !== "maintainer_value")
+          },
+          {
+            ...base,
+            evidenceId: "fev-duplicate-factor",
+            factors: [...base.factors, factor("public_safety_risk", 95)]
+          }
+        ],
+        publicSafety: { rawPayloadsIncluded: false, mutationAllowed: false, publicRecommendationsOnly: true }
+      }
+    });
+
+    assert.deepEqual(ledger.entries.map((entry) => entry.route), ["ask_human", "ask_human"]);
+    assert.deepEqual(ledger.entries.map((entry) => entry.approvalState), ["human_required", "human_required"]);
+  });
+
   it("falls back to an empty ledger for malformed reports", () => {
     const ledger = routeFoundryDecisions({
-      actionability: { schemaVersion: 1, assessments: [null] } as any
+      actionability: {
+        schemaVersion: 1,
+        summary: { totalFindings: 1, byDecision: {}, prPreviewCandidates: 1, askHuman: 0, exceptionCandidates: 0, noOpCandidates: 0, publicSafetyHolds: 0 },
+        assessments: [{
+          ...assessment("fev-bad-factor", "pr_preview_candidate", 80, 85, 85),
+          factors: [{ name: "not_a_real_factor", score: 90, status: "strong", rationale: "bad" }]
+        }]
+      } as any
     });
 
     assert.equal(ledger.summary.totalEntries, 0);
