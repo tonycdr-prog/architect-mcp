@@ -137,6 +137,27 @@ Use `--public-summary` for PR comments, issue updates, and release evidence. It 
 
 Retention decisions are explicit live proof-repo evidence, not cleanup automation. Add `--retention-decision retain`, `--retention-decision delete-later`, or `--retention-decision manual-review` with a non-empty `--retention-reason` only when running live with `--execute --confirm-private-repo-mutation`. Dry-run foundry-smoke does not create a proof repo, so retention flags fail closed there instead of recording metadata for a repo that does not exist. The summary always reports that no repository deletion was performed by `foundry-smoke`; destructive cleanup remains manual and separately approved.
 
+Foundry audit:
+
+```bash
+architect-mcp-tui foundry-audit --json
+architect-mcp-tui foundry-audit --public-summary
+architect-mcp-tui foundry-audit --repo-path <checkout> --public-summary
+```
+
+This command is read-only. It chains `review_local_workspace`, `derive_local_repo_constitution`, `normalize_foundry_evidence`, `score_foundry_actionability`, `route_foundry_decisions`, and `forge_foundry_previews` through the local MCP server, then renders a ledger view with route, score, evidence count, redaction risk, approval state, next action, and preview kind. It reports the mutation boundary explicitly: no branches, commits, issues, pull requests, comments, labels, or files are created by the audit.
+
+Use `--public-summary` when posting evidence to an issue, PR, or release note. The public summary keeps counts, decision routes, evidence counts, risks, approval states, preview counts, server-write counts, and next actions while omitting workspace paths, repo checkout paths, raw command output markers, raw MCP payloads, raw repo content, token-shaped values, and private diagnostics. The full `--json` output is for local diagnostics only.
+
+The command palette exposes the same read-only view:
+
+```text
+foundry audit [path=<checkout>]
+foundry ledger
+```
+
+`foundry audit` stores the latest ledger only in the running TUI process so a fresh checkout can remain clean after the audit. `foundry ledger` re-renders that in-memory ledger and does not reuse repo-creation approval. Any later mutation path must require a separate explicit approval.
+
 ## Work Gate
 
 Every coding and app-building loop starts with the architect-mcp work gate:

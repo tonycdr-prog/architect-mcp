@@ -194,6 +194,7 @@ describe("supply-chain and release hygiene", () => {
     assert.match(workflow, /GITHUB_STEP_SUMMARY/);
     assert.match(workflow, /manual issue #136 terminal QA still required/);
     assert.match(packageJson.scripts["tui:live-qa"], /launch-judge --public-summary --skip-mcp --skip-smoke/);
+    assert.match(packageJson.scripts["tui:live-qa"], /foundry-audit --public-summary/);
     assert.doesNotMatch(packageJson.scripts["tui:live-qa"], /launch-judge --json --skip-mcp --skip-smoke/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --json/);
     assert.match(rustTui, /architect-mcp-tui launch-judge --public-summary/);
@@ -201,6 +202,11 @@ describe("supply-chain and release hygiene", () => {
     assert.match(rustTui, /architect-mcp-tui launch-stack --merge-plan/);
     assert.match(rustTui, /architect-mcp-tui launch-readiness --json/);
     assert.match(rustTui, /architect-mcp-tui foundry-smoke --owner <github-owner> --public-summary/);
+    assert.match(rustTui, /architect-mcp-tui foundry-audit --public-summary/);
+    assert.match(rustTui, /foundry audit \[path=<checkout>\]/);
+    assert.match(rustTui, /route, score, evidence count, redaction risk, approval state, next action/);
+    assert.match(rustTui, /no branches, commits, issues, pull requests, comments, labels, or files are created/);
+    assert.match(rustTui, /omitting workspace paths, repo checkout paths, raw command output markers, raw MCP payloads, raw repo content, token-shaped values/);
     assert.match(rustTui, /--retention-decision retain/);
     assert.match(rustTui, /--retention-reason/);
     assert.match(rustTui, /private repo verification, draft PR verification, command pass\/fail counts/);
@@ -291,9 +297,9 @@ describe("supply-chain and release hygiene", () => {
   it("keeps the evolved goal ledger aligned with the active slice and launch boundary", () => {
     const goal = readFileSync("docs/goal-ai-software-foundry.md", "utf8");
 
-    assert.match(goal, /Active slice: \[#326 - Add Foundry PR and issue forge previews\]/);
+    assert.match(goal, /Active slice: \[#325 - Add TUI read-only Foundry audit and ledger view\]/);
     assert.match(goal, /comprehensive, PR-specific `@copilot` review/);
-    assert.match(goal, /#322 decision-ledger routing slice landed in PR #335/);
+    assert.match(goal, /#326 forge-preview slice landed in PR #336/);
     assert.match(goal, /#321 actionability-scoring slice landed in \[PR #334\]/);
     assert.match(goal, /#324 evidence-normalization slice landed in \[PR #333\]/);
     assert.match(goal, /#320.*Foundry slice/);
@@ -303,6 +309,9 @@ describe("supply-chain and release hygiene", () => {
     assert.match(goal, /forge_foundry_previews/);
     assert.match(goal, /forge-preview slice/);
     assert.match(goal, /architect-mcp footer/);
+    assert.match(goal, /architect-mcp-tui foundry-audit/);
+    assert.match(goal, /TUI read-only Foundry audit slice/);
+    assert.match(goal, /foundry ledger/);
     assert.match(goal, /score_foundry_actionability/);
     assert.match(goal, /actionability-scoring slice/);
     assert.match(goal, /normalized evidence inventory/);

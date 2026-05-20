@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use serde_json::Value;
 
@@ -5,10 +7,15 @@ use crate::foundry::{
     build_repo_foundry_plan, foundry_plan_lines, foundry_status_lines,
     render_foundry_create_preview,
 };
+use crate::foundry_audit::{
+    FoundryAuditOptions, build_foundry_audit_report, foundry_audit_ledger_lines,
+};
 use crate::foundry_execution::{ensure_staged_repo_exists, execute_repo_foundry_plan};
 use crate::foundry_stage::stage_repo_foundry_plan;
 use crate::interactive::InteractiveWorkflowEngine;
-use crate::interactive_update::{WorkflowUpdate, inspector_for, update};
+use crate::interactive_update::{
+    WorkflowUpdate, inspector_for, inspector_for_foundry_audit, update,
+};
 
 impl InteractiveWorkflowEngine {
     pub(crate) fn foundry_plan(
@@ -39,6 +46,42 @@ impl InteractiveWorkflowEngine {
             foundry_status_lines(session),
             inspector_for(session),
             Some(session.clone()),
+        ))
+    }
+
+    pub(crate) async fn foundry_audit(
+        &mut self,
+        target_path: Option<&str>,
+    ) -> Result<WorkflowUpdate> {
+        let workspace = target_workspace(&self.orchestrator.workspace, target_path)?;
+        let report = build_foundry_audit_report(
+            workspace,
+            self.orchestrator.config.clone(),
+            &FoundryAuditOptions {
+                json: false,
+                public_summary: false,
+                max_files: 1000,
+                mcp_workspace: Some(self.orchestrator.workspace.clone()),
+            },
+        )
+        .await;
+        let transcript = foundry_audit_ledger_lines(&report);
+        self.foundry_audit = Some(report);
+        Ok(update(
+            transcript,
+            inspector_for_foundry_audit(self.active.as_ref(), self.foundry_audit.as_ref()),
+            self.active.clone(),
+        ))
+    }
+
+    pub(crate) fn foundry_ledger(&self) -> Result<WorkflowUpdate> {
+        let Some(report) = &self.foundry_audit else {
+            anyhow::bail!("run foundry audit before foundry ledger");
+        };
+        Ok(update(
+            foundry_audit_ledger_lines(report),
+            inspector_for_foundry_audit(self.active.as_ref(), Some(report)),
+            self.active.clone(),
         ))
     }
 
@@ -137,6 +180,21 @@ impl InteractiveWorkflowEngine {
         }
         Ok(())
     }
+}
+
+fn target_workspace(
+    default_workspace: &std::path::Path,
+    target_path: Option<&str>,
+) -> Result<PathBuf> {
+    let Some(target_path) = target_path.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(default_workspace.to_path_buf());
+    };
+    let path = PathBuf::from(target_path);
+    Ok(if path.is_absolute() {
+        path
+    } else {
+        default_workspace.join(path)
+    })
 }
 
 fn review_has_blockers(review: &Value) -> bool {

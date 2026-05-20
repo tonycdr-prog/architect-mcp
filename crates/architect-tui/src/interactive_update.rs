@@ -1,3 +1,4 @@
+use crate::foundry_audit::FoundryAuditReport;
 use crate::session::TuiSession;
 use crate::untrusted_input::untrusted_transcript_lines;
 
@@ -106,10 +107,32 @@ pub(crate) fn inspector_for(session: &TuiSession) -> Vec<String> {
     lines
 }
 
+pub(crate) fn inspector_for_foundry_audit(
+    session: Option<&TuiSession>,
+    report: Option<&FoundryAuditReport>,
+) -> Vec<String> {
+    let mut lines = session.map(inspector_for).unwrap_or_default();
+    match report {
+        Some(report) => {
+            lines.push(format!("foundry audit: {:?}", report.status));
+            lines.push(format!(
+                "foundry ledger decisions: {}",
+                report.decisions.len()
+            ));
+            lines.push(format!(
+                "foundry server writes: {}",
+                report.server_writes_performed
+            ));
+        }
+        None => lines.push("foundry audit: none".to_string()),
+    }
+    lines
+}
+
 pub(crate) fn help_update() -> WorkflowUpdate {
     update(
         vec![
-            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override <reason>, promotion status, promotion receipt, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], foundry plan <repo> [owner=name], foundry status, foundry approve <reason>, foundry stage, foundry create, foundry create --execute, verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
+            "commands: new app <idea>, resume <session-id>, answer key=value, grill, contract, review plan, review files, run adapter, diff summary, diff file <path>, approve [reason], reject [reason], override <reason>, promotion status, promotion receipt, promote, arena run <adapter[,adapter]>, arena rank, arena select <adapter>, integrations recommend [context], integrations plan <server> [target], integrations review, integrations apply [path], integrations approve <reason>, integrations write [path], foundry audit [path=<checkout>], foundry ledger, foundry plan <repo> [owner=name], foundry status, foundry approve <reason>, foundry stage, foundry create, foundry create --execute, verification status, record verification <required check>=passed, final review <text>, session review".to_string(),
         ],
         Vec::new(),
         None,

@@ -4,6 +4,7 @@ use architect_tui::adapter::print_adapter_table;
 use architect_tui::cli::{Cli, Commands};
 use architect_tui::config::{ConfigCommand, ConfigPaths, TuiConfig};
 use architect_tui::evidence_index::{EvidenceIndexOptions, run_evidence_index};
+use architect_tui::foundry_audit::run_foundry_audit_cli;
 use architect_tui::foundry_smoke::run_foundry_smoke;
 use architect_tui::governance_audit::{GovernanceAuditOptions, run_governance_audit};
 use architect_tui::issue_terminal_evidence::{
@@ -144,6 +145,9 @@ async fn main() -> Result<()> {
         }
         Some(Commands::FoundrySmoke { options }) => {
             run_foundry_smoke(workspace, config, options.into()).await?;
+        }
+        Some(Commands::FoundryAudit { options }) => {
+            run_foundry_audit_cli(workspace, config, options).await?;
         }
         Some(Commands::GovernanceAudit {
             json,

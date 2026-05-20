@@ -1,3 +1,4 @@
+use crate::foundry_audit::FoundryAuditReport;
 pub use crate::interactive_commands::{WorkflowCommand, parse_workflow_command};
 pub use crate::interactive_update::WorkflowUpdate;
 use crate::interactive_update::{help_update, inspector_for, update};
@@ -14,6 +15,7 @@ pub struct InteractiveWorkflowEngine {
     pub(crate) orchestrator: Orchestrator,
     pub(crate) store: SessionStore,
     pub(crate) active: Option<TuiSession>,
+    pub(crate) foundry_audit: Option<FoundryAuditReport>,
 }
 
 impl InteractiveWorkflowEngine {
@@ -23,6 +25,7 @@ impl InteractiveWorkflowEngine {
             orchestrator,
             store,
             active: None,
+            foundry_audit: None,
         }
     }
 
@@ -70,6 +73,10 @@ impl InteractiveWorkflowEngine {
                 self.foundry_plan(&repo_name, owner.as_deref())
             }
             WorkflowCommand::FoundryStatus => self.foundry_status(),
+            WorkflowCommand::FoundryAudit { target_path } => {
+                self.foundry_audit(target_path.as_deref()).await
+            }
+            WorkflowCommand::FoundryLedger => self.foundry_ledger(),
             WorkflowCommand::FoundryApprove(reason) => self.foundry_approve(&reason),
             WorkflowCommand::FoundryStage => self.foundry_stage(),
             WorkflowCommand::FoundryCreate { execute } => self.foundry_create(execute),

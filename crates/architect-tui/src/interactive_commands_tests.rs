@@ -107,6 +107,20 @@ fn parses_command_palette_actions() {
         WorkflowCommand::FoundryCreate { execute: true }
     );
     assert_eq!(
+        parse_workflow_command("foundry audit"),
+        WorkflowCommand::FoundryAudit { target_path: None }
+    );
+    assert_eq!(
+        parse_workflow_command("repo audit path=../other-repo"),
+        WorkflowCommand::FoundryAudit {
+            target_path: Some("../other-repo".to_string())
+        }
+    );
+    assert_eq!(
+        parse_workflow_command("foundry ledger"),
+        WorkflowCommand::FoundryLedger
+    );
+    assert_eq!(
         parse_workflow_command("foundry stage"),
         WorkflowCommand::FoundryStage
     );

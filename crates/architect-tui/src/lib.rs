@@ -22,6 +22,7 @@ mod brief;
 #[cfg(test)]
 mod brief_tests;
 pub mod cli;
+mod cli_foundry;
 pub mod config;
 mod config_template;
 pub mod evidence_index;
@@ -35,6 +36,13 @@ mod evidence_index_test_support;
 mod evidence_index_tests;
 pub mod foundry;
 mod foundry_artifacts;
+pub mod foundry_audit;
+mod foundry_audit_mcp;
+mod foundry_audit_public_summary;
+#[cfg(test)]
+mod foundry_audit_public_summary_tests;
+mod foundry_audit_report;
+mod foundry_audit_report_values;
 pub mod foundry_execution;
 #[cfg(test)]
 mod foundry_execution_tests;

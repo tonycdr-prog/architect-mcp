@@ -40,6 +40,10 @@ pub enum WorkflowCommand {
         owner: Option<String>,
     },
     FoundryStatus,
+    FoundryAudit {
+        target_path: Option<String>,
+    },
+    FoundryLedger,
     FoundryApprove(String),
     FoundryStage,
     FoundryCreate {
@@ -100,6 +104,8 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
             WorkflowCommand::IntegrationsWrite { target_path: None }
         }
         "foundry status" | "repo status" => WorkflowCommand::FoundryStatus,
+        "foundry audit" | "repo audit" => WorkflowCommand::FoundryAudit { target_path: None },
+        "foundry ledger" | "repo ledger" => WorkflowCommand::FoundryLedger,
         "foundry stage" | "repo stage" => WorkflowCommand::FoundryStage,
         "foundry create" | "repo create" => WorkflowCommand::FoundryCreate { execute: false },
         "foundry create --execute" | "repo create --execute" | "foundry execute" => {
@@ -168,6 +174,12 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         _ if trimmed.starts_with("repo plan ") => {
             parse_foundry_plan(&trimmed["repo plan ".len()..])
         }
+        _ if trimmed.starts_with("foundry audit ") => WorkflowCommand::FoundryAudit {
+            target_path: optional_path_arg(&trimmed["foundry audit ".len()..]),
+        },
+        _ if trimmed.starts_with("repo audit ") => WorkflowCommand::FoundryAudit {
+            target_path: optional_path_arg(&trimmed["repo audit ".len()..]),
+        },
         _ if trimmed.starts_with("foundry approve ") => {
             WorkflowCommand::FoundryApprove(trimmed["foundry approve ".len()..].trim().to_string())
         }
@@ -180,6 +192,12 @@ pub fn parse_workflow_command(input: &str) -> WorkflowCommand {
         }
         _ => WorkflowCommand::Help,
     }
+}
+
+fn optional_path_arg(value: &str) -> Option<String> {
+    let value = value.trim();
+    let value = value.strip_prefix("path=").unwrap_or(value).trim();
+    optional_string(value)
 }
 
 fn parse_foundry_plan(value: &str) -> WorkflowCommand {

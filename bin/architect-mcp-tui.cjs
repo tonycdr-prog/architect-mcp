@@ -15,7 +15,7 @@ const REQUIRED_LOCAL_HELP_COMMANDS = [
   "terminal-evidence",
   "walkthrough",
   "promotion-smoke",
-  "foundry-smoke",
+  "foundry-smoke", "foundry-audit",
   "governance-audit",
   "launch-judge",
   "launch-stack",
