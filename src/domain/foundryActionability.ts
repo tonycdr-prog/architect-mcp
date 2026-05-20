@@ -114,7 +114,7 @@ function verificationPath(inventory: FoundryEvidenceInventory, hints: string[]):
   const passedChecks = checks.filter((item) => item.code === "verification:passed").map((item) => safeVerificationLabel(verificationSourceId(item)));
   if (passedChecks.some((item) => item.redacted)) return factor("verification_path", 45, "A passing verification record needs a public-safe label before routing.");
   if (passedChecks.length > 0) return factor("verification_path", 85, "A passing verification record is present.");
-  return factor("verification_path", hints.length > 0 ? 60 : 45, hints.length > 0 ? "Verification hints are available but not yet passed." : "No passing verification evidence is present.");
+  return factor("verification_path", 45, hints.length > 0 ? "Verification hints are available but not yet passed." : "No passing verification evidence is present.");
 }
 
 function publicSafetyRisk(item: FoundryEvidenceItem, identityRedacted: boolean): FoundryActionabilityFactor {

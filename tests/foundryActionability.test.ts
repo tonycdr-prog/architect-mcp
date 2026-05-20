@@ -111,4 +111,49 @@ describe("scoreFoundryActionability", () => {
     assert.equal(report.assessments[0].decision, "no_op_candidate");
     assert.equal(report.summary.noOpCandidates, 1);
   });
+
+  it("does not allow verification hints alone to qualify PR-preview routing", () => {
+    const inventory = normalizeFoundryEvidence({
+      findings: [{
+        code: "ARCH008_ENV_SCATTER",
+        confidence: "high",
+        severity: "error",
+        path: "src/config/env.ts",
+        message: "Environment access is scattered.",
+        recommendation: "Centralize environment parsing."
+      }]
+    });
+
+    const report = scoreFoundryActionability({
+      inventory,
+      verificationHints: ["npm test"]
+    });
+
+    assert.equal(report.assessments[0].decision, "ask_human");
+    assert.equal(report.assessments[0].blockers.some((item) => item.includes("passing verification path is missing")), true);
+  });
+
+  it("treats scanTruncated as a hard PR-preview blocker", () => {
+    const inventory = normalizeFoundryEvidence({
+      reviewReports: [{
+        coverage: {
+          scanTruncated: true
+        }
+      } as any],
+      findings: [{
+        code: "ARCH008_ENV_SCATTER",
+        confidence: "high",
+        severity: "error",
+        path: "src/config/env.ts",
+        message: "Environment access is scattered.",
+        recommendation: "Centralize environment parsing."
+      }],
+      verification: [{ check: "npm test", status: "passed" }]
+    });
+
+    const report = scoreFoundryActionability({ inventory });
+
+    assert.equal(report.assessments[0].decision, "ask_human");
+    assert.equal(report.assessments[0].blockers.some((item) => item.includes("file scan was truncated")), true);
+  });
 });
