@@ -143,10 +143,19 @@ fn launch_summary_with_missing_required_checks() -> LaunchReadinessPublicSummary
 }
 
 fn governance_summary() -> GovernanceAuditPublicSummary {
+    use crate::governance_profile::{
+        GovernanceProfileConfidence, GovernanceRepoProfile, GovernanceRepoProfileSummary,
+    };
+
     GovernanceAuditPublicSummary {
         schema_version: 1,
         status: GovernanceAuditStatus::Passed,
         read_only: true,
+        repo_profile: GovernanceRepoProfileSummary {
+            name: GovernanceRepoProfile::ArchitectMcpSelf,
+            confidence: GovernanceProfileConfidence::High,
+            signals: vec!["test fixture".to_string()],
+        },
         categories: Vec::new(),
         deterministic_gates: GovernanceAuditPublicGateSummary {
             count: 0,

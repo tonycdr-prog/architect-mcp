@@ -4,6 +4,8 @@ use clap::{Parser, Subcommand};
 
 use crate::cli_foundry::{FoundryAuditCliOptions, FoundrySmokeCliOptions};
 use crate::config::ConfigCommand;
+use crate::governance_profile::GovernanceRepoProfile;
+use crate::launch_scope::LaunchScope;
 use crate::smoke::SmokeOptions;
 
 #[derive(Debug, Parser)]
@@ -116,6 +118,8 @@ pub enum Commands {
         skip_mcp: bool,
         #[arg(long, default_value_t = 1000, value_parser = parse_max_files)]
         max_files: usize,
+        #[arg(long, value_enum)]
+        profile: Option<GovernanceRepoProfile>,
     },
     /// Combine smoke, governance, release, and external-evidence gates into a launch judge report.
     LaunchJudge {
@@ -133,6 +137,10 @@ pub enum Commands {
         require_clean_git: bool,
         #[arg(long, default_value_t = 1000)]
         max_files: usize,
+        #[arg(long, value_enum)]
+        scope: Option<LaunchScope>,
+        #[arg(long = "governance-profile", value_enum)]
+        governance_profile: Option<GovernanceRepoProfile>,
         #[arg(long)]
         terminal_evidence: Vec<PathBuf>,
     },

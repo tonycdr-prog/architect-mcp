@@ -18,6 +18,7 @@ describe("auditWorkGateCompleteness", () => {
 
   it("distinguishes partial evidence with missing gate steps", () => {
     const report = auditWorkGateCompleteness({
+      now: freshTimestamp,
       records: [
         record("grill_me"),
         record("create_pre_edit_contract")
@@ -190,6 +191,7 @@ describe("createWorkGateSequenceReceipt", () => {
 
   it("requires explicit input and evidence confirmation for each supplied gate", () => {
     const receipt = createWorkGateSequenceReceipt({
+      now: freshTimestamp,
       records: workGateSequence.map((gate) => receiptRecord(gate, {
         inputsPresent: gate !== "review_build_plan",
         evidencePresent: gate !== "review_proposed_file_plan"
@@ -206,6 +208,7 @@ describe("createWorkGateSequenceReceipt", () => {
 
   it("redacts token/path/raw-output values from public receipt summaries", () => {
     const receipt = createWorkGateSequenceReceipt({
+      now: freshTimestamp,
       records: workGateSequence.map((gate) => receiptRecord(gate, {
         publicSummary: gate === "grill_me"
           ? "Reviewed /Users/example/private/repo with npm_abcdefghijklmnopqrstuvwxyz123456 stdout: GET /private payload={\"secret\":true}"
@@ -223,6 +226,7 @@ describe("createWorkGateSequenceReceipt", () => {
 
   it("redacts fenced raw output and stdout/stderr markers from gate public summaries", () => {
     const receipt = createWorkGateSequenceReceipt({
+      now: freshTimestamp,
       records: workGateSequence.map((gate) => receiptRecord(gate, {
         publicSummary: gate === "grill_me"
           ? "stderr:\n```text\nstacktrace and payload\n```"

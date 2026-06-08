@@ -5,12 +5,14 @@ use anyhow::Result;
 
 use crate::config::TuiConfig;
 use crate::governance_audit::{GovernanceAuditOptions, build_governance_audit_report};
-use crate::launch_judge_evidence::read_terminal_evidence;
+use crate::governance_profile::GovernanceRepoProfile;
+use crate::launch_judge_evidence::read_terminal_evidence_for_scope;
 use crate::launch_judge_public_summary::build_public_summary;
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeReport,
     LaunchJudgeResult, build_report, check, print_text_report, skipped_command, tail_lines,
 };
+use crate::launch_scope::{LaunchScope, resolve_launch_scope};
 use crate::smoke::{SmokeOptions, build_smoke_report};
 
 #[derive(Debug, Clone)]
@@ -22,6 +24,8 @@ pub struct LaunchJudgeOptions {
     pub run_release_check: bool,
     pub require_clean_git: bool,
     pub max_files: usize,
+    pub scope: Option<LaunchScope>,
+    pub governance_profile: Option<GovernanceRepoProfile>,
     pub terminal_evidence: Vec<PathBuf>,
 }
 
@@ -52,6 +56,7 @@ pub async fn build_launch_judge_report(
     config: TuiConfig,
     options: &LaunchJudgeOptions,
 ) -> LaunchJudgeReport {
+    let scope = resolve_launch_scope(&workspace, options.scope);
     let governance_audit = build_governance_audit_report(
         workspace.clone(),
         config.clone(),
@@ -60,6 +65,7 @@ pub async fn build_launch_judge_report(
             public_summary: false,
             skip_mcp: options.skip_mcp,
             max_files: options.max_files,
+            profile: options.governance_profile,
         },
     )
     .await;
@@ -88,15 +94,15 @@ pub async fn build_launch_judge_report(
     };
     let git_clean = git_clean_check(&workspace, options.require_clean_git);
     let (terminal_evidence, terminal_evidence_check) =
-        read_terminal_evidence(&options.terminal_evidence);
+        read_terminal_evidence_for_scope(&options.terminal_evidence, scope.name);
     build_report(
         &workspace,
+        scope,
         governance_audit,
         smoke,
         release_check,
         git_clean,
-        terminal_evidence,
-        terminal_evidence_check,
+        (terminal_evidence, terminal_evidence_check),
     )
 }
 

@@ -8,6 +8,7 @@ use crate::governance_audit_report::{
     GovernanceAuditCategory, GovernanceAuditStatus, GovernanceFinding, GovernanceFindingSeverity,
     GovernanceGateEvidence,
 };
+use crate::governance_profile::GovernanceRepoProfile;
 
 pub(crate) fn package_scripts(workspace: &Path) -> Option<BTreeMap<String, String>> {
     let package = fs::read_to_string(workspace.join("package.json")).ok()?;
@@ -29,33 +30,39 @@ pub(crate) fn read_to_string(workspace: &Path, relative: &str) -> String {
     fs::read_to_string(workspace.join(relative)).unwrap_or_default()
 }
 
-pub(crate) fn deterministic_gates(workspace: &Path) -> Vec<GovernanceGateEvidence> {
+pub(crate) fn deterministic_gates(
+    workspace: &Path,
+    profile: GovernanceRepoProfile,
+) -> Vec<GovernanceGateEvidence> {
     let scripts = package_scripts(workspace).unwrap_or_default();
-    [
+    let mut gates = vec![
         ("clean checkout release gate", "npm run release:check", true),
-        ("rust gate", "npm run rust:check", false),
         ("typecheck", "npm run typecheck", false),
         ("unit tests", "npm test", false),
         ("build", "npm run build", false),
         ("docs build", "npm run docs:build", false),
-    ]
-    .into_iter()
-    .filter_map(|(name, command, required)| {
-        let script_name = command.strip_prefix("npm run ").unwrap_or("test");
-        let exists = if command == "npm test" {
-            scripts.contains_key("test")
-        } else {
-            scripts.contains_key(script_name)
-        };
-        exists.then(|| GovernanceGateEvidence {
-            name: name.to_string(),
-            kind: "deterministic".to_string(),
-            command: command.to_string(),
-            required_for_release: required,
-            source: "package.json".to_string(),
+    ];
+    if profile.requires_rust_script() {
+        gates.insert(1, ("rust gate", "npm run rust:check", false));
+    }
+    gates
+        .into_iter()
+        .filter_map(|(name, command, required)| {
+            let script_name = command.strip_prefix("npm run ").unwrap_or("test");
+            let exists = if command == "npm test" {
+                scripts.contains_key("test")
+            } else {
+                scripts.contains_key(script_name)
+            };
+            exists.then(|| GovernanceGateEvidence {
+                name: name.to_string(),
+                kind: "deterministic".to_string(),
+                command: command.to_string(),
+                required_for_release: required,
+                source: "package.json".to_string(),
+            })
         })
-    })
-    .collect()
+        .collect()
 }
 
 pub(crate) fn smoke_evidence(workspace: &Path) -> Vec<GovernanceGateEvidence> {

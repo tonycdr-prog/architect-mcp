@@ -154,6 +154,7 @@ async fn main() -> Result<()> {
             public_summary,
             skip_mcp,
             max_files,
+            profile,
         }) => {
             run_governance_audit(
                 workspace,
@@ -163,6 +164,7 @@ async fn main() -> Result<()> {
                     public_summary,
                     skip_mcp,
                     max_files,
+                    profile,
                 },
             )
             .await?;
@@ -175,6 +177,8 @@ async fn main() -> Result<()> {
             run_release_check,
             require_clean_git,
             max_files,
+            scope,
+            governance_profile,
             terminal_evidence,
         }) => {
             run_launch_judge(
@@ -188,6 +192,8 @@ async fn main() -> Result<()> {
                     run_release_check,
                     require_clean_git,
                     max_files,
+                    scope,
+                    governance_profile,
                     terminal_evidence,
                 },
             )

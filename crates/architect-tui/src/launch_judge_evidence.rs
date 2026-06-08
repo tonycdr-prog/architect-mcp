@@ -1,15 +1,15 @@
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use serde_json::Value;
 
 use crate::launch_judge_evidence_safety::collect_unsafe_content;
+use crate::launch_judge_evidence_validation::normalize_and_validate_reports;
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeTerminalEvidenceReport,
-    LaunchJudgeTerminalEvidenceStatus, LaunchJudgeTerminalEvidenceSummary, check,
+    LaunchJudgeTerminalEvidenceSummary, check,
 };
-use crate::terminal_evidence_environment::validate_report_environment;
+use crate::launch_scope::LaunchScope;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -18,8 +18,16 @@ pub(crate) struct TerminalEvidenceEnvelope {
     pub(crate) reports: Vec<LaunchJudgeTerminalEvidenceReport>,
 }
 
+#[cfg(test)]
 pub(crate) fn read_terminal_evidence(
     paths: &[PathBuf],
+) -> (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck) {
+    read_terminal_evidence_for_scope(paths, LaunchScope::PublicCli)
+}
+
+pub(crate) fn read_terminal_evidence_for_scope(
+    paths: &[PathBuf],
+    scope: LaunchScope,
 ) -> (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck) {
     if paths.is_empty() {
         let summary = LaunchJudgeTerminalEvidenceSummary {
@@ -28,17 +36,7 @@ pub(crate) fn read_terminal_evidence(
             reports: Vec::new(),
             issues: vec!["manual Windows and Linux terminal evidence was not supplied".to_string()],
         };
-        return (
-            summary,
-            check(
-                "external terminal evidence",
-                LaunchJudgeCheckStatus::Warning,
-                "manual Windows and Linux terminal evidence is not proven by this local command",
-                Some(
-                    "collect or link public-safe Windows and Linux terminal QA evidence before final launch go",
-                ),
-            ),
-        );
+        return (summary, missing_terminal_evidence_check(scope));
     }
 
     let source_path = paths
@@ -68,7 +66,13 @@ pub(crate) fn read_terminal_evidence(
         }
     }
 
-    build_terminal_evidence_summary(Some(source_path), reports, issues, hard_failure)
+    build_terminal_evidence_summary_for_scope(
+        Some(source_path),
+        reports,
+        issues,
+        hard_failure,
+        scope,
+    )
 }
 
 fn read_terminal_evidence_file(
@@ -112,9 +116,25 @@ pub(crate) fn parse_terminal_evidence_value(
 
 pub(crate) fn build_terminal_evidence_summary(
     source_path: Option<String>,
+    reports: Vec<LaunchJudgeTerminalEvidenceReport>,
+    issues: Vec<String>,
+    hard_failure: bool,
+) -> (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck) {
+    build_terminal_evidence_summary_for_scope(
+        source_path,
+        reports,
+        issues,
+        hard_failure,
+        LaunchScope::PublicCli,
+    )
+}
+
+pub(crate) fn build_terminal_evidence_summary_for_scope(
+    source_path: Option<String>,
     mut reports: Vec<LaunchJudgeTerminalEvidenceReport>,
     mut issues: Vec<String>,
     hard_failure: bool,
+    scope: LaunchScope,
 ) -> (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck) {
     let supplied = !reports.is_empty() || source_path.is_some();
     let mut summary = LaunchJudgeTerminalEvidenceSummary {
@@ -138,17 +158,7 @@ pub(crate) fn build_terminal_evidence_summary(
         return failed(summary, "terminal evidence includes failed platform QA");
     }
     if !summary.issues.is_empty() {
-        return (
-            summary,
-            check(
-                "external terminal evidence",
-                LaunchJudgeCheckStatus::Warning,
-                "terminal evidence is incomplete or has warnings",
-                Some(
-                    "complete clean public-safe Linux and Windows terminal QA evidence before final launch go",
-                ),
-            ),
-        );
+        return (summary, incomplete_terminal_evidence_check(scope));
     }
 
     (
@@ -162,115 +172,61 @@ pub(crate) fn build_terminal_evidence_summary(
     )
 }
 
+fn missing_terminal_evidence_check(scope: LaunchScope) -> LaunchJudgeCheck {
+    if scope.treats_missing_terminal_evidence_as_future() {
+        return check(
+            "external terminal evidence",
+            LaunchJudgeCheckStatus::Info,
+            &format!(
+                "manual Windows and Linux terminal evidence is future public-cli evidence for {} scope",
+                scope.label()
+            ),
+            Some(
+                "collect or link public-safe Windows and Linux terminal QA evidence before public CLI launch go",
+            ),
+        );
+    }
+
+    check(
+        "external terminal evidence",
+        LaunchJudgeCheckStatus::Warning,
+        "manual Windows and Linux terminal evidence is not proven by this local command",
+        Some(
+            "collect or link public-safe Windows and Linux terminal QA evidence before final launch go",
+        ),
+    )
+}
+
+fn incomplete_terminal_evidence_check(scope: LaunchScope) -> LaunchJudgeCheck {
+    if scope.treats_missing_terminal_evidence_as_future() {
+        return check(
+            "external terminal evidence",
+            LaunchJudgeCheckStatus::Info,
+            &format!(
+                "terminal evidence is incomplete future public-cli evidence for {} scope",
+                scope.label()
+            ),
+            Some(
+                "complete clean public-safe Linux and Windows terminal QA evidence before public CLI launch go",
+            ),
+        );
+    }
+
+    check(
+        "external terminal evidence",
+        LaunchJudgeCheckStatus::Warning,
+        "terminal evidence is incomplete or has warnings",
+        Some(
+            "complete clean public-safe Linux and Windows terminal QA evidence before final launch go",
+        ),
+    )
+}
+
 fn public_file_name(path: &Path) -> String {
     path.file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("provided terminal evidence")
         .to_string()
-}
-
-fn normalize_and_validate_reports(
-    reports: &mut [LaunchJudgeTerminalEvidenceReport],
-    issues: &mut Vec<String>,
-) -> bool {
-    let mut failed = false;
-    if reports.is_empty() {
-        issues.push("terminal evidence reports must include linux and windows".to_string());
-        return failed;
-    }
-
-    let mut seen = HashSet::new();
-    for report in reports.iter_mut() {
-        report.platform = report.platform.trim().to_ascii_lowercase();
-        report.source = report.source.trim().to_string();
-        report.command_summary = report.command_summary.trim().to_string();
-        report.collected_at = report
-            .collected_at
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(ToString::to_string);
-        report.notes = report
-            .notes
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(ToString::to_string);
-
-        if !matches!(report.platform.as_str(), "linux" | "windows") {
-            failed = true;
-            issues.push(format!(
-                "terminal evidence platform '{}' must be linux or windows",
-                report.platform
-            ));
-            continue;
-        }
-        if !seen.insert(report.platform.clone()) {
-            failed = true;
-            issues.push(format!(
-                "terminal evidence platform '{}' is duplicated",
-                report.platform
-            ));
-        }
-        if report.source.is_empty() {
-            issues.push(format!(
-                "terminal evidence for '{}' needs a public-safe source",
-                report.platform
-            ));
-        }
-        if report.command_summary.is_empty() {
-            issues.push(format!(
-                "terminal evidence for '{}' needs a command summary",
-                report.platform
-            ));
-        }
-        validate_report_environment(report, issues);
-        if uses_template_placeholder(report) {
-            issues.push(format!(
-                "terminal evidence for '{}' appears to use a template placeholder; replace it with real platform-specific QA evidence",
-                report.platform
-            ));
-        }
-        match report.status {
-            LaunchJudgeTerminalEvidenceStatus::Passed => {}
-            LaunchJudgeTerminalEvidenceStatus::PassedWithWarnings => issues.push(format!(
-                "terminal evidence for '{}' passed with warnings",
-                report.platform
-            )),
-            LaunchJudgeTerminalEvidenceStatus::Failed => issues.push(format!(
-                "terminal evidence for '{}' failed",
-                report.platform
-            )),
-        }
-    }
-
-    for required in ["linux", "windows"] {
-        if !seen.contains(required) {
-            issues.push(format!(
-                "terminal evidence for '{required}' was not supplied"
-            ));
-        }
-    }
-
-    failed
-}
-
-fn uses_template_placeholder(report: &LaunchJudgeTerminalEvidenceReport) -> bool {
-    [
-        report.source.as_str(),
-        report.command_summary.as_str(),
-        report.notes.as_deref().unwrap_or_default(),
-    ]
-    .iter()
-    .any(|value| looks_like_template_placeholder(value))
-}
-
-fn looks_like_template_placeholder(value: &str) -> bool {
-    let normalized = value.trim().to_ascii_lowercase();
-    normalized.contains("replace with")
-        || normalized == "issue #136 public-safe terminal qa report"
-        || normalized
-            == "architect-mcp-tui terminal-evidence --json passed; help, adapter summary, and gate-only run were summarized"
 }
 
 fn failed(

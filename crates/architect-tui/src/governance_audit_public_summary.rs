@@ -4,6 +4,7 @@ use crate::governance_audit_report::{
     GovernanceAuditReport, GovernanceAuditStatus, GovernanceFinding, GovernanceFindingSeverity,
     GovernanceGateEvidence, GovernanceMcpReview,
 };
+use crate::governance_profile::GovernanceRepoProfileSummary;
 use crate::launch_stack_github::public_text;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -12,6 +13,7 @@ pub struct GovernanceAuditPublicSummary {
     pub schema_version: u8,
     pub status: GovernanceAuditStatus,
     pub read_only: bool,
+    pub repo_profile: GovernanceRepoProfileSummary,
     pub categories: Vec<GovernanceAuditPublicCategory>,
     pub deterministic_gates: GovernanceAuditPublicGateSummary,
     pub smoke_evidence: GovernanceAuditPublicGateSummary,
@@ -81,6 +83,7 @@ pub(crate) fn build_public_summary(report: &GovernanceAuditReport) -> Governance
         schema_version: 1,
         status: report.status.clone(),
         read_only: report.read_only,
+        repo_profile: public_repo_profile(&report.repo_profile),
         categories: report
             .categories
             .iter()
@@ -109,6 +112,18 @@ pub(crate) fn build_public_summary(report: &GovernanceAuditReport) -> Governance
         finding_counts: finding_counts(&report.findings),
         findings: report.findings.iter().map(public_finding).collect(),
         next_actions: next_actions(&report.findings),
+    }
+}
+
+fn public_repo_profile(profile: &GovernanceRepoProfileSummary) -> GovernanceRepoProfileSummary {
+    GovernanceRepoProfileSummary {
+        name: profile.name,
+        confidence: profile.confidence,
+        signals: profile
+            .signals
+            .iter()
+            .map(|signal| public_text(signal, 160))
+            .collect(),
     }
 }
 

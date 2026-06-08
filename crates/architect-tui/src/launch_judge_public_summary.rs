@@ -2,17 +2,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
+use crate::launch_judge_future::FutureLaunchReadiness;
 use crate::launch_judge_report::{
     LaunchJudgeCheck, LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeReport,
     LaunchJudgeResult, LaunchJudgeTerminalEvidenceEnvironment, LaunchJudgeTerminalEvidenceStatus,
     LaunchJudgeTerminalEvidenceSummary,
 };
+use crate::launch_scope::LaunchScopeSummary;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LaunchJudgePublicSummary {
     pub schema_version: u8,
     pub generated_at_unix_seconds: u64,
+    pub scope: LaunchScopeSummary,
     pub result: LaunchJudgeResult,
     pub checks: Vec<LaunchJudgePublicCheck>,
     pub blockers: Vec<String>,
@@ -20,6 +23,7 @@ pub struct LaunchJudgePublicSummary {
     pub next_actions: Vec<String>,
     pub release_check: LaunchJudgePublicReleaseCheck,
     pub terminal_evidence: LaunchJudgePublicTerminalEvidence,
+    pub future_launch_readiness: LaunchJudgePublicFutureLaunchReadiness,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -59,6 +63,13 @@ pub struct LaunchJudgePublicTerminalEvidenceReport {
     pub collected_at: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchJudgePublicFutureLaunchReadiness {
+    pub public_cli: LaunchJudgeResult,
+    pub missing_evidence: Vec<String>,
+}
+
 pub(crate) fn build_public_summary(report: &LaunchJudgeReport) -> LaunchJudgePublicSummary {
     build_public_summary_at(report, generated_at_unix_seconds())
 }
@@ -70,6 +81,7 @@ pub(crate) fn build_public_summary_at(
     LaunchJudgePublicSummary {
         schema_version: 1,
         generated_at_unix_seconds,
+        scope: public_scope(&report.scope),
         result: report.result.clone(),
         checks: report.checks.iter().map(public_check).collect(),
         blockers: public_strings(&report.blockers, 320),
@@ -77,6 +89,7 @@ pub(crate) fn build_public_summary_at(
         next_actions: public_strings(&report.next_actions, 320),
         release_check: public_release_check(&report.release_check),
         terminal_evidence: public_terminal_evidence(&report.terminal_evidence),
+        future_launch_readiness: public_future_launch_readiness(&report.future_launch_readiness),
     }
 }
 
@@ -108,6 +121,14 @@ fn public_release_check(evidence: &LaunchJudgeCommandEvidence) -> LaunchJudgePub
     }
 }
 
+fn public_scope(scope: &LaunchScopeSummary) -> LaunchScopeSummary {
+    LaunchScopeSummary {
+        name: scope.name,
+        resolution: scope.resolution,
+        signals: public_strings(&scope.signals, 160),
+    }
+}
+
 fn public_terminal_evidence(
     evidence: &LaunchJudgeTerminalEvidenceSummary,
 ) -> LaunchJudgePublicTerminalEvidence {
@@ -131,6 +152,15 @@ fn public_terminal_evidence(
             })
             .collect(),
         issues: public_strings(&evidence.issues, 320),
+    }
+}
+
+fn public_future_launch_readiness(
+    readiness: &FutureLaunchReadiness,
+) -> LaunchJudgePublicFutureLaunchReadiness {
+    LaunchJudgePublicFutureLaunchReadiness {
+        public_cli: readiness.public_cli.clone(),
+        missing_evidence: public_strings(&readiness.missing_evidence, 320),
     }
 }
 

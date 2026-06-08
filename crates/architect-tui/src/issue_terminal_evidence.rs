@@ -261,9 +261,9 @@ fn build_report_from_summary(
 ) -> IssueTerminalEvidenceReport {
     let result = match check.status {
         LaunchJudgeCheckStatus::Failed => LaunchJudgeResult::NoGo,
-        LaunchJudgeCheckStatus::Warning | LaunchJudgeCheckStatus::Skipped => {
-            LaunchJudgeResult::ConditionalGo
-        }
+        LaunchJudgeCheckStatus::Info
+        | LaunchJudgeCheckStatus::Warning
+        | LaunchJudgeCheckStatus::Skipped => LaunchJudgeResult::ConditionalGo,
         LaunchJudgeCheckStatus::Passed => LaunchJudgeResult::Go,
     };
     let mut next_actions = check.next_action.into_iter().collect::<Vec<_>>();

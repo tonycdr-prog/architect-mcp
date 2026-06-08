@@ -106,8 +106,9 @@
   },
   "overrides": {
     "fast-uri": "3.1.2",
-    "hono": "4.12.18",
+    "hono": "4.12.24",
     "ip-address": "^10.2.0",
+    "qs": "6.15.2",
     "vitepress": {
       "vite": "6.4.2"
     }

@@ -35,6 +35,7 @@ async fn governance_audit_detects_common_secret_shaped_local_config() {
             public_summary: false,
             skip_mcp: true,
             max_files: 100,
+            profile: None,
         },
     )
     .await;
@@ -67,6 +68,7 @@ async fn governance_audit_detects_secret_shaped_mcp_config_without_env_file() {
             public_summary: false,
             skip_mcp: true,
             max_files: 100,
+            profile: None,
         },
     )
     .await;
@@ -113,6 +115,7 @@ async fn governance_audit_skips_symlinked_config_paths() {
             public_summary: false,
             skip_mcp: true,
             max_files: 100,
+            profile: None,
         },
     )
     .await;

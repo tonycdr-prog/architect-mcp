@@ -20,6 +20,7 @@ Memory proposals are evidence-driven and scoped to the audited workspace. The au
 ```bash
 architect-mcp-tui governance-audit --json
 architect-mcp-tui governance-audit --public-summary
+architect-mcp-tui governance-audit --json --profile static-web-app
 ```
 
 Use `--skip-mcp` only when you need static evidence without spawning architect-mcp:
@@ -31,6 +32,15 @@ architect-mcp-tui governance-audit --public-summary --skip-mcp
 
 The command exits non-zero when deterministic governance checks fail. MCP review unavailability or repo-structure warnings are reported as warnings so maintainers can still inspect the report.
 
+`governance-audit` infers a repository governance profile before applying release artifacts and workflow checks. Supported profiles are `architect-mcp-self`, `static-web-app`, `node-package`, `rust-workspace`, `tui-app`, and `unknown`. Use `--profile` when inference is wrong or a repository intentionally wants stricter policy.
+
+Profile-specific requirements are scoped to the repository shape:
+
+- `architect-mcp-self` keeps the full Architect MCP release policy, including `Cargo.lock`, `rust:check`, `tui:live-qa`, `check:v10`, npm publish, CI, docs, dependency, env, memory, and public-doc checks.
+- `static-web-app` keeps Node/static app checks such as lockfile, CI, `release:check`, `typecheck`, `test`, `build`, `docs:build`, env template, docs, dependency, memory, and secret hygiene. It does not require Rust, TUI, `check:v10`, or npm publish artifacts.
+- `node-package` applies npm publication checks only when the repo is publishable package-shaped.
+- `rust-workspace` and `tui-app` apply Rust/TUI checks only when Rust or terminal UI indicators exist or the profile is supplied.
+
 Use `governance-audit --public-summary` for issue comments, release notes, and external maintainer handoff. It keeps status, read-only state, category status, deterministic and smoke evidence names/counts, memory proposal safety counts, MCP review counters, finding counts, redacted findings, and next actions. It omits the workspace path, raw command strings, raw memory proposal text, raw MCP detail payloads, finding evidence fields, private names, local paths, and token-shaped values. Keep the full `--json` report local unless a maintainer asks for a redacted excerpt.
 
 For an explicit launch readiness decision, use:
@@ -38,6 +48,8 @@ For an explicit launch readiness decision, use:
 ```bash
 architect-mcp-tui launch-judge --json
 architect-mcp-tui launch-judge --json --run-release-check --require-clean-git
+architect-mcp-tui launch-judge --json --scope local-demo
+architect-mcp-tui launch-judge --json --scope public-cli --governance-profile static-web-app
 architect-mcp-tui launch-judge --json --terminal-evidence terminal-evidence.json
 architect-mcp-tui launch-judge --json --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
 architect-mcp-tui launch-judge --public-summary --terminal-evidence linux-evidence.json --terminal-evidence windows-evidence.json
@@ -52,7 +64,9 @@ architect-mcp-tui evidence-index --json --require-go --repo tonycdr-prog/archite
 architect-mcp-tui launch-readiness --json --repo tonycdr-prog/architect-mcp --stack-from-pr 306 --blocker 136 --terminal-evidence-issue 136 --waive-blocker 136="maintainer accepted launch with platform QA waiver" --waive-terminal-evidence 136="maintainer accepted launch without manual Linux/Windows terminal evidence"
 ```
 
-`launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and external terminal evidence. It reports `go`, `conditional_go`, or `no_go`. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or missing Linux/Windows terminal evidence keep the result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, unsafe terminal evidence, failed external terminal QA, or a dirty git state with `--require-clean-git` produce `no_go`.
+`launch-judge` wraps the governance audit with terminal smoke, release-gate execution state, git worktree state, and external terminal evidence. It reports `go`, `conditional_go`, or `no_go`. The default scope is `public-cli`, preserving the historical behavior. Missing release-gate execution, skipped smoke, skipped MCP review, adapter warnings, dirty git state without `--require-clean-git`, or missing Linux/Windows terminal evidence keep a public CLI result at `conditional_go`. Governance failures, failed terminal smoke, failed release gate, unsafe terminal evidence, failed external terminal QA, or a dirty git state with `--require-clean-git` produce `no_go`.
+
+Use `--scope local-demo` or `--scope internal-v0` when the repository explicitly claims only local/internal readiness. In those scopes, missing or incomplete Linux/Windows terminal evidence is reported as future public CLI evidence instead of poisoning the current-scope verdict. Malformed, unsafe, duplicate, unsupported, or failed terminal evidence still fails closed in every scope. The JSON output includes both the current scope and `futureLaunchReadiness` so maintainers can distinguish the current milestone verdict from public launch gaps.
 
 `launch-stack` is the companion check for explicit or discovered PR stacks and external blocker issues. It uses GitHub CLI read-only lookups and reports `no_go` for failed checks, missing explicitly required checks, dirty/unknown merge states, requested PR changes, or review-thread lookup failures; `conditional_go` for draft PRs, required review, unknown review decisions, unresolved review threads, pending checks, unstable merge states without explicit required-check evidence, or open blockers; and `go` only when the supplied PRs are non-draft, green, review-compatible, have no unresolved review threads, contain every explicitly required check, and supplied blockers are closed. When review threads are unresolved, launch-stack reports public-safe routing details with thread URL, path, line, author, and outdated flag while omitting review bodies and diff hunks. A GitHub `UNSTABLE` merge state can be treated as ready only when GitHub also reports `mergeable=MERGEABLE`, no checks are failed or pending, and the caller supplied at least one explicit required check that is present and green. Use `--stack-from-pr <number>` to follow a stacked PR chain from the head PR back to the first non-PR base branch.
 
