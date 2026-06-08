@@ -7,6 +7,7 @@ use crate::config::TuiConfig;
 use crate::governance_audit::{GovernanceAuditOptions, build_governance_audit_report};
 use crate::governance_audit_report::{GovernanceAuditStatus, GovernanceMemoryProposal};
 use crate::governance_memory::{filter_memory_proposals, memory_proposals};
+use crate::governance_profile::GovernanceRepoProfile;
 
 #[tokio::test]
 async fn governance_audit_reports_read_only_release_and_memory_evidence() {
@@ -22,12 +23,17 @@ async fn governance_audit_reports_read_only_release_and_memory_evidence() {
             public_summary: false,
             skip_mcp: true,
             max_files: 100,
+            profile: None,
         },
     )
     .await;
 
     assert!(report.read_only);
     assert_ne!(report.status, GovernanceAuditStatus::Failed);
+    assert_eq!(
+        report.repo_profile.name,
+        GovernanceRepoProfile::ArchitectMcpSelf
+    );
     assert!(
         report
             .deterministic_gates
@@ -160,6 +166,7 @@ fn proposal(text: &str) -> GovernanceMemoryProposal {
 
 pub(crate) fn write_fixture_repo(root: &Path) {
     fs::create_dir_all(root.join("docs")).expect("docs");
+    fs::create_dir_all(root.join("crates/architect-tui")).expect("tui crate");
     fs::create_dir_all(root.join(".github/workflows")).expect("workflows");
     fs::write(
         root.join("AGENTS.md"),
@@ -192,6 +199,7 @@ pub(crate) fn write_fixture_repo(root: &Path) {
     fs::write(
         root.join("package.json"),
         r#"{
+          "name": "@tonycdr-prog/architect-mcp",
           "scripts": {
             "release:check": "npm run rust:check && npm run check:v10",
             "rust:check": "cargo test --workspace",

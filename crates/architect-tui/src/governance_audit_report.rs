@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::governance_profile::GovernanceRepoProfileSummary;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GovernanceAuditStatus {
@@ -23,6 +25,7 @@ pub struct GovernanceAuditReport {
     pub status: GovernanceAuditStatus,
     pub workspace: String,
     pub read_only: bool,
+    pub repo_profile: GovernanceRepoProfileSummary,
     pub categories: Vec<GovernanceAuditCategory>,
     pub deterministic_gates: Vec<GovernanceGateEvidence>,
     pub smoke_evidence: Vec<GovernanceGateEvidence>,
@@ -87,6 +90,10 @@ pub(crate) fn print_text_report(report: &GovernanceAuditReport) {
     println!("architect-mcp-tui governance audit: {:?}", report.status);
     println!("workspace: {}", report.workspace);
     println!("read-only: {}", report.read_only);
+    println!(
+        "repo profile: {:?} ({:?})",
+        report.repo_profile.name, report.repo_profile.confidence
+    );
     for category in &report.categories {
         println!(
             "- {}: {:?} - {}",

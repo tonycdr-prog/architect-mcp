@@ -5,6 +5,9 @@ use crate::governance_audit_public_summary::{
     GovernanceAuditPublicSummary,
 };
 use crate::governance_audit_report::{GovernanceAuditStatus, GovernanceFindingSeverity};
+use crate::governance_profile::{
+    GovernanceProfileConfidence, GovernanceRepoProfile, GovernanceRepoProfileSummary,
+};
 use crate::launch_judge_report::LaunchJudgeResult;
 use crate::launch_readiness_public_summary::{
     LaunchReadinessPublicStack, LaunchReadinessPublicStatusCounts, LaunchReadinessPublicSummary,
@@ -60,6 +63,11 @@ pub(crate) fn governance_summary(status: GovernanceAuditStatus) -> GovernanceAud
         schema_version: 1,
         status,
         read_only: true,
+        repo_profile: GovernanceRepoProfileSummary {
+            name: GovernanceRepoProfile::ArchitectMcpSelf,
+            confidence: GovernanceProfileConfidence::High,
+            signals: vec!["test fixture".to_string()],
+        },
         categories: vec![GovernanceAuditPublicCategory {
             name: "release".to_string(),
             status: GovernanceAuditStatus::PassedWithWarnings,

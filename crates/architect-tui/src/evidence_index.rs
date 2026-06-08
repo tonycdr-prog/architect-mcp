@@ -126,6 +126,7 @@ pub async fn build_evidence_index_report(
             public_summary: true,
             skip_mcp: options.skip_mcp,
             max_files: options.max_files,
+            profile: None,
         },
     )
     .await;

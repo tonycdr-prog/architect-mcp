@@ -6,6 +6,8 @@ use crate::governance_audit_report::{GovernanceAuditReport, GovernanceAuditStatu
 pub(crate) use crate::launch_judge_command::{
     LaunchJudgeCommandEvidence, skipped_command, tail_lines,
 };
+use crate::launch_judge_future::{FutureLaunchReadiness, future_launch_readiness};
+use crate::launch_scope::LaunchScopeSummary;
 use crate::smoke_types::{SmokeReport, SmokeStatus};
 pub use crate::terminal_evidence_environment::LaunchJudgeTerminalEvidenceEnvironment;
 
@@ -20,6 +22,7 @@ pub enum LaunchJudgeResult {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum LaunchJudgeCheckStatus {
+    Info,
     Passed,
     Warning,
     Failed,
@@ -69,6 +72,7 @@ pub struct LaunchJudgeTerminalEvidenceSummary {
 #[serde(rename_all = "camelCase")]
 pub struct LaunchJudgeReport {
     pub schema_version: u8,
+    pub scope: LaunchScopeSummary,
     pub result: LaunchJudgeResult,
     pub workspace: String,
     pub checks: Vec<LaunchJudgeCheck>,
@@ -79,17 +83,21 @@ pub struct LaunchJudgeReport {
     pub smoke: Option<SmokeReport>,
     pub release_check: LaunchJudgeCommandEvidence,
     pub terminal_evidence: LaunchJudgeTerminalEvidenceSummary,
+    pub future_launch_readiness: FutureLaunchReadiness,
 }
 
 pub(crate) fn build_report(
     workspace: &Path,
+    scope: LaunchScopeSummary,
     governance_audit: GovernanceAuditReport,
     smoke: Option<SmokeReport>,
     release_check: LaunchJudgeCommandEvidence,
     git_clean: LaunchJudgeCheck,
-    terminal_evidence: LaunchJudgeTerminalEvidenceSummary,
-    terminal_evidence_check: LaunchJudgeCheck,
+    terminal_evidence: (LaunchJudgeTerminalEvidenceSummary, LaunchJudgeCheck),
 ) -> LaunchJudgeReport {
+    let (terminal_evidence, terminal_evidence_check) = terminal_evidence;
+    let future_launch_readiness =
+        future_launch_readiness(scope.name, &terminal_evidence, &terminal_evidence_check);
     let mut checks = vec![
         governance_check(&governance_audit),
         smoke_check(smoke.as_ref()),
@@ -122,6 +130,7 @@ pub(crate) fn build_report(
 
     LaunchJudgeReport {
         schema_version: 1,
+        scope,
         result,
         workspace: workspace.display().to_string(),
         checks,
@@ -132,6 +141,7 @@ pub(crate) fn build_report(
         smoke,
         release_check,
         terminal_evidence,
+        future_launch_readiness,
     }
 }
 

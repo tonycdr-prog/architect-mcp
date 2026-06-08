@@ -3,6 +3,9 @@ use crate::governance_audit_report::{
     GovernanceAuditCategory, GovernanceAuditReport, GovernanceAuditStatus, GovernanceFinding,
     GovernanceFindingSeverity, GovernanceGateEvidence, GovernanceMcpReview,
 };
+use crate::governance_profile::{
+    GovernanceProfileConfidence, GovernanceRepoProfile, GovernanceRepoProfileSummary,
+};
 
 #[test]
 fn governance_public_summary_preserves_counts_without_raw_payloads() {
@@ -52,6 +55,11 @@ fn report_with_sensitive_details() -> GovernanceAuditReport {
         status: GovernanceAuditStatus::Failed,
         workspace: "/Users/example/private/repo".to_string(),
         read_only: true,
+        repo_profile: GovernanceRepoProfileSummary {
+            name: GovernanceRepoProfile::StaticWebApp,
+            confidence: GovernanceProfileConfidence::High,
+            signals: vec!["package.json private=true near /Users/example/private".to_string()],
+        },
         categories: vec![GovernanceAuditCategory {
             name: "security".to_string(),
             status: GovernanceAuditStatus::Failed,

@@ -69,10 +69,14 @@ mod governance_audit_public_summary;
 #[cfg(test)]
 mod governance_audit_public_summary_tests;
 mod governance_audit_report;
+mod governance_audit_static;
 mod governance_audit_support;
 #[cfg(test)]
 mod governance_audit_tests;
 mod governance_memory;
+pub mod governance_profile;
+#[cfg(test)]
+mod governance_profile_tests;
 mod governance_secret_scan;
 mod headless;
 mod headless_adapter;
@@ -108,12 +112,16 @@ mod launch_judge_evidence;
 #[cfg(test)]
 mod launch_judge_evidence_environment_tests;
 mod launch_judge_evidence_safety;
+mod launch_judge_evidence_validation;
 #[cfg(test)]
 mod launch_judge_evidence_validation_tests;
+mod launch_judge_future;
 mod launch_judge_public_summary;
 #[cfg(test)]
 mod launch_judge_public_summary_tests;
 mod launch_judge_report;
+#[cfg(test)]
+mod launch_judge_scope_tests;
 #[cfg(test)]
 mod launch_judge_tests;
 pub mod launch_readiness;
@@ -125,6 +133,7 @@ mod launch_readiness_public_summary_test_support;
 mod launch_readiness_public_summary_tests;
 #[cfg(test)]
 mod launch_readiness_tests;
+pub mod launch_scope;
 pub mod launch_stack;
 mod launch_stack_check_summary;
 pub mod launch_stack_discovery;

@@ -1,15 +1,20 @@
 use crate::governance_audit_report::{GovernanceAuditReport, GovernanceAuditStatus};
+use crate::governance_profile::{
+    GovernanceProfileConfidence, GovernanceRepoProfile, GovernanceRepoProfileSummary,
+};
 use crate::launch_judge_public_summary::build_public_summary_at;
 use crate::launch_judge_report::{
     LaunchJudgeCheckStatus, LaunchJudgeCommandEvidence, LaunchJudgeTerminalEvidenceEnvironment,
     LaunchJudgeTerminalEvidenceReport, LaunchJudgeTerminalEvidenceStatus,
     LaunchJudgeTerminalEvidenceSummary, build_report, check,
 };
+use crate::launch_scope::{LaunchScope, LaunchScopeSource, LaunchScopeSummary};
 
 #[test]
 fn public_summary_omits_workspace_and_raw_command_tails() {
     let report = build_report(
         std::path::Path::new("/Users/example/private/architect-mcp"),
+        scope_summary(LaunchScope::PublicCli),
         governance_report("/Users/example/private/architect-mcp"),
         None,
         LaunchJudgeCommandEvidence {
@@ -27,25 +32,28 @@ fn public_summary_omits_workspace_and_raw_command_tails() {
             "dirty workspace at /Users/example/private/architect-mcp with npm_SECRET token",
             Some("inspect /home/example/private before release"),
         ),
-        LaunchJudgeTerminalEvidenceSummary {
-            supplied: true,
-            source_path: Some("/Users/example/private/linux-evidence.json".to_string()),
-            reports: vec![LaunchJudgeTerminalEvidenceReport {
-                platform: "linux".to_string(),
-                status: LaunchJudgeTerminalEvidenceStatus::Passed,
-                environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
-                source: "issue #136 /Users/example/private".to_string(),
-                command_summary: "architect-mcp-tui passed from /home/example/private".to_string(),
-                collected_at: Some("2026-05-17".to_string()),
-                notes: Some("token npm_SECRET and C:/Users/example/cache omitted".to_string()),
-            }],
-            issues: vec!["manual Windows evidence missing at /home/example".to_string()],
-        },
-        check(
-            "external terminal evidence",
-            LaunchJudgeCheckStatus::Warning,
-            "terminal evidence incomplete at /Users/example/private",
-            Some("collect Windows evidence from C:/Users/example"),
+        (
+            LaunchJudgeTerminalEvidenceSummary {
+                supplied: true,
+                source_path: Some("/Users/example/private/linux-evidence.json".to_string()),
+                reports: vec![LaunchJudgeTerminalEvidenceReport {
+                    platform: "linux".to_string(),
+                    status: LaunchJudgeTerminalEvidenceStatus::Passed,
+                    environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
+                    source: "issue #136 /Users/example/private".to_string(),
+                    command_summary: "architect-mcp-tui passed from /home/example/private"
+                        .to_string(),
+                    collected_at: Some("2026-05-17".to_string()),
+                    notes: Some("token npm_SECRET and C:/Users/example/cache omitted".to_string()),
+                }],
+                issues: vec!["manual Windows evidence missing at /home/example".to_string()],
+            },
+            check(
+                "external terminal evidence",
+                LaunchJudgeCheckStatus::Warning,
+                "terminal evidence incomplete at /Users/example/private",
+                Some("collect Windows evidence from C:/Users/example"),
+            ),
         ),
     );
 
@@ -76,6 +84,7 @@ fn public_summary_omits_workspace_and_raw_command_tails() {
 fn public_summary_keeps_terminal_platform_statuses() {
     let report = build_report(
         std::path::Path::new("/tmp/workspace"),
+        scope_summary(LaunchScope::PublicCli),
         governance_report("/tmp/workspace"),
         None,
         LaunchJudgeCommandEvidence {
@@ -93,36 +102,40 @@ fn public_summary_keeps_terminal_platform_statuses() {
             "git worktree is clean",
             None,
         ),
-        LaunchJudgeTerminalEvidenceSummary {
-            supplied: true,
-            source_path: Some("linux-evidence.json, windows-evidence.json".to_string()),
-            reports: vec![
-                LaunchJudgeTerminalEvidenceReport {
-                    platform: "linux".to_string(),
-                    status: LaunchJudgeTerminalEvidenceStatus::Passed,
-                    environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
-                    source: "issue #136 linux report".to_string(),
-                    command_summary: "terminal evidence passed on linux".to_string(),
-                    collected_at: None,
-                    notes: None,
-                },
-                LaunchJudgeTerminalEvidenceReport {
-                    platform: "windows".to_string(),
-                    status: LaunchJudgeTerminalEvidenceStatus::Passed,
-                    environment: Some(LaunchJudgeTerminalEvidenceEnvironment::VmOrCloudTerminal),
-                    source: "issue #136 windows report".to_string(),
-                    command_summary: "terminal evidence passed on windows".to_string(),
-                    collected_at: None,
-                    notes: None,
-                },
-            ],
-            issues: Vec::new(),
-        },
-        check(
-            "external terminal evidence",
-            LaunchJudgeCheckStatus::Passed,
-            "public-safe Linux and Windows terminal evidence was supplied",
-            None,
+        (
+            LaunchJudgeTerminalEvidenceSummary {
+                supplied: true,
+                source_path: Some("linux-evidence.json, windows-evidence.json".to_string()),
+                reports: vec![
+                    LaunchJudgeTerminalEvidenceReport {
+                        platform: "linux".to_string(),
+                        status: LaunchJudgeTerminalEvidenceStatus::Passed,
+                        environment: Some(LaunchJudgeTerminalEvidenceEnvironment::LocalTerminal),
+                        source: "issue #136 linux report".to_string(),
+                        command_summary: "terminal evidence passed on linux".to_string(),
+                        collected_at: None,
+                        notes: None,
+                    },
+                    LaunchJudgeTerminalEvidenceReport {
+                        platform: "windows".to_string(),
+                        status: LaunchJudgeTerminalEvidenceStatus::Passed,
+                        environment: Some(
+                            LaunchJudgeTerminalEvidenceEnvironment::VmOrCloudTerminal,
+                        ),
+                        source: "issue #136 windows report".to_string(),
+                        command_summary: "terminal evidence passed on windows".to_string(),
+                        collected_at: None,
+                        notes: None,
+                    },
+                ],
+                issues: Vec::new(),
+            },
+            check(
+                "external terminal evidence",
+                LaunchJudgeCheckStatus::Passed,
+                "public-safe Linux and Windows terminal evidence was supplied",
+                None,
+            ),
         ),
     );
 
@@ -153,11 +166,24 @@ fn governance_report(workspace: &str) -> GovernanceAuditReport {
         status: GovernanceAuditStatus::Passed,
         workspace: workspace.to_string(),
         read_only: true,
+        repo_profile: GovernanceRepoProfileSummary {
+            name: GovernanceRepoProfile::ArchitectMcpSelf,
+            confidence: GovernanceProfileConfidence::High,
+            signals: vec!["test fixture".to_string()],
+        },
         categories: Vec::new(),
         deterministic_gates: Vec::new(),
         smoke_evidence: Vec::new(),
         memory_proposals: Vec::new(),
         mcp_review: None,
         findings: Vec::new(),
+    }
+}
+
+fn scope_summary(name: LaunchScope) -> LaunchScopeSummary {
+    LaunchScopeSummary {
+        name,
+        resolution: LaunchScopeSource::Supplied,
+        signals: vec!["test fixture".to_string()],
     }
 }
