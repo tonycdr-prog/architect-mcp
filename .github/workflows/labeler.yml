@@ -13,6 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # This workflow uses pull_request_target only for labeling. Do not checkout or run PR code here.
-      - uses: actions/labeler@v6
+      - uses: actions/labeler@v7
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
